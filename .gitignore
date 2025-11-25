@@ -1,0 +1,43 @@
+# IDE & System
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs
+*.njsproj
+*.sln
+*.swp
+terminals/
+
+# Environment & Secrets (CRITICAL)
+.env
+.env.*
+!env.example
+esp32/include/secrets.h
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# PlatformIO (ESP32)
+.pio/
+.pioenvs/
+.piolibdeps/
+*.bin
+*.elf
+
+# Nuxt (Frontend)
+.nuxt/
+.output/
+dist/
+stats.html
+
+# Docker Persistence
+docker-data/
+
+# Mosquitto
+mosquitto/data/
+mosquitto/log/
+mosquitto/passwd
