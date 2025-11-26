@@ -58,8 +58,8 @@ services:
     environment:
       - HOST=0.0.0.0
       - PORT=3000
-      # On pointe directement sur le backend pour le socket
-      - SOCKET_URL=http://localhost:3001 
+      # On pointe sur la racine (Nginx gérera le proxy /socket.io)
+      - SOCKET_URL=/
       - API_URL=http://backend:3001
     networks:
       - iot_net

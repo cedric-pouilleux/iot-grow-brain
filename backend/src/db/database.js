@@ -7,14 +7,10 @@ async function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)
 
 async function initTimescale() {
     let connected = false;
-        // 1. Connexion système pour créer la DB si nécessaire
+    // 1. Connexion système pour créer la DB si nécessaire
     while (!connected) {
         console.log(`🔄 Tentative de connexion BDD (${config.db.host}:${config.db.port})...`);
-        const sysClient = new Client({ 
-            ...config.db, 
-            database: 'postgres',
-            connectionTimeoutMillis: 10000 
-        });
+        const sysClient = new Client({ ...config.db, database: 'postgres' }); // Connexion à postgres par défaut
         try {
             await sysClient.connect();
             console.log("✅ Connexion système établie.");
@@ -33,7 +29,14 @@ async function initTimescale() {
     }
 
     // 2. Connexion à la DB cible et initialisation du schéma
-    const newPool = new Pool(config.db);
+        // On écrase explicitement connectionTimeoutMillis ici pour le pool opérationnel
+        // On réduit la taille max du pool pour éviter de spammer la DB
+        const newPool = new Pool({
+            ...config.db,
+            max: 5, // RÉDUIT de 20 à 5 pour éviter la contention
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 2000, // Timeout très court pour fail-fast
+        });
     try {
         const client = await newPool.connect();
         console.log(`✅ Connecté à la base '${config.db.database}'.`);

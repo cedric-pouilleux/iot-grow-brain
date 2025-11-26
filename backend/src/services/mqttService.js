@@ -49,17 +49,29 @@ function initMqtt(io) {
             });
         }
 
-        // 2. Sauvegarde DB
+        // 2. Sauvegarde DB avec régulation de débit
+        // On stocke les messages et on les insère par lot ou on limite la fréquence
+        // Pour l'instant, simple limite :
         const pool = getPool();
-        if (pool) {
-            try {
-                await pool.query(
+        if (pool && pool.totalCount < 5 && pool.waitingCount === 0) {
+            pool.connect().then(client => {
+                return client.query(
                     `INSERT INTO measurements (time, topic, value, metadata) VALUES (NOW(), $1, $2, $3)`,
                     [topic, value, metadata]
-                );
-            } catch (err) {
-                console.error('❌ Erreur sauvegarde DB:', err.message);
-            }
+                ).then(() => {
+                    client.release();
+                }).catch(err => {
+                    client.release();
+                    // On loggue l'erreur mais on ne bloque pas
+                    if (err.message.includes('timeout')) {
+                        console.warn('⚠️ DB Timeout sur INSERT (ignoring)'); 
+                    } else {
+                        console.error('❌ Erreur sauvegarde DB:', err.message);
+                    }
+                });
+            }).catch(e => {
+                 // Mode silencieux si saturé
+            });
         }
     });
 

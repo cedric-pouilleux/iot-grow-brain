@@ -15,7 +15,9 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      socketUrl: process.env.SOCKET_URL || 'http://localhost:3001'
+      // En prod, on utilise SOCKET_URL=/ pour passer par Nginx (port 80)
+      // En dev, on peut surcharger avec http://localhost:3001
+      socketUrl: process.env.SOCKET_URL || '/'
     }
   },
   
