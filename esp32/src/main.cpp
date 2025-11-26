@@ -2,36 +2,23 @@
 #include <Wire.h>
 #include "DisplayManager.h"
 #include "NetworkManager.h"
-#include "secrets.h" // <-- Fichier contenant les mots de passe (ignoré par Git)
+#include "OtaManager.h"
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
 #include <DHT_U.h>
 
 #define LCD_ADDR    0x27
-#define MHZ_RX_PIN  16  // RX ESP32 (reçoit depuis T du capteur)
-#define MHZ_TX_PIN  17  // TX ESP32 (envoie vers R du capteur)
-#define DHT_PIN     4   // DATA DHT22
+#define MHZ_RX_PIN  16
+#define MHZ_TX_PIN  17
+#define DHT_PIN     4
 #define DHT_TYPE    DHT22
-
-// Les identifiants WIFI et MQTT sont maintenant dans secrets.h
-
-#define MQTT_TOPIC      "maison/salon/co2"
-#define MQTT_TOPIC_TEMP "maison/salon/temperature"
-#define MQTT_TOPIC_HUM  "maison/salon/humidity"
 
 DisplayManager display(LCD_ADDR);
 HardwareSerial co2Serial(2);
 DHT_Unified dht(DHT_PIN, DHT_TYPE);
+OtaManager ota;
 
-NetworkManager network(
-    WIFI_SSID,
-    WIFI_PASSWORD,
-    MQTT_SERVER,
-    MQTT_PORT,
-    MQTT_USER,
-    MQTT_PASSWORD,
-    MQTT_TOPIC
-);
+NetworkManager network;
 
 unsigned long lastReadTime = 0;
 unsigned long stabilizationStartTime = 0;
@@ -71,7 +58,14 @@ void initHardware() {
     
     co2Serial.begin(9600, SERIAL_8N1, MHZ_RX_PIN, MHZ_TX_PIN);
     dht.begin();
+    
+    display.showMessage("WiFi...", "Connexion...", "Attente Portail");
     network.begin();
+
+    String mac = WiFi.macAddress();
+    mac.replace(":", "");
+    String hostname = "esp32-" + mac.substring(6); 
+    ota.begin(hostname.c_str());
 }
 
 void configureSensor() {
@@ -80,16 +74,8 @@ void configureSensor() {
 }
 
 void runWarmupSequence() {
-    display.showMessage("Prechauffage...", "Connexion WiFi...");
-
-    for (int i = 5; i > 0; i--) { // Court pour le test
-        network.loop();
-        char buffer[20];
-        sprintf(buffer, "%d sec", i);
-        const char* wifiStatus = network.isWifiConnected() ? "WiFi: OK" : "WiFi: ...";
-        display.showMessage("Prechauffage...", wifiStatus, buffer);
-        delay(1000);
-    }
+    display.showMessage("Prechauffage...", "Systeme OK");
+    delay(2000);
 }
 
 void processSensorData(int ppm) {
@@ -98,7 +84,6 @@ void processSensorData(int ppm) {
         stabilizationStartTime = millis();
     }
 
-    // Lecture DHT
     sensors_event_t event;
     float temperature = 0.0;
     float humidity = 0.0;
@@ -115,17 +100,90 @@ void processSensorData(int ppm) {
         humidity = event.relative_humidity;
     }
 
-    // Affichage LCD
     display.updateValues(ppm); 
 
-    // Publication MQTT
     network.publishCO2(ppm);
     
     if (dhtOk) {
-        network.publishValue(MQTT_TOPIC_TEMP, temperature);
-        network.publishValue(MQTT_TOPIC_HUM, humidity);
+        network.publishValue("/temperature", temperature);
+        network.publishValue("/humidity", humidity);
         Serial.printf("Temp: %.1f C | Hum: %.1f %% \n", temperature, humidity);
     }
+
+    sensor_t sensor;
+    dht.temperature().getSensor(&sensor);
+
+    // Status étendu avec TOUS les capteurs (présents et futurs)
+    char statusMsg[2048]; // Buffer augmenté
+    snprintf(statusMsg, sizeof(statusMsg), 
+        "{"
+            "\"type\":\"%s\","
+            "\"system\":{"
+                "\"ip\":\"%s\","
+                "\"mac\":\"%s\","
+                "\"rssi\":%ld,"
+                "\"uptime\":%lu,"
+                "\"chip\":{\"model\":\"%s\",\"rev\":%d,\"flash_kb\":%d}"
+            "},"
+            "\"sensors\":{"
+                "\"co2\":{"
+                    "\"status\":\"ok\","
+                    "\"value\":%d,"
+                    "\"unit\":\"ppm\","
+                    "\"model\":\"MH-Z19B\""
+                "},"
+                "\"temperature\":{"
+                    "\"status\":\"%s\","
+                    "\"value\":%.1f,"
+                    "\"unit\":\"°C\","
+                    "\"model\":\"%s\""
+                "},"
+                "\"humidity\":{"
+                    "\"status\":\"%s\","
+                    "\"value\":%.1f,"
+                    "\"unit\":\"%%\","
+                    "\"model\":\"%s\""
+                "},"
+                "\"pm25\":{"
+                    "\"status\":\"missing\","
+                    "\"value\":null,"
+                    "\"unit\":\"µg/m³\","
+                    "\"model\":\"PMS5003\""
+                "},"
+                "\"voc\":{"
+                    "\"status\":\"missing\","
+                    "\"value\":null,"
+                    "\"unit\":\"ppb\","
+                    "\"model\":\"SGP30\""
+                "},"
+                "\"pressure\":{"
+                    "\"status\":\"missing\","
+                    "\"value\":null,"
+                    "\"unit\":\"hPa\","
+                    "\"model\":\"BMP280\""
+                "}"
+            "}"
+        "}",
+        // Type
+        network.getModuleType(),
+        // System
+        network.getIP().toString().c_str(),
+        WiFi.macAddress().c_str(),
+        network.getRSSI(),
+        millis() / 1000,
+        ESP.getChipModel(),
+        ESP.getChipRevision(),
+        ESP.getFlashChipSize() / 1024,
+        // Values
+        ppm,
+        dhtOk ? "ok" : "error",
+        temperature,
+        sensor.name,
+        dhtOk ? "ok" : "error",
+        humidity,
+        sensor.name
+    );
+    network.publishMessage("/status", statusMsg);
 
     if (firstValidPpm > 0) {
         unsigned long elapsed = (millis() - stabilizationStartTime) / 1000;
@@ -149,6 +207,7 @@ void setup() {
 
 void loop() {
     network.loop();
+    ota.loop();
     unsigned long now = millis();
     if (now - lastReadTime >= 60000) {
         lastReadTime = now;

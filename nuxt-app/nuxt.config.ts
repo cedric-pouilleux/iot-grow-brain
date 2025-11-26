@@ -3,10 +3,20 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
 
-  modules: ['@nuxtjs/tailwindcss'],
+  modules: ['@nuxtjs/tailwindcss', '@nuxt/icon'],
 
-  future: {
-    compatibilityVersion: 4,
+  icon: {
+    serverBundle: 'local',
+    clientBundle: {
+      scan: true,
+      includeCustomCollections: true, 
+    }, 
+  },
+
+  runtimeConfig: {
+    public: {
+      socketUrl: process.env.SOCKET_URL || 'http://localhost:3001'
+    }
   },
   
   typescript: {
@@ -16,6 +26,6 @@ export default defineNuxtConfig({
 
   // Proxy interne pour éviter les problèmes CORS et Docker Network
   routeRules: {
-    '/api/**': { proxy: 'http://backend:3001/api/**' }
+    '/api/**': { proxy: `${process.env.API_URL || 'http://backend:3001'}/api/**` }
   }
 })

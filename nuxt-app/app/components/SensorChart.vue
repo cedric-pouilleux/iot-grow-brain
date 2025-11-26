@@ -1,7 +1,10 @@
 <template>
   <div class="bg-white rounded-2xl shadow-sm p-6 flex flex-col min-h-[300px] border border-gray-100">
     <div class="flex justify-between items-center mb-4">
-      <h2 :class="['text-lg font-bold', titleColorClass]">{{ title }} (24h)</h2>
+      <div class="flex items-baseline gap-3">
+        <h2 :class="['text-lg font-bold', titleColorClass]">{{ title }}</h2>
+        <span v-if="timeAgo" class="text-xs text-gray-400 font-normal bg-gray-50 px-2 py-0.5 rounded-full transition-all duration-500">{{ timeAgo }}</span>
+      </div>
       <div v-if="loading" class="text-gray-400 text-sm animate-pulse">Mise à jour...</div>
     </div>
 
@@ -36,7 +39,6 @@ import {
   Filler
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
-// Adaptateur de date requis pour l'échelle temporelle
 import 'chartjs-adapter-date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -72,14 +74,43 @@ const props = defineProps({
     default: 'text-gray-800'
   },
   yMin: Number,
-  yMax: Number
+  yMax: Number,
+  lastUpdate: [Date, String]
+})
+
+const timeAgo = ref('')
+let timer
+
+const updateTimeAgo = () => {
+   if (!props.lastUpdate) { timeAgo.value = ''; return }
+   const d = new Date(props.lastUpdate)
+   const now = new Date()
+   let diff = Math.floor((now - d) / 1000)
+   
+   if (diff < 0) diff = 0
+   
+   if (diff < 5) timeAgo.value = `À l'instant`
+   else if (diff < 60) timeAgo.value = `Il y a ${diff} s`
+   else if (diff < 3600) timeAgo.value = `Il y a ${Math.floor(diff/60)} min`
+   else if (diff < 86400) timeAgo.value = `Il y a ${Math.floor(diff/3600)} h`
+   else timeAgo.value = `+ de 1 jour`
+}
+
+watch(() => props.lastUpdate, updateTimeAgo)
+
+onMounted(() => { 
+    updateTimeAgo()
+    timer = setInterval(updateTimeAgo, 1000) 
+})
+
+onUnmounted(() => {
+    if(timer) clearInterval(timer)
 })
 
 const chartData = computed(() => {
   if (!props.data || props.data.length === 0) return null
 
   return {
-    // Pas de labels globaux en mode Time Scale, les points portent leur X
     datasets: [
       {
         label: props.title,
@@ -92,13 +123,12 @@ const chartData = computed(() => {
         },
         borderColor: props.color,
         borderWidth: 2,
-        // Format { x: Date, y: Number }
         data: props.data.map(m => ({ x: m.time, y: m.value })),
-        tension: 0.2, // Légèrement moins courbe pour plus de précision
+        tension: 0.2, 
         fill: true,
         pointRadius: 0,
         pointHoverRadius: 6,
-        spanGaps: false // Important: ne pas relier les points trop éloignés si null
+        spanGaps: false 
       }
     ]
   }
@@ -110,7 +140,7 @@ const chartOptions = computed(() => ({
   interaction: { intersect: false, mode: 'index' },
   scales: {
     x: {
-      type: 'time', // Mode temporel activé
+      type: 'time', 
       adapters: { 
         date: { locale: fr } 
       },
