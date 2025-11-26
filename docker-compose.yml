@@ -4,9 +4,9 @@ services:
     image: timescale/timescaledb:latest-pg14
     restart: always
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=iot_data
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
@@ -42,12 +42,12 @@ services:
       mosquitto:
         condition: service_started
     environment:
-      - DB_HOST=${DB_HOST}
-      - DB_USER=${POSTGRES_USER}
-      - DB_PASSWORD=${POSTGRES_PASSWORD}
-      - DB_NAME=${POSTGRES_DB}
-      - MQTT_BROKER=${MQTT_BROKER_URL}
-      - API_PORT=${API_PORT}
+      - DB_HOST=timescaledb
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=iot_data
+      - MQTT_BROKER=mqtt://mosquitto
+      - API_PORT=3001
     networks:
       - iot_net
 
@@ -56,11 +56,11 @@ services:
     build: ./nuxt-app
     restart: always
     environment:
-      - HOST=${NUXT_HOST}
-      - PORT=${NUXT_PORT}
+      - HOST=0.0.0.0
+      - PORT=3000
       # On pointe directement sur le backend pour le socket
-      - SOCKET_URL=${NUXT_SOCKET_URL}
-      - API_URL=${NUXT_API_URL}
+      - SOCKET_URL=http://localhost:3001 
+      - API_URL=http://backend:3001
     networks:
       - iot_net
 

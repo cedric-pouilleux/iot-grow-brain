@@ -7,10 +7,14 @@ async function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)
 
 async function initTimescale() {
     let connected = false;
-    // 1. Connexion système pour créer la DB si nécessaire
+        // 1. Connexion système pour créer la DB si nécessaire
     while (!connected) {
         console.log(`🔄 Tentative de connexion BDD (${config.db.host}:${config.db.port})...`);
-        const sysClient = new Client({ ...config.db, database: 'postgres' }); // Connexion à postgres par défaut
+        const sysClient = new Client({ 
+            ...config.db, 
+            database: 'postgres',
+            connectionTimeoutMillis: 10000 
+        });
         try {
             await sysClient.connect();
             console.log("✅ Connexion système établie.");

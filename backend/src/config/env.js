@@ -11,7 +11,10 @@ module.exports = {
         port: process.env.DB_PORT || 5432,
         database: process.env.DB_NAME || 'iot_data',
         ssl: false,
-        connectionTimeoutMillis: 2000,
+        connectionTimeoutMillis: 30000, // 30s pour être très large
+        idleTimeoutMillis: 30000,
+        keepAlive: true,
+        allowExitOnIdle: false
     },
     api: {
         port: process.env.API_PORT || 3001,
