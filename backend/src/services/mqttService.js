@@ -5,6 +5,49 @@ const { getPool } = require('../db/database');
 let mqttClient = null;
 let ioInstance = null;
 
+// --- BUFFERING SYSTEM ---
+// Stocke les messages en mémoire avant insertion groupée pour soulager la DB
+let messageBuffer = []; 
+const BATCH_SIZE = 100; // Déclenche l'insertion si on atteint 100 messages
+const FLUSH_INTERVAL = 5000; // Déclenche l'insertion toutes les 5 secondes max
+
+// Fonction pour vider le buffer et insérer en lot (Batch Insert)
+async function flushBuffer() {
+    if (messageBuffer.length === 0) return;
+
+    // On récupère tout le contenu actuel du buffer et on le vide atomiquement
+    // Cela évite les conflits si de nouveaux messages arrivent pendant l'insertion
+    const batch = [...messageBuffer];
+    messageBuffer = []; 
+
+    const pool = getPool();
+    if (!pool) return;
+
+    try {
+        // Construction de la requête SQL optimisée pour l'insertion multiple
+        // INSERT INTO measurements ... VALUES ($1, $2, $3, $4), ($5, $6, $7, $8), ...
+        const values = [];
+        const placeholders = batch.map((msg, index) => {
+            const i = index * 4; // 4 paramètres par ligne
+            values.push(new Date(), msg.topic, msg.value, msg.metadata); // NOW() calculé ici par JS
+            return `($${i+1}, $${i+2}, $${i+3}, $${i+4})`;
+        }).join(', ');
+
+        const query = `INSERT INTO measurements (time, topic, value, metadata) VALUES ${placeholders}`;
+        
+        await pool.query(query, values);
+        // console.log(`📦 Batch inséré : ${batch.length} messages`);
+
+    } catch (err) {
+        console.error('❌ Erreur Batch Insert:', err.message);
+        // Optionnel : En cas d'erreur critique, on pourrait remettre dans le buffer, 
+        // mais ici on préfère perdre le lot plutôt que de bloquer indéfiniment.
+    }
+}
+
+// Timer régulier pour vider le buffer même s'il n'est pas plein
+setInterval(flushBuffer, FLUSH_INTERVAL);
+
 function initMqtt(io) {
     ioInstance = io;
     console.log(`Connexion au broker MQTT ${config.mqtt.broker}...`);
@@ -49,28 +92,15 @@ function initMqtt(io) {
             });
         }
 
-        // 2. Sauvegarde DB
-        
-        const pool = getPool();
-        if (pool && pool.totalCount < 5 && pool.waitingCount === 0) {
-            pool.connect().then(client => {
-                return client.query(
-                    `INSERT INTO measurements (time, topic, value, metadata) VALUES (NOW(), $1, $2, $3)`,
-                    [topic, value, metadata]
-                ).then(() => {
-                    client.release();
-                }).catch(err => {
-                    client.release();
-                    // On loggue l'erreur mais on ne bloque pas
-                    if (err.message.includes('timeout')) {
-                        console.warn('⚠️ DB Timeout sur INSERT (ignoring)'); 
-                    } else {
-                        console.error('❌ Erreur sauvegarde DB:', err.message);
-                    }
-                });
-            }).catch(e => {
-                 // Mode silencieux si saturé
-            });
+        // 2. Sauvegarde DB (Mise en Buffer)
+        // Au lieu d'insérer tout de suite, on pousse dans le buffer.
+        // Le système de Batch traitera ça plus tard.
+        // C'est non-bloquant et encaisse les pics de charge (flood).
+        messageBuffer.push({ topic, value, metadata });
+
+        // Si le buffer est plein, on vide tout de suite sans attendre le timer
+        if (messageBuffer.length >= BATCH_SIZE) {
+            flushBuffer();
         }
     });
 
