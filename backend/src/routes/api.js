@@ -68,22 +68,27 @@ router.get('/dashboard', async (req, res) => {
         );
 
         let historyQuery;
+        // Pour les graphiques > 7 jours, on utilise la vue horaire (déjà lissée)
         if (days > 7) {
             historyQuery = pool.query(
-                `SELECT bucket as time, topic, value 
+                `SELECT bucket as time, topic, AVG(value) as value 
                  FROM measurements_hourly 
                  WHERE topic LIKE $1 || '/%' 
                  AND bucket > NOW() - ($2 || ' days')::interval
+                 GROUP BY bucket, topic
                  ORDER BY bucket DESC`,
                 [module, days]
             );
         } else {
+            // Pour les graphiques récents, on lisse à la minute avec time_bucket
+            // Cela aligne tous les points (12:00, 12:01, 12:02)
             historyQuery = pool.query(
-                `SELECT time, topic, value 
+                `SELECT time_bucket('1 minute', time) as time, topic, AVG(value) as value
                  FROM measurements 
                  WHERE topic LIKE $1 || '/%' 
                  AND time > NOW() - ($2 || ' days')::interval
                  AND value IS NOT NULL
+                 GROUP BY time, topic
                  ORDER BY time DESC 
                  LIMIT $3`,
                 [module, days, limit]
