@@ -228,23 +228,14 @@ const getSensorHistory = (type) => {
 }
 
 // --- Initialization ---
-const { data: modulesList } = await useFetch('/api/modules', { server: false })
+const modulesList = ref(null)
 
-watchEffect(() => {
-    if (modulesList.value) {
-        modules.value = modulesList.value
-        if (modules.value.length > 0 && !selectedModuleId.value) {
-            selectedModuleId.value = modules.value[0].id
-        }
-    }
-})
-
-// Fetch dashboard data when module changes
-watch(selectedModuleId, async (newModuleId) => {
-  if (!newModuleId) return
+// Fetch dashboard data when module changes (côté client uniquement)
+const loadDashboard = async (moduleId) => {
+  if (!moduleId) return
   
   try {
-    const dashboardData = await $fetch(`/api/dashboard?module=${newModuleId}&days=1&_t=${Date.now()}`)
+    const dashboardData = await $fetch(`/api/dashboard?module=${moduleId}&days=1&_t=${Date.now()}`)
     deviceStatus.value = dashboardData.status
     
     const process = (arr) => {
@@ -260,12 +251,32 @@ watch(selectedModuleId, async (newModuleId) => {
   } catch (e) {
     console.error("Erreur fetch dashboard:", e)
   }
-}, { immediate: true })
+}
+
+watch(selectedModuleId, (newModuleId) => loadDashboard(newModuleId))
 
 let socket
 const config = useRuntimeConfig()
 
-onMounted(() => {
+onMounted(async () => {
+  // Test 1: Réactiver uniquement l'appel modules
+  try {
+    const data = await $fetch('/api/modules')
+    modulesList.value = data
+    modules.value = data
+    if (modules.value.length > 0 && !selectedModuleId.value) {
+      selectedModuleId.value = modules.value[0].id
+    }
+  } catch (e) {
+    console.error("Erreur fetch modules:", e)
+  }
+
+  // Test 2: Réactiver le dashboard
+  if (selectedModuleId.value) {
+    loadDashboard(selectedModuleId.value)
+  }
+
+  // Test 3: Réactiver socket.io
   socket = io(config.public.socketUrl, { transports: ['websocket'], upgrade: false })
 
   socket.on('mqtt:data', (message) => {
