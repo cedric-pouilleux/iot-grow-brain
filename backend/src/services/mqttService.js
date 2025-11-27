@@ -5,6 +5,9 @@ const { getPool } = require('../db/database');
 let mqttClient = null;
 let ioInstance = null;
 
+// --- OPTIMIZATION STORAGE ---
+const lastSavedTime = new Map(); // Garde en mémoire le dernier timestamp d'enregistrement par topic
+
 // --- BUFFERING SYSTEM ---
 // Stocke les messages en mémoire avant insertion groupée pour soulager la DB
 let messageBuffer = []; 
@@ -92,15 +95,19 @@ function initMqtt(io) {
             });
         }
 
-        // 2. Sauvegarde DB (Mise en Buffer)
-        // Au lieu d'insérer tout de suite, on pousse dans le buffer.
-        // Le système de Batch traitera ça plus tard.
-        // C'est non-bloquant et encaisse les pics de charge (flood).
-        messageBuffer.push({ topic, value, metadata });
+        // 2. Sauvegarde DB (Mise en Buffer avec Filtre 1 minute)
+        // On ne stocke en base qu'une seule mesure par minute pour économiser l'espace
+        const now = Date.now();
+        const lastTime = lastSavedTime.get(topic) || 0;
 
-        // Si le buffer est plein, on vide tout de suite sans attendre le timer
-        if (messageBuffer.length >= BATCH_SIZE) {
-            flushBuffer();
+        if (now - lastTime >= 60000) { // 60000ms = 1 minute
+            messageBuffer.push({ topic, value, metadata });
+            lastSavedTime.set(topic, now);
+
+            // Si le buffer est plein, on vide tout de suite
+            if (messageBuffer.length >= BATCH_SIZE) {
+                flushBuffer();
+            }
         }
     });
 
