@@ -49,9 +49,8 @@ function initMqtt(io) {
             });
         }
 
-        // 2. Sauvegarde DB avec régulation de débit
-        // On stocke les messages et on les insère par lot ou on limite la fréquence
-        // Pour l'instant, simple limite :
+        // 2. Sauvegarde DB
+        
         const pool = getPool();
         if (pool && pool.totalCount < 5 && pool.waitingCount === 0) {
             pool.connect().then(client => {
