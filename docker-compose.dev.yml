@@ -23,7 +23,8 @@ services:
       - "1883:1883"      # Port MQTT standard
       - "9001:9001"      # Websockets
     volumes:
-      - ./mosquitto/config:/mosquitto/config
+      # On monte le fichier de conf DEV spécifique (avec bridge)
+      - ./mosquitto/config/mosquitto.dev.conf:/mosquitto/config/mosquitto.conf
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
 
