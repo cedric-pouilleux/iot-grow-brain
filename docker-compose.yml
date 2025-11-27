@@ -43,11 +43,11 @@ services:
         condition: service_started
     environment:
       - DB_HOST=timescaledb
-      - DB_USER=postgres
-      - DB_PASSWORD=password
-      - DB_NAME=iot_data
-      - MQTT_BROKER=mqtt://mosquitto
-      - API_PORT=3001
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - MQTT_BROKER=${MQTT_BROKER_URL}
+      - API_PORT=${API_PORT}
     networks:
       - iot_net
 
@@ -59,8 +59,8 @@ services:
       - HOST=0.0.0.0
       - PORT=3000
       # On pointe sur la racine (Nginx gérera le proxy /socket.io)
-      - SOCKET_URL=/
-      - API_URL=http://backend:3001
+      - SOCKET_URL=${SOCKET_URL}
+      - API_URL=${API_URL}
     networks:
       - iot_net
 

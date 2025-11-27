@@ -16,18 +16,19 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       // En prod, on utilise SOCKET_URL=/ pour passer par Nginx (port 80)
-      // En dev, on peut surcharger avec http://localhost:3001
+      // En dev, on peut surcharger avec http://localhost:3001 via NUXT_PUBLIC_SOCKET_URL
       socketUrl: process.env.SOCKET_URL || '/'
     }
   },
   
   typescript: {
-    strict: false, // On relâche la pression sur le typage strict pour le build Docker
+    strict: false, 
     typeCheck: false
   },
 
   // Proxy interne pour éviter les problèmes CORS et Docker Network
   routeRules: {
-    '/api/**': { proxy: `${process.env.API_URL || 'http://backend:3001'}/api/**` }
+    // En dev local sans docker, fallback sur localhost:3001
+    '/api/**': { proxy: `${process.env.API_URL || 'http://localhost:3001'}/api/**` }
   }
 })
