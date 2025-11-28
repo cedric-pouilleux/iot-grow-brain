@@ -5,6 +5,7 @@ const { Server } = require('socket.io');
 const config = require('./src/config/env');
 const { initTimescale } = require('./src/db/database');
 const { initMqtt } = require('./src/services/mqttService');
+const { recordSystemMetrics } = require('./src/services/metricsService');
 const apiRoutes = require('./src/routes/api');
 
 // --- Initialisation Express & Socket.io ---
@@ -40,7 +41,13 @@ async function start() {
         // 2. MQTT (nécessite l'instance socket.io pour le broadcast)
         initMqtt(io);
 
-        // 3. Serveur HTTP
+        // 3. Enregistrement périodique des métriques système (toutes les heures)
+        // Enregistre immédiatement au démarrage
+        recordSystemMetrics();
+        // Puis toutes les heures
+        setInterval(recordSystemMetrics, 3600000); // 1 heure = 3600000ms
+
+        // 4. Serveur HTTP
         server.listen(config.api.port, () => {
             console.log(`🌐 API & WebSocket démarrés sur http://localhost:${config.api.port}`);
         });

@@ -41,7 +41,7 @@ async function initTimescale() {
         const client = await newPool.connect();
         console.log(`✅ Connecté à la base '${config.db.database}'.`);
         
-        // Création table
+        // Création table measurements
         await client.query(`
             CREATE TABLE IF NOT EXISTS measurements (
                 time TIMESTAMPTZ NOT NULL,
@@ -49,6 +49,37 @@ async function initTimescale() {
                 value DOUBLE PRECISION NULL,
                 metadata JSONB
             );
+        `);
+
+        // Création table pour l'historique des métriques système
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS system_metrics (
+                time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                code_size_kb INTEGER,
+                db_size_bytes BIGINT,
+                PRIMARY KEY (time)
+            );
+        `);
+        
+        // Index pour les requêtes temporelles
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_system_metrics_time 
+            ON system_metrics(time DESC);
+        `);
+
+        // Création table pour les infos hardware (écrasée à chaque mise à jour, pas d'historique)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS device_status (
+                module_id TEXT PRIMARY KEY,
+                status_data JSONB NOT NULL,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        `);
+        
+        // Index pour les requêtes par module
+        await client.query(`
+            CREATE INDEX IF NOT EXISTS idx_device_status_module 
+            ON device_status(module_id);
         `);
 
         // Setup TimescaleDB

@@ -1,9 +1,9 @@
 <template>
-  <div class="relative p-3 rounded-lg transition-all group/card" :class="containerClass">
+  <div class="relative rounded-lg transition-all group/card" :class="containerClass">
     
     <!-- Header: Label & Info Icon -->
-    <div class="flex justify-between items-start mb-1">
-      <div class="text-xs font-bold uppercase text-gray-500">{{ label }}</div>
+    <div class="flex justify-between items-start mb-1 pt-2 pl-2 pr-2">
+      <div class="text-xs text-gray-400">{{ label }}</div>
       
       <div class="flex items-center gap-2 z-20">
         <!-- Graph Icon Button -->
@@ -19,7 +19,7 @@
         <!-- Info Icon with Tooltip -->
         <div class="relative group/info flex items-center">
           <button class="text-gray-400 hover:text-gray-600 flex items-center">
-            <Icon name="ph:info-bold" class="w-4 h-4" />
+            <Icon name="ph:info-bold" class="w-4 h-4" /> 
           </button>
           
           <!-- Tooltip Content -->
@@ -29,7 +29,7 @@
               <span class="font-mono">{{ sensor?.model || 'N/A' }}</span>
             </div>
             <div class="flex justify-between items-center">
-              <span class="text-gray-400">État</span>
+              <span class="text-gray-400">État</span> 
               <div class="flex items-center gap-1">
                 <div class="w-2 h-2 rounded-full" :class="isActive ? 'bg-green-500' : 'bg-red-500'"></div>
                 <span class="text-[10px] text-gray-500 capitalize">{{ sensor?.status || 'missing' }}</span>
@@ -44,11 +44,11 @@
     </div>
     
     <!-- Valeur & Min/Max -->
-    <div class="flex items-end justify-between mb-2 relative z-10">
-      <!-- Valeur Actuelle -->
+    <div class="flex items-end justify-between mb-2 relative z-10 pl-2 pr-2">
+      <!-- Valeur Actuelle --> 
       <div class="text-3xl font-bold leading-none tracking-tight flex items-baseline gap-0.5" :class="valueClass">
         {{ formattedValue }}
-        <span class="text-lg font-semibold opacity-80">{{ sensor?.unit || '' }}</span>
+        <span class="text-lg font-semibold opacity-80">{{ sensorUnit }}</span>
       </div>
 
       <!-- Min/Max (si historique) -->
@@ -64,23 +64,16 @@
       </div>
     </div>
 
-    <!-- Mini Graphique Épuré -->
-    <div class="h-24 w-full relative pt-2 pb-1" v-if="hasHistory">
-      <svg class="w-full h-full overflow-visible" preserveAspectRatio="none">
-        <!-- Zone de dessin plein cadre -->
-        <svg x="0" y="0" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-           <!-- Ligne -->
-           <polyline
-            :points="sparklinePoints"
-            fill="none"
-            :stroke="strokeColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="transition-all duration-300"
-          />
-        </svg>
-      </svg>
+    <!-- Mini Graphique avec Chart.js -->
+    <div class="h-24 w-full relative p-2" v-if="hasHistory">
+      <ClientOnly> 
+        <Line v-if="chartData" :data="chartData" :options="chartOptions" class="rounded-lg" />
+        <template #fallback>
+          <div class="h-full flex items-center justify-center text-[10px] text-gray-300">
+            Chargement...
+          </div>
+        </template>
+      </ClientOnly>
     </div>
     
     <div v-else class="h-24 flex items-center justify-center text-[10px] text-gray-300 border-t border-gray-100 mt-2">
@@ -91,6 +84,30 @@
 </template>
 
 <script setup>
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  TimeScale,
+  Filler
+} from 'chart.js'
+import { Line } from 'vue-chartjs'
+import 'chartjs-adapter-date-fns'
+
+// Enregistrer Chart.js uniquement côté client
+if (process.client) {
+  ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    TimeScale,
+    Filler
+  )
+}
+
 const props = defineProps({
   label: String,
   sensor: Object,
@@ -103,14 +120,16 @@ defineEmits(['toggle-graph'])
 
 const now = ref(Date.now())
 
-// Mettre à jour "now" toutes les secondes pour le timeAgo
+// Mettre à jour "now" toutes les 5 secondes pour le timeAgo
 let interval
 onMounted(() => {
   interval = setInterval(() => {
-    now.value = Date.now()
+    now.value = Date.now() 
   }, 5000)
 })
-onUnmounted(() => clearInterval(interval))
+onUnmounted(() => {
+  if (interval) clearInterval(interval)
+})
 
 const colorMap = {
   emerald: { text: 'text-emerald-600', stroke: '#10b981' },
@@ -123,7 +142,13 @@ const colorMap = {
 }
 
 const colors = computed(() => colorMap[props.color] || colorMap.gray)
-const isActive = computed(() => props.sensor?.status === 'ok')
+// Une carte est active si elle a un status 'ok' OU si elle a une valeur (même sans status défini)
+const isActive = computed(() => {
+  if (props.sensor?.status === 'ok') return true
+  if (props.sensor?.status === 'missing') return false
+  // Si pas de status mais qu'on a une valeur, on considère que c'est actif
+  return props.sensor?.value !== null && props.sensor?.value !== undefined
+})
 const isMissing = computed(() => !props.sensor || props.sensor.status === 'missing')
 const hasHistory = computed(() => props.history && props.history.length >= 2)
 
@@ -132,6 +157,18 @@ const valueClass = computed(() => isActive.value ? colors.value.text : 'text-gra
 const strokeColor = computed(() => isActive.value ? colors.value.stroke : '#d1d5db')
 
 const formattedValue = computed(() => formatVal(props.sensor?.value))
+
+const sensorUnit = computed(() => {
+  const unitMap = {
+    'CO2': 'ppm',
+    'Température': '°C',
+    'Humidité': '%',
+    'PM2.5': 'µg/m³',
+    'COV': 'ppb',
+    'Pression': 'hPa'
+  }
+  return unitMap[props.label] || ''
+})
 
 const timeAgo = computed(() => {
   if (!props.history || props.history.length === 0) return 'Jamais mis à jour'
@@ -181,21 +218,64 @@ const graphMinMax = computed(() => {
   }
 })
 
-// Calcul des points normalisés pour SVG (0-100)
-const normalizedPoints = computed(() => {
-  if (!hasHistory.value) return []
-  const data = props.history
-  const { min, max } = graphMinMax.value
-  const range = max - min || 1
+// Configuration Chart.js pour le sparkline
+const chartData = computed(() => {
+  if (!hasHistory.value) return null
   
-  return data.map((d, i) => {
-    const x = (i / (data.length - 1)) * 100
-    const y = 100 - ((d.value - min) / range) * 100
-    return { x, y }
+  // Trier les données par temps croissant (comme le grand graphique)
+  const sortedData = [...props.history].sort((a, b) => {
+    const timeA = a.time instanceof Date ? a.time.getTime() : new Date(a.time).getTime()
+    const timeB = b.time instanceof Date ? b.time.getTime() : new Date(b.time).getTime()
+    return timeA - timeB
   })
+  
+  // Convertir la couleur hex en rgba pour le fill
+  const hexToRgba = (hex, alpha) => {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  }
+  
+  return {
+    datasets: [
+      {
+        label: props.label,
+        backgroundColor: hexToRgba(strokeColor.value, 0.2),
+        borderColor: strokeColor.value,
+        borderWidth: 2,
+        data: sortedData.map(m => ({ x: m.time, y: m.value })),
+        tension: 0.2,
+        fill: true,
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        spanGaps: true
+      }
+    ]
+  }
 })
 
-const sparklinePoints = computed(() => {
-  return normalizedPoints.value.map(p => `${p.x},${p.y}`).join(' ')
-})
+const chartOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: { intersect: false },
+  scales: {
+    x: {
+      type: 'time',
+      display: false, // Masquer l'axe X pour un sparkline
+      time: {
+        unit: 'minute'
+      }
+    },
+    y: {
+      display: false, // Masquer l'axe Y pour un sparkline
+      min: graphMinMax.value.min,
+      max: graphMinMax.value.max
+    }
+  },
+  plugins: {
+    legend: { display: false },
+    tooltip: { enabled: false } // Désactiver le tooltip pour un sparkline
+  }
+}))
 </script>

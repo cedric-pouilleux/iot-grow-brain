@@ -1,47 +1,54 @@
 const express = require('express');
 const router = express.Router();
 const { getPool } = require('../db/database');
+const { getMetricsHistory } = require('../services/metricsService');
 
-// 1. Récupérer la liste des modules AVEC leur dernier état
+// 1. Récupérer la liste des modules (basé sur les topics de capteurs, pas /status)
+// Les infos hardware ne sont plus stockées en base, uniquement via WebSocket
 router.get('/modules', async (req, res) => {
     const pool = getPool();
     if (!pool) return res.status(503).json({ error: 'Database not connected' });
     try {
+        // On récupère les modules depuis les topics de capteurs (co2, temperature, etc.)
+        // Pas depuis /status car les infos hardware ne sont plus stockées
         const query = `
-            SELECT DISTINCT regexp_replace(topic, '/status$', '') as module_id 
+            SELECT DISTINCT 
+                CASE 
+                    WHEN topic LIKE '%/co2' THEN regexp_replace(topic, '/co2$', '')
+                    WHEN topic LIKE '%/temperature' THEN regexp_replace(topic, '/temperature$', '')
+                    WHEN topic LIKE '%/humidity' THEN regexp_replace(topic, '/humidity$', '')
+                    ELSE NULL
+                END as module_id 
             FROM measurements 
-            WHERE topic LIKE '%/status'
+            WHERE topic LIKE '%/co2' OR topic LIKE '%/temperature' OR topic LIKE '%/humidity'
         `;
         const result = await pool.query(query);
         
         const modules = [];
+        const moduleIds = new Set();
         
-        for (const row of result.rows) {
-            const id = row.module_id;
-            const statusRes = await pool.query(
-                `SELECT metadata, time FROM measurements WHERE topic = $1 ORDER BY time DESC LIMIT 1`,
-                [`${id}/status`]
-            );
-            
-            let type = 'unknown';
-            let name = id.split('/').pop();
-            let status = null;
-
-            if (statusRes.rows.length > 0) {
-                status = statusRes.rows[0].metadata;
-                status._lastSeen = statusRes.rows[0].time; // Ajout timestamp
-                if (status && status.type) type = status.type;
+        // Extraire les IDs uniques
+        result.rows.forEach(row => {
+            if (row.module_id) {
+                moduleIds.add(row.module_id);
             }
-
+        });
+        
+        for (const id of moduleIds) {
+            let name = id.split('/').pop();
+            
+            // Les infos hardware ne sont plus en base, elles arrivent uniquement via WebSocket
+            // On retourne juste l'ID et le nom, le status sera mis à jour par WebSocket
             modules.push({
                 id: id,
                 name: name,
-                type: type,
-                status: status // <-- On renvoie tout l'état !
+                type: 'unknown', // Sera mis à jour via WebSocket
+                status: null // Sera mis à jour via WebSocket
             });
         }
 
         modules.sort((a, b) => a.name.localeCompare(b.name));
+        console.log(`📦 Modules trouvés: ${modules.length} (infos hardware via WebSocket uniquement)`);
         res.json(modules);
     } catch (err) {
         console.error("Erreur /api/modules:", err);
@@ -61,11 +68,12 @@ router.get('/dashboard', async (req, res) => {
     if (!module) return res.status(400).json({ error: 'Missing module parameter' });
 
     try {
-        // ... (Reste inchangé pour l'instant) ...
-        const statusQuery = pool.query(
-            `SELECT metadata, time FROM measurements WHERE topic = $1 ORDER BY time DESC LIMIT 1`,
-            [`${module}/status`]
-        );
+        // Récupérer les infos hardware depuis la table device_status
+        const statusQuery = pool.query(`
+            SELECT status_data, updated_at
+            FROM device_status
+            WHERE module_id = $1
+        `, [module]);
 
         let historyQuery;
         // Pour les graphiques > 7 jours, on utilise la vue horaire (déjà lissée)
@@ -107,12 +115,145 @@ router.get('/dashboard', async (req, res) => {
             else if (row.topic.endsWith('/humidity')) hum.push(row);
         });
 
+        // Récupérer les infos hardware depuis device_status
+        let status = null;
+        if (statusRes.rows.length > 0 && statusRes.rows[0].status_data) {
+            status = statusRes.rows[0].status_data;
+            status._time = statusRes.rows[0].updated_at;
+        }
+
         res.json({
-            status: statusRes.rows[0] ? { ...statusRes.rows[0].metadata, _time: statusRes.rows[0].time } : null,
+            status: status,
             sensors: { co2, temp, hum }
         });
 
     } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 3. Endpoint simplifié pour obtenir uniquement la taille de la base de données
+router.get('/db-size', async (req, res) => {
+    const pool = getPool();
+    if (!pool) return res.status(503).json({ error: 'Database not connected' });
+    
+    try {
+        const dbSizeQuery = await pool.query(`
+            SELECT pg_size_pretty(pg_database_size(current_database())) as total_size,
+                   pg_database_size(current_database()) as total_size_bytes
+        `);
+        
+        res.json({
+            total_size: dbSizeQuery.rows[0].total_size,
+            total_size_bytes: parseInt(dbSizeQuery.rows[0].total_size_bytes)
+        });
+    } catch (err) {
+        console.error("Erreur /api/db-size:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4. Endpoint pour récupérer l'historique des métriques (poids du code et BDD)
+router.get('/metrics-history', async (req, res) => {
+    const days = parseInt(req.query.days) || 30;
+    
+    try {
+        const history = await getMetricsHistory(days);
+        if (!history) {
+            return res.status(503).json({ error: 'Database not connected' });
+        }
+        
+        res.json({
+            history: history,
+            count: history.length,
+            period_days: days
+        });
+    } catch (err) {
+        console.error("Erreur /api/metrics-history:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 5. Endpoint pour obtenir les informations de stockage de la base de données (détaillé)
+router.get('/storage', async (req, res) => {
+    const pool = getPool();
+    if (!pool) return res.status(503).json({ error: 'Database not connected' });
+    
+    try {
+        // Taille totale de la base de données
+        const dbSizeQuery = await pool.query(`
+            SELECT pg_size_pretty(pg_database_size(current_database())) as total_size,
+                   pg_database_size(current_database()) as total_size_bytes
+        `);
+        
+        // Taille des tables principales
+        const tablesSizeQuery = await pool.query(`
+            SELECT 
+                schemaname,
+                tablename,
+                pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size,
+                pg_total_relation_size(schemaname||'.'||tablename) AS size_bytes,
+                pg_size_pretty(pg_relation_size(schemaname||'.'||tablename)) AS table_size,
+                pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename) - pg_relation_size(schemaname||'.'||tablename)) AS indexes_size
+            FROM pg_tables
+            WHERE schemaname = 'public'
+            ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
+        `);
+        
+        // Nombre de lignes dans la table measurements
+        const rowCountQuery = await pool.query(`
+            SELECT COUNT(*) as total_rows,
+                   COUNT(DISTINCT topic) as unique_topics,
+                   MIN(time) as oldest_record,
+                   MAX(time) as newest_record
+            FROM measurements
+        `);
+        
+        // Statistiques sur les chunks TimescaleDB
+        let chunksInfo = null;
+        try {
+            const chunksQuery = await pool.query(`
+                SELECT 
+                    COUNT(*) as total_chunks,
+                    pg_size_pretty(SUM(pg_total_relation_size(format('%I.%I', schema_name, table_name)))) as chunks_total_size,
+                    SUM(pg_total_relation_size(format('%I.%I', schema_name, table_name))) as chunks_total_size_bytes
+                FROM timescaledb_information.chunks
+                WHERE hypertable_name = 'measurements'
+            `);
+            if (chunksQuery.rows.length > 0) {
+                chunksInfo = chunksQuery.rows[0];
+            }
+        } catch (e) {
+            // TimescaleDB peut ne pas être disponible
+            console.warn('TimescaleDB chunks info non disponible:', e.message);
+        }
+        
+        res.json({
+            database: {
+                total_size: dbSizeQuery.rows[0].total_size,
+                total_size_bytes: parseInt(dbSizeQuery.rows[0].total_size_bytes)
+            },
+            tables: tablesSizeQuery.rows.map(row => ({
+                name: row.tablename,
+                total_size: row.size,
+                total_size_bytes: parseInt(row.size_bytes),
+                table_size: row.table_size,
+                indexes_size: row.indexes_size
+            })),
+            measurements: {
+                total_rows: parseInt(rowCountQuery.rows[0].total_rows),
+                unique_topics: parseInt(rowCountQuery.rows[0].unique_topics),
+                oldest_record: rowCountQuery.rows[0].oldest_record,
+                newest_record: rowCountQuery.rows[0].newest_record
+            },
+            timescaledb: chunksInfo ? {
+                total_chunks: parseInt(chunksInfo.total_chunks),
+                chunks_total_size: chunksInfo.chunks_total_size,
+                chunks_total_size_bytes: parseInt(chunksInfo.chunks_total_size_bytes)
+            } : null
+        });
+    } catch (err) {
+        console.error("Erreur /api/storage:", err);
         res.status(500).json({ error: err.message });
     }
 });
