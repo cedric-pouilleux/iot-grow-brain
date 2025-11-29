@@ -200,10 +200,76 @@ onMounted(async () => {
   // 3. Initialiser WebSocket (non bloquant)
   const config = useRuntimeConfig()
   try {
+    console.log('🔌 Connexion WebSocket à:', config.public.socketUrl)
     socket = io(config.public.socketUrl, { transports: ['websocket'], upgrade: false })
     
+    socket.on('connect', () => {
+      console.log('✅ WebSocket connecté au backend')
+    })
+    
+    socket.on('disconnect', () => {
+      console.warn('⚠️  WebSocket déconnecté')
+    })
+    
+    socket.on('connect_error', (err) => {
+      console.error('❌ Erreur connexion WebSocket:', err)
+    })
+    
     socket.on('mqtt:data', (message: MqttMessage) => {
-      if (!selectedModuleId.value || !message.topic.startsWith(selectedModuleId.value)) return
+      console.log('📩 Message WebSocket reçu:', message.topic, 'Module sélectionné:', selectedModuleId.value, 'Valeur:', message.value, 'Metadata:', message.metadata ? 'présente' : 'absente')
+      
+      // Extraire le moduleId du topic
+      // Le moduleId est toujours les deux premiers segments (prefix + nom du module)
+      // Exemples:
+      // - "dev/croissance/co2" -> "dev/croissance"
+      // - "dev/croissance/temperature" -> "dev/croissance"
+      // - "dev/croissance/system" -> "dev/croissance"
+      // - "dev/croissance/sensors/status" -> "dev/croissance"
+      // - "dev/croissance/system/config" -> "dev/croissance"
+      const topicParts = message.topic.split('/')
+      let messageModuleId = ''
+      
+      if (topicParts.length >= 2) {
+        // Le moduleId est toujours les deux premiers segments
+        messageModuleId = topicParts.slice(0, 2).join('/')
+      }
+      
+      console.log('   🔍 ModuleId extrait:', messageModuleId, 'depuis topic:', message.topic)
+      
+      // Créer le module s'il n'existe pas, même si un autre module est sélectionné
+      if (messageModuleId) {
+        const existingModule = modules.value.find(m => m.id === messageModuleId)
+        if (!existingModule) {
+          // Créer un nouveau module
+          const moduleName = topicParts[1] || messageModuleId.split('/').pop() || 'Unknown'
+          modules.value.push({
+            id: messageModuleId,
+            name: moduleName,
+            type: 'unknown',
+            status: null
+          })
+          console.log('   ➕ Nouveau module créé depuis WebSocket:', messageModuleId)
+        }
+        
+        // En mode dev, basculer automatiquement vers le module "dev" qui envoie des messages
+        // Priorité aux modules "dev" en développement
+        if (messageModuleId.startsWith('dev/')) {
+          if (selectedModuleId.value !== messageModuleId) {
+            selectedModuleId.value = messageModuleId
+            console.log('   🔄 Basculement automatique vers le module dev:', messageModuleId)
+          }
+        } else if (!selectedModuleId.value) {
+          // Si aucun module n'est sélectionné et ce n'est pas un module dev, sélectionner celui qui envoie des messages
+          selectedModuleId.value = messageModuleId
+          console.log('   ✅ Module sélectionné automatiquement:', selectedModuleId.value)
+        }
+      }
+      
+      // Filtrer par module sélectionné si un module est sélectionné
+      if (selectedModuleId.value && !message.topic.startsWith(selectedModuleId.value)) {
+        console.log('   ⏭️  Message ignoré (topic ne correspond pas au module sélectionné)')
+        return
+      }
 
       if ((message.topic.endsWith('/system') || message.topic.endsWith('/system/config') || message.topic.endsWith('/sensors/status') || message.topic.endsWith('/sensors/config') || message.topic.endsWith('/hardware/config')) && message.metadata) {
           // Initialiser deviceStatus si nécessaire

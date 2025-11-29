@@ -2,7 +2,8 @@ require('dotenv').config();
 
 module.exports = {
     mqtt: {
-        broker: process.env.MQTT_BROKER || 'mqtt://localhost',
+        // Support des deux variables d'environnement pour compatibilité
+        broker: process.env.MQTT_BROKER || process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883',
     },
     db: {
         user: process.env.POSTGRES_USER || 'postgres',

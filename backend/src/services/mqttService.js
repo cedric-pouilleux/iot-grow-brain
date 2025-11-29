@@ -55,22 +55,80 @@ setInterval(flushBuffer, FLUSH_INTERVAL);
 
 function initMqtt(io) {
     ioInstance = io;
-    console.log(`Connexion au broker MQTT ${config.mqtt.broker}...`);
-    mqttClient = mqtt.connect(config.mqtt.broker);
+    console.log(`🔌 Connexion au broker MQTT ${config.mqtt.broker}...`);
+    
+    const mqttOptions = {
+        reconnectPeriod: 1000,
+        connectTimeout: 30000,
+        keepalive: 60
+    };
+    
+    mqttClient = mqtt.connect(config.mqtt.broker, mqttOptions);
 
     mqttClient.on('connect', () => {
         console.log('✅ Connecté au broker MQTT !');
-        mqttClient.subscribe('#', (err) => {
-            if (!err) console.log(`✅ Abonné à tous les topics (#)`);
+        console.log(`   Client ID: ${mqttClient.options.clientId || 'auto'}`);
+        
+        // S'abonner à tous les topics
+        mqttClient.subscribe('#', { qos: 0 }, (err, granted) => {
+            if (err) {
+                console.error('❌ Erreur lors de l\'abonnement:', err.message);
+            } else {
+                console.log(`✅ Abonné à tous les topics (#)`);
+                if (granted) {
+                    granted.forEach(g => {
+                        console.log(`   Topic: ${g.topic}, QoS: ${g.qos}`);
+                    });
+                }
+            }
         });
+        
+        // Test de publication pour vérifier la connexion
+        setTimeout(() => {
+            const testTopic = 'backend/test/connection';
+            mqttClient.publish(testTopic, 'Backend connected', { qos: 0 }, (err) => {
+                if (err) {
+                    console.error(`❌ Erreur publication test sur ${testTopic}:`, err.message);
+                } else {
+                    console.log(`✅ Message de test publié sur ${testTopic}`);
+                }
+            });
+        }, 1000);
     });
 
     mqttClient.on('error', (err) => {
         console.error('❌ Erreur connexion MQTT:', err.message);
+        console.error('   Détails:', err);
+    });
+
+    mqttClient.on('close', () => {
+        console.warn('⚠️  Connexion MQTT fermée');
+    });
+
+    mqttClient.on('reconnect', () => {
+        console.log('🔄 Reconnexion au broker MQTT...');
+    });
+
+    mqttClient.on('offline', () => {
+        console.warn('⚠️  Client MQTT hors ligne');
     });
 
     mqttClient.on('message', async (topic, message) => {
         const payload = message.toString();
+        
+        // Ignorer les messages de test du backend lui-même
+        if (topic.startsWith('backend/test/')) {
+            return;
+        }
+        
+        // Log tous les messages, surtout ceux qui pourraient être des capteurs
+        const isSensorTopic = topic.endsWith('/co2') || topic.endsWith('/temperature') || topic.endsWith('/humidity');
+        if (isSensorTopic) {
+            console.log(`📩 Message CAPTEUR reçu sur ${topic} (${message.length} bytes): "${payload}"`);
+        } else {
+            console.log(`📩 Message reçu sur ${topic} (${message.length} bytes)`);
+        }
+        
         let value = null;
         let metadata = null;
 
@@ -79,10 +137,13 @@ function initMqtt(io) {
             if (topic.endsWith('/system') || topic.endsWith('/system/config') || topic.endsWith('/sensors/status') || topic.endsWith('/sensors/config') || topic.endsWith('/hardware/config')) {
                 metadata = JSON.parse(payload);
             } else {
+                // Messages de capteurs (co2, temperature, humidity)
                 value = parseFloat(payload);
                 if (isNaN(value)) {
+                    console.log(`   ⚠️  Valeur non numérique ignorée sur ${topic}: "${payload}" (type: ${typeof payload})`);
                     return;
                 }
+                console.log(`   ✅ Valeur capteur parsée: ${value} (topic: ${topic})`);
             }
         } catch (e) {
             console.error(`   ❌ ERREUR parsing JSON: ${e.message}`);
@@ -108,6 +169,13 @@ function initMqtt(io) {
                 time: new Date().toISOString()
             };
             ioInstance.emit('mqtt:data', wsData);
+            if (value !== null) {
+                console.log(`   📤 Émis via WebSocket: ${topic} = ${value}`);
+            } else if (metadata) {
+                console.log(`   📤 Émis via WebSocket (metadata): ${topic}`);
+            }
+        } else {
+            console.warn(`   ⚠️  ioInstance non disponible, message non émis via WebSocket`);
         }
 
         // 2. Stockage des infos hardware dans la table device_status (écrasée à chaque fois)
@@ -220,11 +288,17 @@ function initMqtt(io) {
 
         // Pour les valeurs de capteurs, on stocke sans filtre temporel côté backend
         // C'est l'ESP32 qui gère la fréquence d'envoi selon la config
-        messageBuffer.push({ topic, value, metadata });
+        if (value !== null) {
+            messageBuffer.push({ topic, value, metadata });
+            console.log(`   💾 Ajouté au buffer: ${topic} = ${value} (buffer: ${messageBuffer.length}/${BATCH_SIZE})`);
 
-        // Si le buffer est plein, on vide tout de suite
-        if (messageBuffer.length >= BATCH_SIZE) {
-            flushBuffer();
+            // Si le buffer est plein, on vide tout de suite
+            if (messageBuffer.length >= BATCH_SIZE) {
+                console.log(`   📦 Buffer plein (${BATCH_SIZE}), vidage...`);
+                flushBuffer();
+            }
+        } else {
+            console.log(`   ⚠️  Message ignoré (value est null): topic=${topic}, metadata=${metadata ? 'présente' : 'absente'}`);
         }
     });
 

@@ -139,8 +139,11 @@ void loop() {
     
     // --- LECTURE CO2 ---
     if (now - lastCo2ReadTime >= sensorConfig.co2Interval) {
+        Serial.println("Time to read CO2...");
         lastCo2ReadTime = now;
         int ppm = sensorReader.readCO2();
+        Serial.print("Read CO2: "); Serial.println(ppm);
+        
         if (ppm >= 0) {
             if (firstValidPpm < 0) {
                 firstValidPpm = ppm;
@@ -148,7 +151,13 @@ void loop() {
             }
             lastCO2Value = ppm;
             display.updateValues(ppm);
-            network.publishCO2(ppm);
+            
+            if (network.isConnected()) {
+                network.publishCO2(ppm);
+                Serial.println("Published CO2");
+            } else {
+                Serial.println("MQTT not connected, skipping publish");
+            }
         } else { 
             handleSensorError();
         }
@@ -166,14 +175,16 @@ void loop() {
         lastHumidity = reading.humidity;
         lastDhtOk = reading.valid;
 
-        if (reading.valid) {
+        if (reading.valid && network.isConnected()) {
             if (readTemp) {
                 lastTempReadTime = now;
                 network.publishValue("/temperature", reading.temperature);
+                Serial.println("Published Temperature");
             }
             if (readHum) {
                 lastHumReadTime = now;
                 network.publishValue("/humidity", reading.humidity);
+                Serial.println("Published Humidity");
             }
         }
     }
@@ -197,6 +208,7 @@ void loop() {
     
     if (now - lastSystemInfoTime >= SYSTEM_INFO_INTERVAL_MS) {
         lastSystemInfoTime = now;
+        Serial.println("Publishing System Info...");
         statusPublisher.publishSystemInfo();
         statusPublisher.publishSensorStatus(lastCO2Value, lastTemperature, 
                                           lastHumidity, lastDhtOk);

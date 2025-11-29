@@ -14,6 +14,7 @@ private:
     char mqttPort[6];
     char moduleName[32];
     char moduleType[20];
+    char topicPrefix[32];
     char fullTopic[64];
 
     AsyncMqttClient mqttClient;
@@ -28,10 +29,22 @@ public:
     void (*onMqttConnectedCallback)() = nullptr;
 
     NetworkManager() : lastReconnectAttempt(0) {
-        strcpy(mqttServer, "growbrain.local");
+        #ifdef MQTT_SERVER
+            strcpy(mqttServer, MQTT_SERVER);
+        #else
+            strcpy(mqttServer, "growbrain.local");
+        #endif
+
         strcpy(mqttPort, "1883");
         strcpy(moduleName, "Salon");
         strcpy(moduleType, "climate-module");
+        
+        #ifdef MQTT_PREFIX
+            strcpy(topicPrefix, MQTT_PREFIX);
+        #else
+            strcpy(topicPrefix, "home");
+        #endif
+
         fullTopic[0] = '\0';
     }
 
@@ -39,7 +52,48 @@ public:
         // Charger la config sauvegardée
         preferences.begin("sensor_config", false);
         String savedName   = preferences.getString("name", "");
+        
+        // Si on a des valeurs sauvegardées, on les utilise
+        // MAIS si on vient de flasher une nouvelle version (Dev vs Prod), 
+        // on veut peut-être forcer les defaults du build flag ?
+        // Pour l'instant, on donne la priorité à la config sauvegardée si elle existe,
+        // sauf si on veut explicitement resetter.
+        // Pour simplifier le dev : si le prefix sauvegardé est différent du build flag, on pourrait écraser ?
+        // Non, restons simple : la config sauvegardée gagne. 
+        // L'utilisateur devra faire un "Reset Settings" dans le WiFiManager s'il veut forcer les nouveaux defaults,
+        // OU on ajoute un bouton/commande pour resetter.
+        
         String savedServer = preferences.getString("server", "");
+        String savedPrefix = preferences.getString("prefix", ""); 
+
+        // AUTO-RESET CONFIG ON ENVIRONMENT SWITCH
+        // Si le prefix sauvegardé est différent du prefix compilé (ex: "home" vs "dev"),
+        // on considère qu'on a changé d'environnement et on force les nouvelles valeurs par défaut.
+        if (savedPrefix != String(topicPrefix)) {
+            Serial.println(F("Environment switch detected! Resetting config to defaults..."));
+            
+            // Clear ALL preferences to force reconfiguration
+            preferences.clear();
+            
+            // Force update with build flag defaults
+            #ifdef MQTT_SERVER
+                savedServer = String(MQTT_SERVER);
+            #else
+                savedServer = "growbrain.local";
+            #endif
+            
+            savedPrefix = String(topicPrefix);
+            savedName = ""; // Force user to set module name
+            
+            // Save immediately to avoid re-triggering next time (though it would be same)
+            preferences.putString("server", savedServer);
+            preferences.putString("prefix", savedPrefix);
+            
+            // Also update member variables immediately
+            savedServer.toCharArray(mqttServer, sizeof(mqttServer));
+            savedPrefix.toCharArray(topicPrefix, sizeof(topicPrefix));
+        }
+
         preferences.end();
 
         if (savedName.length() > 0) {
@@ -50,7 +104,11 @@ public:
             savedServer.toCharArray(mqttServer, sizeof(mqttServer));
         }
 
-        snprintf(fullTopic, sizeof(fullTopic), "home/%s", moduleName);
+        if (savedPrefix.length() > 0) {
+            savedPrefix.toCharArray(topicPrefix, sizeof(topicPrefix));
+        }
+
+        snprintf(fullTopic, sizeof(fullTopic), "%s/%s", topicPrefix, moduleName);
 
         // --- WiFi & portail de config ---
         WiFiManager wifiManager;
@@ -66,15 +124,26 @@ public:
             mqttServer,
             sizeof(mqttServer)
         );
+        WiFiManagerParameter custom_topic_prefix(
+            "prefix",
+            "Topic Prefix (e.g. home or dev)",
+            topicPrefix,
+            sizeof(topicPrefix)
+        );
 
         wifiManager.addParameter(&custom_module_name);
         wifiManager.addParameter(&custom_mqtt_server);
+        wifiManager.addParameter(&custom_topic_prefix);
 
         wifiManager.setSaveConfigCallback([this]() {
             this->shouldSaveConfig = true;
         });
 
         wifiManager.setTimeout(180);
+        
+        // TEMPORARY: Force reset to apply new defaults
+        Serial.println(F("Resetting WiFi settings to apply new environment..."));
+        wifiManager.resetSettings();
 
         if (!wifiManager.autoConnect("ESP32-Sensor-Config")) {
             Serial.println(F("WiFi connection failed, rebooting..."));
@@ -93,12 +162,16 @@ public:
             if (strlen(custom_mqtt_server.getValue()) > 0) {
                 strcpy(mqttServer, custom_mqtt_server.getValue());
             }
+            if (strlen(custom_topic_prefix.getValue()) > 0) {
+                strcpy(topicPrefix, custom_topic_prefix.getValue());
+            }
 
-            snprintf(fullTopic, sizeof(fullTopic), "home/%s", moduleName);
+            snprintf(fullTopic, sizeof(fullTopic), "%s/%s", topicPrefix, moduleName);
 
             preferences.begin("sensor_config", false);
             preferences.putString("name", moduleName);
             preferences.putString("server", mqttServer);
+            preferences.putString("prefix", topicPrefix);
             preferences.end();
         }
 
@@ -194,7 +267,11 @@ public:
     bool isWifiConnected() { return WiFi.status() == WL_CONNECTED; }
 
 private:
+    bool callbacksInitialized = false;
+
     void setupMqttCallbacks() {
+        if (callbacksInitialized) return;
+        
         mqttClient.onConnect([this](bool sessionPresent) {
             Serial.println(F("MQTT Connected"));
 
@@ -230,6 +307,8 @@ private:
                     }
                 }
             });
+            
+        callbacksInitialized = true;
     }
 };
 
