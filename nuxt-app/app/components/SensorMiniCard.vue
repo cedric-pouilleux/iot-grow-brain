@@ -1,66 +1,96 @@
 <template>
-  <div class="relative rounded-lg transition-all group/card" :class="containerClass">
-    
-    <!-- Header: Label & Info Icon -->
-    <div class="flex justify-between items-start mb-1 pt-2 pl-2 pr-2">
-      <div class="text-xs text-gray-400">{{ label }}</div>
+  <div 
+    class="relative rounded-lg transition-all group/card cursor-pointer hover:shadow-md" 
+    :class="containerClass"
+    @click="$emit('toggle-graph')"
+  >
+     
+    <!-- Header: Label & Controls -->
+    <div class="flex justify-between items-start mb-1 pt-2 pl-2 pr-2" @click.stop>
+      <div class="text-xs text-gray-400">
+        {{ label }}
+      </div>
       
-      <div class="flex items-center gap-2 z-20">
-        <!-- Graph Icon Button -->
-        <button 
-          @click="$emit('toggle-graph')"
-          class="text-gray-400 hover:text-emerald-600 transition-colors flex items-center"
-          :class="{ 'text-emerald-600': isGraphOpen }"
-          title="Voir le graphique détaillé"
-        >
-          <Icon name="ph:chart-line-up-bold" class="w-4 h-4" /> 
-        </button>
-
-        <!-- Info Icon with Tooltip -->
-        <div class="relative group/info flex items-center">
-          <button class="text-gray-400 hover:text-gray-600 flex items-center">
-            <Icon name="ph:info-bold" class="w-4 h-4" /> 
+      <div class="flex items-center gap-1.5 z-20">
+        <!-- Config Icon with Dropdown -->
+        <div class="relative flex items-center">
+          <button 
+            @click="showConfigDropdown = !showConfigDropdown"
+            class="text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center"
+            title="Configuration"
+          >
+            <Icon name="ph:gear-bold" class="w-4 h-4" /> 
           </button>
           
-          <!-- Tooltip Content -->
-          <div class="absolute right-0 top-6 w-56 bg-gray-800 text-white text-xs rounded-md shadow-lg p-3 opacity-0 group-hover/info:opacity-100 transition-opacity pointer-events-none flex flex-col gap-2 z-50">
-            <div class="flex justify-between items-center">
-              <span class="text-gray-400">Modèle</span>
-              <span class="font-mono">{{ sensor?.model || 'N/A' }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-gray-400">État</span> 
-              <div class="flex items-center gap-1">
-                <div class="w-2 h-2 rounded-full" :class="isActive ? 'bg-green-500' : 'bg-red-500'"></div>
-                <span class="text-[10px] text-gray-500 capitalize">{{ sensor?.status || 'missing' }}</span>
+          <!-- Dropdown Content -->
+          <div 
+            v-if="showConfigDropdown"
+            class="absolute right-0 top-6 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50"
+            @click.stop
+          >
+            <!-- Configuration Form -->
+            <div class="min-w-[200px]">
+              <h4 class="text-xs font-semibold text-gray-500 uppercase mb-3">Configuration</h4>
+              
+              <div class="space-y-3">
+                <div class="space-y-1">
+                  <div class="flex justify-between items-center">
+                    <label class="text-xs font-medium text-gray-700">Intervalle</label>
+                    <span class="text-xs text-gray-500">{{ localInterval }}s</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    v-model.number="localInterval" 
+                    min="10" 
+                    max="300" 
+                    step="10"
+                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  />
+                </div>
+
+                <div class="flex justify-end pt-1">
+                  <button 
+                    @click="saveConfig"
+                    :disabled="saving"
+                    class="px-2 py-1 bg-blue-600 text-white text-[10px] font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-1"
+                  >
+                    <Icon v-if="saving" name="tabler:loader-2" class="w-3 h-3 animate-spin" />
+                    {{ saving ? '...' : 'OK' }}
+                  </button>
+                </div>
               </div>
             </div>
-            <div class="text-gray-400 text-[10px] text-right pt-1 border-t border-gray-700 italic">
-              {{ timeAgo }}
-            </div>
+          </div>
+        </div>
+
+        <!-- Status Pastille with Tooltip --> 
+        <div 
+          class="cursor-help group/status relative flex items-center justify-center"
+        >
+          <Icon 
+            :name="isActive ? 'tabler:circle-check-filled' : 'tabler:circle-x-filled'" 
+            :class="isActive ? 'w-4 h-4 text-green-500' : 'w-4 h-4 text-red-500'" 
+          />
+          <div class="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/status:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+            Modèle: {{ sensor?.model || 'N/A' }} {{ sensor?.status === 'ok' ? 'ok' : '' }}
           </div>
         </div>
       </div>
     </div>
     
-    <!-- Valeur & Min/Max -->
-    <div class="flex items-end justify-between mb-2 relative z-10 pl-2 pr-2">
+    <!-- Valeur & Last Refresh -->
+    <div class="flex flex-col mb-2 relative z-10 pl-2 pr-2">
       <!-- Valeur Actuelle --> 
       <div class="text-3xl font-bold leading-none tracking-tight flex items-baseline gap-0.5" :class="valueClass">
         {{ formattedValue }}
         <span class="text-lg font-semibold opacity-80">{{ sensorUnit }}</span>
       </div>
-
-      <!-- Min/Max (si historique) -->
-      <div v-if="hasHistory" class="flex flex-col text-[10px] text-gray-400 font-mono leading-tight text-right pb-0.5">
-        <div class="flex items-center justify-end gap-0.5">
-          <Icon name="ph:caret-up-fill" class="w-2 h-2 text-gray-300" />
-          {{ Math.round(graphMinMax.max) }}
-        </div>
-        <div class="flex items-center justify-end gap-0.5">
-          <Icon name="ph:caret-down-fill" class="w-2 h-2 text-gray-300" />
-          {{ Math.round(graphMinMax.min) }}
-        </div>
+      
+      <!-- Dernier rafraîchissement -->
+      <div class="flex items-center gap-1 text-[10px] text-gray-400 mt-1">
+        <Icon name="ph:arrow-clockwise" class="w-3 h-3" />
+        <span v-if="timeAgo">{{ timeAgo }}</span>
+        <span v-else class="text-gray-300">--</span>
       </div>
     </div>
 
@@ -113,21 +143,80 @@ const props = defineProps({
   sensor: Object,
   color: { type: String, default: 'gray' },
   history: { type: Array, default: () => [] },
-  isGraphOpen: { type: Boolean, default: false }
+  isGraphOpen: { type: Boolean, default: false },
+  moduleId: { type: String, default: null },
+  sensorKey: { type: String, default: null },
+  initialInterval: { type: Number, default: 60 }
 })
 
 defineEmits(['toggle-graph'])
 
+const showConfigDropdown = ref(false)
 const now = ref(Date.now())
+const localInterval = ref(props.initialInterval)
+const saving = ref(false)
 
-// Mettre à jour "now" toutes les 5 secondes pour le timeAgo
+// Mettre à jour localInterval si la prop change, MAIS seulement si le menu n'est pas ouvert
+watch(() => props.initialInterval, (val) => {
+  if (!showConfigDropdown.value) {
+    localInterval.value = val
+  }
+})
+
+const saveConfig = async () => {
+  if (!props.moduleId || !props.sensorKey) return
+  
+  saving.value = true
+  try {
+    // On doit récupérer la config existante complète pour ne pas écraser les autres capteurs
+    // Mais l'API attend un objet partiel et fait un merge ? 
+    // Vérifions l'API : existingData.sensorsConfig = config; -> CA ECRASE TOUT !
+    // Aïe. L'API backend écrase sensorsConfig avec ce qu'on envoie.
+    // Il faut que je modifie l'API pour faire un merge profond ou que j'envoie tout.
+    // OU je modifie l'API pour accepter un patch partiel.
+    
+    // Pour l'instant, supposons que je doive modifier l'API pour faire un merge.
+    // Je vais envoyer juste ce capteur et modifier l'API.
+    
+    const payload = {
+      sensors: {
+        [props.sensorKey]: { interval: localInterval.value }
+      }
+    }
+    
+    await $fetch(`/api/modules/${encodeURIComponent(props.moduleId)}/config`, {
+      method: 'POST',
+      body: payload
+    })
+    
+    showConfigDropdown.value = false
+  } catch (err) {
+    console.error('Erreur sauvegarde config:', err)
+    alert('Erreur lors de la sauvegarde')
+  } finally {
+    saving.value = false
+  }
+}
+
+// Fermer le dropdown si on clique en dehors
+const handleClickOutside = (event) => {
+  const target = event.target
+  if (!target.closest('.relative')) {
+    showConfigDropdown.value = false
+  }
+}
+
+// Mettre à jour le temps en temps réel (toutes les secondes)
 let interval
 onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
   interval = setInterval(() => {
     now.value = Date.now() 
-  }, 5000)
+  }, 1000) // Mise à jour chaque seconde
 })
+
 onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
   if (interval) clearInterval(interval)
 })
 
@@ -152,7 +241,7 @@ const isActive = computed(() => {
 const isMissing = computed(() => !props.sensor || props.sensor.status === 'missing')
 const hasHistory = computed(() => props.history && props.history.length >= 2)
 
-const containerClass = computed(() => isMissing.value ? 'bg-gray-50 opacity-60' : 'bg-white border border-gray-100 shadow-sm hover:shadow-md')
+const containerClass = computed(() => 'bg-white border border-gray-100 shadow-sm hover:shadow-md')
 const valueClass = computed(() => isActive.value ? colors.value.text : 'text-gray-300')
 const strokeColor = computed(() => isActive.value ? colors.value.stroke : '#d1d5db')
 
@@ -171,17 +260,23 @@ const sensorUnit = computed(() => {
 })
 
 const timeAgo = computed(() => {
-  if (!props.history || props.history.length === 0) return 'Jamais mis à jour'
+  // Utiliser now.value pour déclencher la réactivité
+  const current = now.value
+  
+  // Si pas d'historique, ne rien afficher (pas "Jamais mis à jour")
+  if (!props.history || props.history.length === 0) return ''
   
   const lastData = props.history[props.history.length - 1]
   const lastTime = new Date(lastData.time).getTime()
-  const diffSeconds = Math.floor((now.value - lastTime) / 1000)
+  const diffSeconds = Math.floor((current - lastTime) / 1000)
   
   if (diffSeconds < 5) return 'À l\'instant'
-  if (diffSeconds < 60) return `Rafraîchi il y a ${diffSeconds} sec`
+  if (diffSeconds < 60) return `Il y a ${diffSeconds}s`
   const minutes = Math.floor(diffSeconds / 60)
-  if (minutes < 60) return `Rafraîchi il y a ${minutes} min`
-  return `Dernière màj: ${formatTime(lastData.time, true)}`
+  if (minutes < 60) return `Il y a ${minutes}min`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `Il y a ${hours}h`
+  return formatTime(lastData.time, false)
 })
 
 const formatVal = (val) => {

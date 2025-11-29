@@ -2,6 +2,83 @@ const express = require('express');
 const router = express.Router();
 const { getPool } = require('../db/database');
 const { getMetricsHistory } = require('../services/metricsService');
+const { publishConfig } = require('../services/mqttService');
+
+// 0. Sauvegarder la configuration d'un module (refresh rates)
+router.post('/modules/:id/config', async (req, res) => {
+    const moduleId = req.params.id;
+    const config = req.body; // { sensors: { co2: { interval: 20 }, ... } }
+
+    if (!moduleId || !config) {
+        return res.status(400).json({ error: 'Missing moduleId or config' });
+    }
+
+    const pool = getPool();
+    if (!pool) return res.status(503).json({ error: 'Database not connected' });
+
+    try {
+        // 1. Récupérer les données existantes
+        const result = await pool.query(`
+            SELECT status_data FROM device_status WHERE module_id = $1
+        `, [moduleId]);
+
+        let existingData = {};
+        if (result.rows.length > 0 && result.rows[0].status_data) {
+            existingData = result.rows[0].status_data;
+        }
+
+        // 2. Mettre à jour la config des capteurs (Merge deep ou shallow)
+        // IMPORTANT: sensorsConfig peut contenir à la fois:
+        // - Les modèles de capteurs (co2: { model: "MH-Z19B" }, etc.)
+        // - L'objet sensors avec les intervalles (sensors: { co2: { interval: 60 }, etc. })
+        // On doit préserver les deux !
+
+        if (!existingData.sensorsConfig) {
+            existingData.sensorsConfig = {};
+        }
+
+        // S'assurer que l'objet sensors existe
+        if (!existingData.sensorsConfig.sensors) {
+            existingData.sensorsConfig.sensors = {};
+        }
+
+        // Merge des intervalles dans sensors (sans toucher aux modèles)
+        if (config.sensors) {
+            Object.keys(config.sensors).forEach(key => {
+                existingData.sensorsConfig.sensors[key] = {
+                    ...existingData.sensorsConfig.sensors[key],
+                    ...config.sensors[key]
+                };
+            });
+        }
+
+        // On publie la config COMPLÈTE fusionnée à l'ESP32
+        // L'ESP32 s'attend à recevoir tout ou partie, mais c'est mieux d'envoyer tout ce qu'on a
+        const mergedConfig = existingData.sensorsConfig;
+
+        console.log('💾 Saving to DB - existingData.sensorsConfig:', JSON.stringify(existingData.sensorsConfig, null, 2));
+
+        // 3. Sauvegarder en base
+        await pool.query(`
+            INSERT INTO device_status (module_id, status_data, updated_at)
+            VALUES ($1, $2, NOW())
+            ON CONFLICT (module_id) 
+            DO UPDATE SET status_data = $2, updated_at = NOW()
+        `, [moduleId, JSON.stringify(existingData)]);
+
+        // 4. Publier via MQTT pour l'ESP32
+        // L'ESP32 attend uniquement { sensors: { co2: { interval: X }, ... } }
+        // On ne lui envoie PAS les modèles (qui sont au même niveau dans sensorsConfig)
+        const configForEsp32 = { sensors: mergedConfig.sensors || {} };
+        console.log('📤 Publishing config to ESP32:', JSON.stringify(configForEsp32, null, 2));
+        publishConfig(moduleId, configForEsp32);
+
+        res.json({ success: true, config: mergedConfig });
+    } catch (err) {
+        console.error(`❌ Erreur sauvegarde config module ${moduleId}:`, err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // 1. Récupérer la liste des modules (basé sur les topics de capteurs, pas /status)
 // Les infos hardware ne sont plus stockées en base, uniquement via WebSocket
@@ -23,20 +100,20 @@ router.get('/modules', async (req, res) => {
             WHERE topic LIKE '%/co2' OR topic LIKE '%/temperature' OR topic LIKE '%/humidity'
         `;
         const result = await pool.query(query);
-        
+
         const modules = [];
         const moduleIds = new Set();
-        
+
         // Extraire les IDs uniques
         result.rows.forEach(row => {
             if (row.module_id) {
                 moduleIds.add(row.module_id);
             }
         });
-        
+
         for (const id of moduleIds) {
             let name = id.split('/').pop();
-            
+
             // Les infos hardware ne sont plus en base, elles arrivent uniquement via WebSocket
             // On retourne juste l'ID et le nom, le status sera mis à jour par WebSocket
             modules.push({
@@ -60,7 +137,7 @@ router.get('/modules', async (req, res) => {
 router.get('/dashboard', async (req, res) => {
     const pool = getPool();
     if (!pool) return res.status(503).json({ error: 'Database not connected' });
-    
+
     const module = req.query.module;
     const days = parseInt(req.query.days) || 1;
     const limit = parseInt(req.query.limit) || 10000;
@@ -104,7 +181,7 @@ router.get('/dashboard', async (req, res) => {
         }
 
         const [statusRes, historyRes] = await Promise.all([statusQuery, historyQuery]);
-        
+
         const co2 = [];
         const temp = [];
         const hum = [];
@@ -136,13 +213,13 @@ router.get('/dashboard', async (req, res) => {
 router.get('/db-size', async (req, res) => {
     const pool = getPool();
     if (!pool) return res.status(503).json({ error: 'Database not connected' });
-    
+
     try {
         const dbSizeQuery = await pool.query(`
             SELECT pg_size_pretty(pg_database_size(current_database())) as total_size,
                    pg_database_size(current_database()) as total_size_bytes
         `);
-        
+
         res.json({
             total_size: dbSizeQuery.rows[0].total_size,
             total_size_bytes: parseInt(dbSizeQuery.rows[0].total_size_bytes)
@@ -156,13 +233,13 @@ router.get('/db-size', async (req, res) => {
 // 4. Endpoint pour récupérer l'historique des métriques (poids du code et BDD)
 router.get('/metrics-history', async (req, res) => {
     const days = parseInt(req.query.days) || 30;
-    
+
     try {
         const history = await getMetricsHistory(days);
         if (!history) {
             return res.status(503).json({ error: 'Database not connected' });
         }
-        
+
         res.json({
             history: history,
             count: history.length,
@@ -178,14 +255,14 @@ router.get('/metrics-history', async (req, res) => {
 router.get('/storage', async (req, res) => {
     const pool = getPool();
     if (!pool) return res.status(503).json({ error: 'Database not connected' });
-    
+
     try {
         // Taille totale de la base de données
         const dbSizeQuery = await pool.query(`
             SELECT pg_size_pretty(pg_database_size(current_database())) as total_size,
                    pg_database_size(current_database()) as total_size_bytes
         `);
-        
+
         // Taille des tables principales
         const tablesSizeQuery = await pool.query(`
             SELECT 
@@ -199,7 +276,7 @@ router.get('/storage', async (req, res) => {
             WHERE schemaname = 'public'
             ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
         `);
-        
+
         // Nombre de lignes dans la table measurements
         const rowCountQuery = await pool.query(`
             SELECT COUNT(*) as total_rows,
@@ -208,7 +285,7 @@ router.get('/storage', async (req, res) => {
                    MAX(time) as newest_record
             FROM measurements
         `);
-        
+
         // Statistiques sur les chunks TimescaleDB
         let chunksInfo = null;
         try {
@@ -227,7 +304,7 @@ router.get('/storage', async (req, res) => {
             // TimescaleDB peut ne pas être disponible
             console.warn('TimescaleDB chunks info non disponible:', e.message);
         }
-        
+
         res.json({
             database: {
                 total_size: dbSizeQuery.rows[0].total_size,

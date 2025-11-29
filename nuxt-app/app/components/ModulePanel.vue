@@ -57,6 +57,9 @@
           :color="type.color"
           :history="getSensorHistory(type.key)"
           :is-graph-open="selectedGraphSensor === type.key"
+          :module-id="moduleId"
+          :sensor-key="type.key"
+          :initial-interval="deviceStatus.sensorsConfig?.sensors?.[type.key]?.interval || 60"
           @toggle-graph="toggleGraph(type.key)"
         />
       </div>

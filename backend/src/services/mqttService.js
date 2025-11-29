@@ -7,11 +7,12 @@ let mqttClient = null;
 let ioInstance = null;
 
 // --- OPTIMIZATION STORAGE ---
-const lastSavedTime = new Map(); // Garde en mémoire le dernier timestamp d'enregistrement par topic
+// --- OPTIMIZATION STORAGE ---
+// Le throttling est maintenant géré par l'ESP32 via la configuration
 
 // --- BUFFERING SYSTEM ---
 // Stocke les messages en mémoire avant insertion groupée pour soulager la DB
-let messageBuffer = []; 
+let messageBuffer = [];
 const BATCH_SIZE = 100; // Déclenche l'insertion si on atteint 100 messages
 const FLUSH_INTERVAL = 5000; // Déclenche l'insertion toutes les 5 secondes max
 
@@ -22,7 +23,7 @@ async function flushBuffer() {
     // On récupère tout le contenu actuel du buffer et on le vide atomiquement
     // Cela évite les conflits si de nouveaux messages arrivent pendant l'insertion
     const batch = [...messageBuffer];
-    messageBuffer = []; 
+    messageBuffer = [];
 
     const pool = getPool();
     if (!pool) return;
@@ -34,11 +35,11 @@ async function flushBuffer() {
         const placeholders = batch.map((msg, index) => {
             const i = index * 4; // 4 paramètres par ligne
             values.push(new Date(), msg.topic, msg.value, msg.metadata); // NOW() calculé ici par JS
-            return `($${i+1}, $${i+2}, $${i+3}, $${i+4})`;
+            return `($${i + 1}, $${i + 2}, $${i + 3}, $${i + 4})`;
         }).join(', ');
 
         const query = `INSERT INTO measurements (time, topic, value, metadata) VALUES ${placeholders}`;
-        
+
         await pool.query(query, values);
         // console.log(`📦 Batch inséré : ${batch.length} messages`);
 
@@ -72,7 +73,7 @@ function initMqtt(io) {
         const payload = message.toString();
         let value = null;
         let metadata = null;
-        
+
         // Parsing
         try {
             if (topic.endsWith('/system') || topic.endsWith('/system/config') || topic.endsWith('/sensors/status') || topic.endsWith('/sensors/config') || topic.endsWith('/hardware/config')) {
@@ -87,7 +88,7 @@ function initMqtt(io) {
             console.error(`   ❌ ERREUR parsing JSON: ${e.message}`);
             console.error(`   Payload complet (${payload.length} chars):`);
             console.error(payload);
-            
+
             // Tentative de trouver où est l'erreur
             try {
                 // Essayer de parser avec JSON.parse pour voir l'erreur exacte
@@ -111,95 +112,100 @@ function initMqtt(io) {
 
         // 2. Stockage des infos hardware dans la table device_status (écrasée à chaque fois)
         if ((topic.endsWith('/system') || topic.endsWith('/system/config') || topic.endsWith('/sensors/status') || topic.endsWith('/sensors/config') || topic.endsWith('/hardware/config')) && metadata) {
-            const moduleId = topic.replace('/system', '').replace('/system/config', '').replace('/sensors/status', '').replace('/sensors/config', '').replace('/hardware/config', '');
+            let moduleId = topic;
+            if (topic.endsWith('/system/config')) moduleId = topic.slice(0, -'/system/config'.length);
+            else if (topic.endsWith('/system')) moduleId = topic.slice(0, -'/system'.length);
+            else if (topic.endsWith('/sensors/status')) moduleId = topic.slice(0, -'/sensors/status'.length);
+            else if (topic.endsWith('/sensors/config')) moduleId = topic.slice(0, -'/sensors/config'.length);
+            else if (topic.endsWith('/hardware/config')) moduleId = topic.slice(0, -'/hardware/config'.length);
             const pool = getPool();
-            
+
             if (pool) {
                 // Récupérer les données existantes ou créer un nouvel objet
                 pool.query(`
                     SELECT status_data FROM device_status WHERE module_id = $1
                 `, [moduleId])
-                .then(result => {
-                    let existingData = {};
-                    if (result.rows.length > 0 && result.rows[0].status_data) {
-                        existingData = result.rows[0].status_data;
-                    }
-                    
-                    // Fusionner les nouvelles données avec les existantes
-                    if (topic.endsWith('/system')) {
-                        // Données dynamiques (rssi, memory dynamique) - fusion avec config existante
-                        if (!existingData.system) {
-                            existingData.system = {};
+                    .then(result => {
+                        let existingData = {};
+                        if (result.rows.length > 0 && result.rows[0].status_data) {
+                            existingData = result.rows[0].status_data;
                         }
-                        existingData.system.rssi = metadata.rssi;
-                        // Fusionner seulement les valeurs dynamiques de memory (sans écraser heap_total_kb)
-                        if (metadata.memory) {
-                            if (!existingData.system.memory) {
-                                existingData.system.memory = {};
+
+                        // Fusionner les nouvelles données avec les existantes
+                        if (topic.endsWith('/system')) {
+                            // Données dynamiques (rssi, memory dynamique) - fusion avec config existante
+                            if (!existingData.system) {
+                                existingData.system = {};
                             }
-                            if (metadata.memory.heap_free_kb !== undefined) {
-                                existingData.system.memory.heap_free_kb = metadata.memory.heap_free_kb;
+                            existingData.system.rssi = metadata.rssi;
+                            // Fusionner seulement les valeurs dynamiques de memory (sans écraser heap_total_kb)
+                            if (metadata.memory) {
+                                if (!existingData.system.memory) {
+                                    existingData.system.memory = {};
+                                }
+                                if (metadata.memory.heap_free_kb !== undefined) {
+                                    existingData.system.memory.heap_free_kb = metadata.memory.heap_free_kb;
+                                }
+                                if (metadata.memory.heap_min_free_kb !== undefined) {
+                                    existingData.system.memory.heap_min_free_kb = metadata.memory.heap_min_free_kb;
+                                }
+                                if (metadata.memory.psram) {
+                                    existingData.system.memory.psram = { ...existingData.system.memory.psram, ...metadata.memory.psram };
+                                }
                             }
-                            if (metadata.memory.heap_min_free_kb !== undefined) {
-                                existingData.system.memory.heap_min_free_kb = metadata.memory.heap_min_free_kb;
+                        } else if (topic.endsWith('/system/config')) {
+                            // Données statiques système (ip, mac, uptime_start, flash, memory.heap_total_kb) - envoyé une seule fois
+                            if (!existingData.system) {
+                                existingData.system = {};
                             }
-                            if (metadata.memory.psram) {
-                                existingData.system.memory.psram = { ...existingData.system.memory.psram, ...metadata.memory.psram };
+                            existingData.system.ip = metadata.ip;
+                            existingData.system.mac = metadata.mac;
+                            existingData.system.uptime_start = metadata.uptime_start;
+                            existingData.system.flash = metadata.flash;
+                            if (metadata.memory) {
+                                if (!existingData.system.memory) {
+                                    existingData.system.memory = {};
+                                }
+                                if (metadata.memory.heap_total_kb !== undefined) {
+                                    existingData.system.memory.heap_total_kb = metadata.memory.heap_total_kb;
+                                }
+                                if (metadata.memory.psram) {
+                                    existingData.system.memory.psram = metadata.memory.psram;
+                                }
                             }
+                        } else if (topic.endsWith('/sensors/status')) {
+                            // Fusionner les status des capteurs (sans écraser les configs)
+                            if (!existingData.sensors) {
+                                existingData.sensors = {};
+                            }
+                            Object.keys(metadata).forEach(sensorName => {
+                                if (!existingData.sensors[sensorName]) {
+                                    existingData.sensors[sensorName] = {};
+                                }
+                                existingData.sensors[sensorName].status = metadata[sensorName].status;
+                                existingData.sensors[sensorName].value = metadata[sensorName].value;
+                            });
+                        } else if (topic.endsWith('/sensors/config')) {
+                            // Stocker la config des capteurs (modèles) dans un objet séparé, comme hardware
+                            existingData.sensorsConfig = metadata;
+                        } else if (topic.endsWith('/hardware/config')) {
+                            // Stocker la config hardware statique (chip, flash totale, etc.) - envoyé une seule fois
+                            existingData.hardware = metadata;
                         }
-                    } else if (topic.endsWith('/system/config')) {
-                        // Données statiques système (ip, mac, uptime_start, flash, memory.heap_total_kb) - envoyé une seule fois
-                        if (!existingData.system) {
-                            existingData.system = {};
-                        }
-                        existingData.system.ip = metadata.ip;
-                        existingData.system.mac = metadata.mac;
-                        existingData.system.uptime_start = metadata.uptime_start;
-                        existingData.system.flash = metadata.flash;
-                        if (metadata.memory) {
-                            if (!existingData.system.memory) {
-                                existingData.system.memory = {};
-                            }
-                            if (metadata.memory.heap_total_kb !== undefined) {
-                                existingData.system.memory.heap_total_kb = metadata.memory.heap_total_kb;
-                            }
-                            if (metadata.memory.psram) {
-                                existingData.system.memory.psram = metadata.memory.psram;
-                            }
-                        }
-                    } else if (topic.endsWith('/sensors/status')) {
-                        // Fusionner les status des capteurs (sans écraser les configs)
-                        if (!existingData.sensors) {
-                            existingData.sensors = {};
-                        }
-                        Object.keys(metadata).forEach(sensorName => {
-                            if (!existingData.sensors[sensorName]) {
-                                existingData.sensors[sensorName] = {};
-                            }
-                            existingData.sensors[sensorName].status = metadata[sensorName].status;
-                            existingData.sensors[sensorName].value = metadata[sensorName].value;
-                        });
-                    } else if (topic.endsWith('/sensors/config')) {
-                        // Stocker la config des capteurs (modèles) dans un objet séparé, comme hardware
-                        existingData.sensorsConfig = metadata;
-                    } else if (topic.endsWith('/hardware/config')) {
-                        // Stocker la config hardware statique (chip, flash totale, etc.) - envoyé une seule fois
-                        existingData.hardware = metadata;
-                    }
-                    
-                    // Stocker/écraser les infos hardware pour ce module
-                    return pool.query(`
+
+                        // Stocker/écraser les infos hardware pour ce module
+                        return pool.query(`
                         INSERT INTO device_status (module_id, status_data, updated_at)
                         VALUES ($1, $2, NOW())
                         ON CONFLICT (module_id) 
                         DO UPDATE SET status_data = $2, updated_at = NOW()
                     `, [moduleId, JSON.stringify(existingData)]);
-                })
-                .catch(err => {
-                    console.error('   ⚠️  Erreur stockage infos hardware:', err.message);
-                });
+                    })
+                    .catch(err => {
+                        console.error('   ⚠️  Erreur stockage infos hardware:', err.message);
+                    });
             }
-            
+
             // Enregistrement des métriques système (poids du code) pour l'historique
             // On peut récupérer chip depuis hardware/config ou system (ancien format)
             if (topic.endsWith('/hardware/config') && metadata?.chip) {
@@ -207,29 +213,39 @@ function initMqtt(io) {
                     console.error('   ⚠️  Erreur enregistrement métriques système:', err.message);
                 });
             }
-            
+
             // On continue pour émettre via WebSocket, mais on ne stocke pas dans measurements
             return;
         }
 
-        // Pour les valeurs de capteurs, on stocke avec un filtre de 1 minute
-        // MAIS on émet toujours via WebSocket pour le temps réel
-        const now = Date.now();
-        const lastTime = lastSavedTime.get(topic) || 0;
+        // Pour les valeurs de capteurs, on stocke sans filtre temporel côté backend
+        // C'est l'ESP32 qui gère la fréquence d'envoi selon la config
+        messageBuffer.push({ topic, value, metadata });
 
-        if (now - lastTime >= 60000) { // 60000ms = 1 minute
-            messageBuffer.push({ topic, value, metadata });
-            lastSavedTime.set(topic, now);
-
-            // Si le buffer est plein, on vide tout de suite
-            if (messageBuffer.length >= BATCH_SIZE) {
-                flushBuffer();
-            }
+        // Si le buffer est plein, on vide tout de suite
+        if (messageBuffer.length >= BATCH_SIZE) {
+            flushBuffer();
         }
     });
 
     return mqttClient;
 }
 
-module.exports = { initMqtt };
+function publishConfig(moduleId, config) {
+    if (!mqttClient) {
+        console.error('❌ MQTT Client non initialisé, impossible de publier la config');
+        return false;
+    }
+    const topic = `${moduleId}/sensors/config`;
+    const payload = JSON.stringify(config);
+
+    // retain: true pour que l'ESP récupère la config au démarrage
+    mqttClient.publish(topic, payload, { retain: true, qos: 1 }, (err) => {
+        if (err) console.error(`❌ Erreur publication config sur ${topic}:`, err);
+        else console.log(`📤 Config publiée sur ${topic}:`, config);
+    });
+    return true;
+}
+
+module.exports = { initMqtt, publishConfig };
 
