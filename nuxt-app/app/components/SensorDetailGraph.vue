@@ -1,16 +1,11 @@
 <template>
-  <div v-if="selectedSensor" class="mt-4 bg-white rounded-xl shadow-sm border border-gray-100 p-6 animate-fade-in">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="font-bold text-gray-700 uppercase text-sm flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-        Historique détaillé : {{ sensorLabel }}
-      </h3>
-      <button @click="$emit('close')" class="text-gray-400 hover:text-red-500 text-sm">
-        Fermer
-      </button>
-    </div>
+  <div v-if="selectedSensor" class="mt-4 animate-fade-in">
+    <h3 class="font-bold text-gray-700 uppercase text-sm flex items-center gap-2 mb-4">
+      <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: sensorColor }"></span>
+      {{ sensorLabel }}
+    </h3>
     
-    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 h-80">
+    <div class="h-80">
       <SensorChart 
         v-if="history.length > 0"
         :data="history"

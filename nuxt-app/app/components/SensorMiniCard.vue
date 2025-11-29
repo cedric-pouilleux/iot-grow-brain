@@ -12,57 +12,6 @@
       </div>
       
       <div class="flex items-center gap-1.5 z-20">
-        <!-- Config Icon with Dropdown -->
-        <div class="relative flex items-center">
-          <button 
-            @click="showConfigDropdown = !showConfigDropdown"
-            class="text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center"
-            title="Configuration"
-          >
-            <Icon name="ph:gear-bold" class="w-4 h-4" /> 
-          </button>
-          
-          <!-- Dropdown Content -->
-          <div 
-            v-if="showConfigDropdown"
-            class="absolute right-0 top-6 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50"
-            @click.stop
-          >
-            <!-- Configuration Form -->
-            <div class="min-w-[200px]">
-              <h4 class="text-xs font-semibold text-gray-500 uppercase mb-3">Configuration</h4>
-              
-              <div class="space-y-3">
-                <div class="space-y-1">
-                  <div class="flex justify-between items-center">
-                    <label class="text-xs font-medium text-gray-700">Intervalle</label>
-                    <span class="text-xs text-gray-500">{{ localInterval }}s</span>
-                  </div>
-                  <input 
-                    type="range" 
-                    v-model.number="localInterval" 
-                    min="10" 
-                    max="300" 
-                    step="10"
-                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                  />
-                </div>
-
-                <div class="flex justify-end pt-1">
-                  <button 
-                    @click="saveConfig"
-                    :disabled="saving"
-                    class="px-2 py-1 bg-blue-600 text-white text-[10px] font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-1"
-                  >
-                    <Icon v-if="saving" name="tabler:loader-2" class="w-3 h-3 animate-spin" />
-                    {{ saving ? '...' : 'OK' }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Status Pastille with Tooltip --> 
         <div 
           class="cursor-help group/status relative flex items-center justify-center"
@@ -79,25 +28,93 @@
     </div>
     
     <!-- Valeur & Last Refresh -->
-    <div class="flex flex-col mb-2 relative z-10 pl-2 pr-2">
+    <div class="flex flex-col mb-2 relative z-10 pl-2 pr-2" ref="valueContainer">
       <!-- Valeur Actuelle --> 
       <div class="text-3xl font-bold leading-none tracking-tight flex items-baseline gap-0.5" :class="valueClass">
         {{ formattedValue }}
         <span class="text-lg font-semibold opacity-80">{{ sensorUnit }}</span>
       </div>
       
-      <!-- Dernier rafraîchissement -->
-      <div class="flex items-center gap-1 text-[10px] text-gray-400 mt-1">
-        <Icon name="ph:arrow-clockwise" class="w-3 h-3" />
-        <span v-if="timeAgo">{{ timeAgo }}</span>
-        <span v-else class="text-gray-300">--</span>
+      <!-- Dernier rafraîchissement avec dropdown stockage -->
+      <div v-if="isActive" class="relative flex items-center gap-1 text-[10px] mt-1">
+        <button
+          @click.stop="toggleDropdown"
+          :class="[
+            'px-1.5 py-0.5 text-[10px] rounded-t transition-colors flex items-center gap-1 uppercase border border-transparent',
+            showStorageDropdown 
+              ? 'bg-gray-800 text-white' 
+              : 'text-gray-600 bg-white hover:border-gray-200'
+          ]"
+        >
+          <Icon name="tabler:refresh" class="w-3 h-3" />
+          <span v-if="timeAgo">{{ timeAgo }}</span>
+          <span v-else class="text-gray-400">--</span>
+        </button>
+        
+        <!-- Storage Projection Dropdown - Positionné sous le bouton, aligné à gauche de la card -->
+        <div 
+          v-if="showStorageDropdown"
+          class="absolute top-full bg-gray-800 rounded-b-lg shadow-lg p-3 z-50"
+          style="left: -8px; width: calc(100% + 16px); margin-top: -1px;"
+          @click.stop
+        >
+          <!-- Intervalle Slider -->
+          <div class="space-y-2 mb-3">
+            <div class="flex justify-between items-center">
+              <label class="text-xs font-medium text-gray-300">Intervalle</label>
+              <span class="text-xs text-white">{{ localInterval }}s</span>
+            </div>
+            <input 
+              type="range" 
+              v-model.number="localInterval" 
+              min="10" 
+              max="300" 
+              step="10"
+              class="w-full h-2 bg-white rounded-lg appearance-none cursor-pointer accent-blue-500"
+            />
+          </div>
+
+          <!-- Storage Projection -->
+          <div class="mb-3 pt-2 border-t border-gray-700">
+            <h6 class="text-[10px] font-semibold text-gray-300 mb-1.5 flex items-center gap-1">
+              <Icon name="tabler:database" class="w-3 h-3" />
+              Impact Stockage
+            </h6>
+            <div class="space-y-0.5 text-[10px] text-gray-300">
+              <div class="flex justify-between">
+                <span>1 an (Brut):</span>
+                <span class="font-mono text-white">{{ localInterval > 0 ? formatSize(calculateStorage(1, false)) : '--' }}</span>
+              </div>
+              <div class="flex justify-between font-semibold">
+                <span>1 an (Comp.):</span>
+                <span class="font-mono text-white">{{ localInterval > 0 ? formatSize(calculateStorage(1, true)) : '--' }}</span>
+              </div>
+              <div class="flex justify-between text-gray-400">
+                <span>10 ans (Comp.):</span>
+                <span class="font-mono text-white">{{ localInterval > 0 ? formatSize(calculateStorage(10, true)) : '--' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bouton OK -->
+          <div class="flex justify-end pt-1">
+            <button 
+              @click="saveConfig"
+              :disabled="saving"
+              class="px-2 py-1 bg-blue-600 text-white text-[10px] font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-1"
+            >
+              <Icon v-if="saving" name="tabler:loader-2" class="w-3 h-3 animate-spin" />
+              {{ saving ? '...' : 'OK' }}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Mini Graphique avec Chart.js -->
     <div class="h-24 w-full relative p-2" v-if="hasHistory">
       <ClientOnly> 
-        <Line v-if="chartData" :data="chartData" :options="chartOptions" class="rounded-lg" />
+        <Line v-if="chartData" :data="chartData" :options="chartOptions" />
         <template #fallback>
           <div class="h-full flex items-center justify-center text-[10px] text-gray-300">
             Chargement...
@@ -146,19 +163,36 @@ const props = defineProps({
   isGraphOpen: { type: Boolean, default: false },
   moduleId: { type: String, default: null },
   sensorKey: { type: String, default: null },
-  initialInterval: { type: Number, default: 60 }
+  initialInterval: { type: Number, default: 60 },
+  openDropdownId: { type: String, default: null }
 })
 
-defineEmits(['toggle-graph'])
+const emit = defineEmits(['toggle-graph', 'dropdown-opened'])
 
-const showConfigDropdown = ref(false)
+const showStorageDropdown = ref(false)
 const now = ref(Date.now())
 const localInterval = ref(props.initialInterval)
 const saving = ref(false)
 
+// Watcher pour fermer ce dropdown si un autre s'ouvre
+watch(() => props.openDropdownId, (newId) => {
+  if (newId !== props.sensorKey) {
+    showStorageDropdown.value = false
+  }
+})
+
+const toggleDropdown = () => {
+  const newState = !showStorageDropdown.value
+  showStorageDropdown.value = newState
+  // Émettre l'event pour informer le parent
+  if (newState) {
+    emit('dropdown-opened', props.sensorKey)
+  }
+}
+
 // Mettre à jour localInterval si la prop change, MAIS seulement si le menu n'est pas ouvert
 watch(() => props.initialInterval, (val) => {
-  if (!showConfigDropdown.value) {
+  if (!showStorageDropdown.value) {
     localInterval.value = val
   }
 })
@@ -189,7 +223,7 @@ const saveConfig = async () => {
       body: payload
     })
     
-    showConfigDropdown.value = false
+    showStorageDropdown.value = false
   } catch (err) {
     console.error('Erreur sauvegarde config:', err)
     alert('Erreur lors de la sauvegarde')
@@ -201,8 +235,14 @@ const saveConfig = async () => {
 // Fermer le dropdown si on clique en dehors
 const handleClickOutside = (event) => {
   const target = event.target
-  if (!target.closest('.relative')) {
-    showConfigDropdown.value = false
+  // Vérifier si le clic est en dehors de la card ET du dropdown
+  const card = target.closest('.relative.rounded-lg')
+  const dropdown = target.closest('.absolute.top-full')
+  
+  if (!card || (card && !dropdown && showStorageDropdown.value)) {
+    showStorageDropdown.value = false
+    // Informer le parent pour fermer tous les dropdowns
+    emit('dropdown-opened', null)
   }
 }
 
@@ -296,6 +336,30 @@ const formatTime = (dateObj, full = false) => {
       return `${h}:${m}:${s}`
   }
   return `${h}:${m}`
+}
+
+// Estimation de l'espace en base de données
+// Basé sur l'analyse réelle de la BDD : ~37 bytes/enregistrement (time: 8, topic: 17-25, value: 8, overhead: ~4)
+// Compression TimescaleDB : ~90-95% (on prend 90% pour être safe, donc facteur 0.1)
+const calculateStorage = (years, compressed) => {
+  if (!localInterval.value || localInterval.value <= 0) {
+    return 0
+  }
+  
+  const secondsPerYear = 365 * 24 * 3600
+  const bytesPerRecord = 37 // Taille moyenne réelle mesurée en production
+  
+  const records = (secondsPerYear / localInterval.value) * years
+  const totalBytes = records * bytesPerRecord
+  
+  return compressed ? totalBytes * 0.1 : totalBytes
+}
+
+const formatSize = (bytes) => {
+  if (bytes < 1024) return Math.round(bytes) + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+  return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
 }
 
 const graphMinMax = computed(() => {

@@ -11,7 +11,9 @@
       :module-id="moduleId"
       :sensor-key="sensor.key"
       :initial-interval="deviceStatus?.sensorsConfig?.sensors?.[sensor.key]?.interval || 60"
+      :open-dropdown-id="openDropdownId"
       @toggle-graph="toggleGraph(sensor.key)"
+      @dropdown-opened="handleDropdownOpened"
     />
   </div>
 </template>
@@ -28,6 +30,17 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['toggle-graph'])
+
+const openDropdownId = ref(null)
+
+const handleDropdownOpened = (sensorKey) => {
+  // Si null, fermer tous les dropdowns
+  if (!sensorKey) {
+    openDropdownId.value = null
+  } else {
+    openDropdownId.value = sensorKey
+  }
+}
 
 const getSensorData = (sensorName) => {
   const status = props.deviceStatus?.sensors?.[sensorName] || {}

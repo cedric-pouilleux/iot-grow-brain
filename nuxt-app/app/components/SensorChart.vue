@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-2xl shadow-sm p-6 flex flex-col min-h-[300px] border border-gray-100">
+  <div class="bg-white shadow-sm p-6 flex flex-col min-h-[300px] border border-gray-100">
     <div class="flex justify-between items-center mb-4">
       <div class="flex items-baseline gap-3">
         <h2 :class="['text-lg font-bold', titleColorClass]">{{ title }}</h2>
