@@ -44,8 +44,10 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { SensorDataPoint } from '../types'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import type { ChartData, ChartOptions } from 'chart.js'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -61,7 +63,6 @@ import { useTimeAgo } from '../composables/useTimeAgo'
 import SensorIntervalDropdown from './SensorIntervalDropdown.vue'
 import SensorCardHeader from './SensorCardHeader.vue'
 
-// Enregistrer Chart.js uniquement côté client
 if (process.client) {
   ChartJS.register(
     CategoryScale,
@@ -73,28 +74,44 @@ if (process.client) {
   )
 }
 
-const props = defineProps({
-  label: String,
-  sensor: Object,
-  color: { type: String, default: 'gray' },
-  history: { type: Array, default: () => [] },
-  isGraphOpen: { type: Boolean, default: false },
-  moduleId: { type: String, default: null },
-  sensorKey: { type: String, default: null },
-  initialInterval: { type: Number, default: 60 }
-})
-
-const emit = defineEmits(['toggle-graph'])
-
-const cardRef = ref(null)
-const cardWidth = ref(0)
-
-const handleIntervalSave = (newInterval) => {
-  // Optionnel : émettre un événement ou mettre à jour l'état si nécessaire
-  // Pour l'instant, le composant SensorIntervalDropdown gère tout
+interface SensorInfo {
+  status?: string
+  value?: number
+  model?: string
 }
 
-let resizeObserver = null
+interface Props {
+  label: string
+  sensor: SensorInfo
+  color?: string
+  history?: SensorDataPoint[]
+  isGraphOpen?: boolean
+  moduleId?: string | null
+  sensorKey?: string | null
+  initialInterval?: number
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  color: 'gray',
+  history: () => [],
+  isGraphOpen: false,
+  moduleId: null,
+  sensorKey: null,
+  initialInterval: 60
+})
+
+const emit = defineEmits<{
+  'toggle-graph': []
+}>()
+
+const cardRef = ref<HTMLElement | null>(null)
+const cardWidth = ref(0)
+
+const handleIntervalSave = (_newInterval: number) => {
+  // Handled by SensorIntervalDropdown
+}
+
+let resizeObserver: ResizeObserver | null = null
 
 const initialLastTime = ref(null)
 
@@ -179,18 +196,16 @@ const graphMinMax = computed(() => {
 })
 
 // Configuration Chart.js pour le sparkline
-const chartData = computed(() => {
+const chartData = computed<ChartData<'line'> | null>(() => {
   if (!hasHistory.value) return null
   
-  // Trier les données par temps croissant (comme le grand graphique)
   const sortedData = [...props.history].sort((a, b) => {
     const timeA = a.time instanceof Date ? a.time.getTime() : new Date(a.time).getTime()
     const timeB = b.time instanceof Date ? b.time.getTime() : new Date(b.time).getTime()
     return timeA - timeB
   })
   
-  // Convertir la couleur hex en rgba pour le fill
-  const hexToRgba = (hex, alpha) => {
+  const hexToRgba = (hex: string, alpha: number): string => {
     const r = parseInt(hex.slice(1, 3), 16)
     const g = parseInt(hex.slice(3, 5), 16)
     const b = parseInt(hex.slice(5, 7), 16)
@@ -204,7 +219,7 @@ const chartData = computed(() => {
         backgroundColor: hexToRgba(strokeColor.value, 0.2),
         borderColor: strokeColor.value,
         borderWidth: 2,
-        data: sortedData.map(m => ({ x: m.time, y: m.value })),
+        data: sortedData.map(m => ({ x: m.time as unknown as number, y: m.value })),
         tension: 0.2,
         fill: true,
         pointRadius: 0,
@@ -215,27 +230,27 @@ const chartData = computed(() => {
   }
 })
 
-const chartOptions = computed(() => ({
+const chartOptions = computed<ChartOptions<'line'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
   interaction: { intersect: false },
   scales: {
     x: {
-      type: 'time',
-      display: false, // Masquer l'axe X pour un sparkline
+      type: 'time' as const,
+      display: false,
       time: {
-        unit: 'minute'
+        unit: 'minute' as const
       }
     },
     y: {
-      display: false, // Masquer l'axe Y pour un sparkline
+      display: false,
       min: graphMinMax.value.min,
       max: graphMinMax.value.max
     }
   },
   plugins: {
     legend: { display: false },
-    tooltip: { enabled: false } // Désactiver le tooltip pour un sparkline
+    tooltip: { enabled: false }
   }
 }))
 </script>

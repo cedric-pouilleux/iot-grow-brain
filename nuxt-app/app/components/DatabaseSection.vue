@@ -68,21 +68,30 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { GetApiDbSize200, GetApiMetricsHistory200HistoryItem } from '../utils/model'
+import { getApiMetricsHistory } from '../utils/api'
 import MetricsHistoryChart from './MetricsHistoryChart.vue'
 
-const props = defineProps({
-  dbSize: { type: Object, default: null },
-  metricsHistory: { type: Array, default: () => [] }
+interface Props {
+  dbSize: GetApiDbSize200 | null
+  metricsHistory: GetApiMetricsHistory200HistoryItem[]
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  dbSize: null,
+  metricsHistory: () => []
 })
 
-const emit = defineEmits(['update:metricsHistory'])
+const emit = defineEmits<{
+  'update:metricsHistory': [history: GetApiMetricsHistory200HistoryItem[]]
+}>()
 
 const isOpen = ref(false)
 const showMetricsHistory = ref(false)
 const isLoadingHistory = ref(false)
 
-const formatBytes = (bytes) => {
+const formatBytes = (bytes: number | undefined | null): string => {
   if (!bytes && bytes !== 0) return '--'
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
@@ -90,7 +99,6 @@ const formatBytes = (bytes) => {
   return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
 }
 
-// Charger l'historique des métriques quand on affiche la section
 watch(showMetricsHistory, (show) => {
   if (show && props.metricsHistory.length === 0) {
     loadMetricsHistory()
@@ -100,8 +108,10 @@ watch(showMetricsHistory, (show) => {
 const loadMetricsHistory = async () => {
   isLoadingHistory.value = true
   try {
-    const data = await $fetch('/api/metrics-history?days=30')
-    emit('update:metricsHistory', data.history || [])
+    const response = await getApiMetricsHistory({ days: '30' })
+    if (response.data?.history) {
+      emit('update:metricsHistory', response.data.history)
+    }
   } catch (e) {
     console.error("Erreur fetch metrics-history:", e)
   } finally {

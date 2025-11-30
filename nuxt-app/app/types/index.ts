@@ -35,6 +35,9 @@ export interface SystemInfo {
   flash?: {
     size?: number
     used?: number
+    used_kb?: number
+    free_kb?: number
+    system_kb?: number
   }
   memory?: SystemMemory
   rssi?: number

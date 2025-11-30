@@ -2,19 +2,22 @@
  * Composable pour gérer la logique de la base de données
  * (extrait de app.vue pour améliorer la lisibilité)
  */
-import type { DbSize } from '../types'
+import type { GetApiDbSize200, GetApiMetricsHistory200HistoryItem } from '../utils/model'
+import { getApiDbSize, getApiMetricsHistory } from '../utils/api'
 
 export const useDatabase = () => {
-  const dbSize = ref<DbSize | null>(null)
-  const metricsHistory = ref<any[]>([])
+  const dbSize = ref<GetApiDbSize200 | null>(null)
+  const metricsHistory = ref<GetApiMetricsHistory200HistoryItem[]>([])
 
   /**
    * Charge la taille de la base de données
    */
   const loadDbSize = async () => {
     try {
-      const dbSizeData = await $fetch<DbSize>('/api/db-size', { timeout: 5000 })
-      dbSize.value = dbSizeData
+      const response = await getApiDbSize()
+      if (response.data) {
+        dbSize.value = response.data
+      }
     } catch (e) {
       console.error("Erreur fetch db-size:", e)
     }
@@ -25,11 +28,10 @@ export const useDatabase = () => {
    */
   const loadMetricsHistory = async (days: number = 30) => {
     try {
-      const data = await $fetch('/api/metrics-history', { 
-        params: { days },
-        timeout: 10000 
-      })
-      metricsHistory.value = data.history || []
+      const response = await getApiMetricsHistory({ days: days.toString() })
+      if (response.data && response.data.history) {
+        metricsHistory.value = response.data.history
+      }
     } catch (e) {
       console.error("Erreur fetch metrics-history:", e)
     }

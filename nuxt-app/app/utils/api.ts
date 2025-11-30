@@ -6,8 +6,13 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  GetApiDashboard200,
   GetApiDashboardParams,
+  GetApiDbSize200,
+  GetApiMetricsHistory200,
   GetApiMetricsHistoryParams,
+  GetApiModules200Item,
+  GetApiStorage200,
   PostApiModulesIdConfigBody
 } from './model';
 
@@ -16,7 +21,7 @@ import type {
  * @summary List all modules
  */
 export type getApiModulesResponse200 = {
-  data: void
+  data: GetApiModules200Item[]
   status: 200
 }
     
@@ -102,7 +107,7 @@ export const postApiModulesIdConfig = async (id: string,
  * @summary Get dashboard data
  */
 export type getApiDashboardResponse200 = {
-  data: void
+  data: GetApiDashboard200
   status: 200
 }
     
@@ -151,7 +156,7 @@ export const getApiDashboard = async (params: GetApiDashboardParams, options?: R
  * @summary Get database size
  */
 export type getApiDbSizeResponse200 = {
-  data: void
+  data: GetApiDbSize200
   status: 200
 }
     
@@ -193,7 +198,7 @@ export const getApiDbSize = async ( options?: RequestInit): Promise<getApiDbSize
  * @summary Get system metrics history
  */
 export type getApiMetricsHistoryResponse200 = {
-  data: void
+  data: GetApiMetricsHistory200
   status: 200
 }
     
@@ -242,7 +247,7 @@ export const getApiMetricsHistory = async (params?: GetApiMetricsHistoryParams, 
  * @summary Get detailed storage information
  */
 export type getApiStorageResponse200 = {
-  data: void
+  data: GetApiStorage200
   status: 200
 }
     

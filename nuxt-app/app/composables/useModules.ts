@@ -1,15 +1,19 @@
-import type { Module } from '../types'
+import type { GetApiModules200Item } from '../utils/model'
+import { getApiModules } from '../utils/api'
 
 export const useModules = () => {
-  const modules = ref<Module[]>([])
+  const modules = ref<GetApiModules200Item[]>([])
   const error = ref<string | null>(null)
 
   const loadModules = async () => {
     try {
-      const data = await $fetch<Module[]>('/api/modules', { timeout: 5000, retry: 0 })
-      modules.value = data
-    } catch (e: any) {
-      error.value = `Impossible de charger les modules: ${e.message || 'Erreur de connexion'}`
+      const response = await getApiModules()
+      if (response.data) {
+        modules.value = response.data
+      }
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'Erreur de connexion'
+      error.value = `Impossible de charger les modules: ${errorMessage}`
       console.error('Erreur fetch modules:', e)
     }
   }
@@ -19,15 +23,18 @@ export const useModules = () => {
     if (topicParts.length < 2) return null
 
     const moduleId = topicParts[0]
-    
+
     if (!modules.value.find(m => m.id === moduleId)) {
+      // Optimistic update
       modules.value.push({
         id: moduleId,
-        name: moduleId
+        name: moduleId,
+        type: 'unknown',
+        status: null
       })
       return moduleId
     }
-    
+
     return null
   }
 

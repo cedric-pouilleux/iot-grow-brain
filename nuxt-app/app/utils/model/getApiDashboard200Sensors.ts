@@ -6,6 +6,8 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type GetApiMetricsHistoryParams = {
-days?: string;
+export type GetApiDashboard200Sensors = {
+  co2: unknown[];
+  temp: unknown[];
+  hum: unknown[];
 };

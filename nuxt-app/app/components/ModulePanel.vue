@@ -44,13 +44,25 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { DeviceStatus, SensorData } from '../types'
 import ModuleHeader from './ModuleHeader.vue'
 import SensorDetailGraph from './SensorDetailGraph.vue'
 import { formatUptime } from '../utils/time'
 import { getSensorLabel, getSensorColor, getSensorUnit, normalizeSensorType } from '../utils/sensors'
 
-const getSensorData = (sensorName) => {
+interface Props {
+  moduleId: string
+  moduleName: string
+  deviceStatus: DeviceStatus | null
+  sensorData: SensorData
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  sensorData: () => ({ co2: [], temp: [], hum: [] })
+})
+
+const getSensorData = (sensorName: string) => {
   const status = props.deviceStatus?.sensors?.[sensorName] || {}
   const config = props.deviceStatus?.sensorsConfig?.[sensorName] || {}
   return {
@@ -59,12 +71,10 @@ const getSensorData = (sensorName) => {
   }
 }
 
-const selectedGraphSensor = ref(null)
-
+const selectedGraphSensor = ref<string | null>(null)
 const isToggling = ref(false)
 
-const toggleGraph = (sensorType) => {
-  // Protection contre les clics multiples rapides
+const toggleGraph = (sensorType: string) => {
   if (isToggling.value) return
   
   isToggling.value = true
@@ -76,24 +86,10 @@ const toggleGraph = (sensorType) => {
     selectedGraphSensor.value = normalizedType
   }
   
-  // Réinitialiser le flag après un court délai
   setTimeout(() => {
     isToggling.value = false
   }, 100)
 }
-
-const props = defineProps({
-  moduleId: String,
-  moduleName: String,
-  deviceStatus: {
-    type: Object,
-    default: null
-  },
-  sensorData: {
-    type: Object,
-    default: () => ({ co2: [], temp: [], hum: [] })
-  }
-})
 
 const sensorTypes = [
   { key: 'co2', label: 'CO2', color: 'emerald' },
@@ -102,7 +98,7 @@ const sensorTypes = [
   { key: 'pm25', label: 'PM2.5', color: 'violet' },
   { key: 'voc', label: 'COV', color: 'pink' },
   { key: 'pressure', label: 'Pression', color: 'cyan' }
-]
+] as const
 
 const calculatedUptime = computed(() => {
   if (!props.deviceStatus?.system?.uptime_start) return null
@@ -110,17 +106,15 @@ const calculatedUptime = computed(() => {
   const now = Math.floor(Date.now() / 1000)
   const system = props.deviceStatus.system
   
-  // Utiliser les valeurs déjà calculées si disponibles
   if (system._config_received_at && system._uptime_start_offset !== undefined) {
     const elapsedSinceConfig = now - system._config_received_at
     return system._uptime_start_offset + elapsedSinceConfig
   }
   
-  // Sinon, utiliser directement uptime_start (moins précis mais fonctionne)
   return system.uptime_start
 })
 
-const getSensorHistory = (type) => {
+const getSensorHistory = (type: string) => {
   const normalizedType = normalizeSensorType(type)
   if (normalizedType === 'co2') return props.sensorData.co2
   if (normalizedType === 'temp') return props.sensorData.temp

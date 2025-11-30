@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { ModuleConfigSchema, ModuleParamsSchema, DashboardQuerySchema } from './schema';
+import { ModuleConfigSchema, ModuleParamsSchema, DashboardQuerySchema, ModuleListResponseSchema, DashboardResponseSchema } from './schema';
 
 const devicesRoutes: FastifyPluginAsync = async (fastify) => {
     const app = fastify.withTypeProvider<ZodTypeProvider>();
@@ -10,6 +10,9 @@ const devicesRoutes: FastifyPluginAsync = async (fastify) => {
         schema: {
             tags: ['Devices'],
             summary: 'List all modules',
+            response: {
+                200: ModuleListResponseSchema
+            }
         }
     }, async (req, res) => {
         try {
@@ -106,7 +109,10 @@ const devicesRoutes: FastifyPluginAsync = async (fastify) => {
         schema: {
             tags: ['Devices'],
             summary: 'Get dashboard data',
-            querystring: DashboardQuerySchema
+            querystring: DashboardQuerySchema,
+            response: {
+                200: DashboardResponseSchema
+            }
         }
     }, async (req, res) => {
         const { module, days, limit } = req.query;

@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { MetricsHistoryQuerySchema } from './schema';
+import { MetricsHistoryQuerySchema, DbSizeResponseSchema, MetricsHistoryResponseSchema, StorageResponseSchema } from './schema';
 
 const systemRoutes: FastifyPluginAsync = async (fastify) => {
     const app = fastify.withTypeProvider<ZodTypeProvider>();
@@ -10,6 +10,9 @@ const systemRoutes: FastifyPluginAsync = async (fastify) => {
         schema: {
             tags: ['System'],
             summary: 'Get database size',
+            response: {
+                200: DbSizeResponseSchema
+            }
         }
     }, async (req, res) => {
         try {
@@ -33,7 +36,10 @@ const systemRoutes: FastifyPluginAsync = async (fastify) => {
         schema: {
             tags: ['System'],
             summary: 'Get system metrics history',
-            querystring: MetricsHistoryQuerySchema
+            querystring: MetricsHistoryQuerySchema,
+            response: {
+                200: MetricsHistoryResponseSchema
+            }
         }
     }, async (req, res) => {
         const { days } = req.query;
@@ -71,6 +77,9 @@ const systemRoutes: FastifyPluginAsync = async (fastify) => {
         schema: {
             tags: ['System'],
             summary: 'Get detailed storage information',
+            response: {
+                200: StorageResponseSchema
+            }
         }
     }, async (req, res) => {
         try {

@@ -22,14 +22,46 @@ Modern, scalable backend for the IoT Dashboard, built with **Fastify**, **TypeSc
 npm install
 ```
 
-### Development
+## Development
+
 ```bash
 npm run dev
 ```
-Server will start at `http://localhost:3001`.
-API Documentation available at `http://localhost:3001/documentation`.
+
+The server will start on `http://localhost:3001`.
+
+### API Documentation (Swagger)
+
+The API documentation is automatically generated and available at:
+- **Swagger UI**: `http://localhost:3001/documentation`
+- **OpenAPI JSON**: `http://localhost:3001/documentation/json`
+
+You can use the Swagger UI to:
+- Browse all available endpoints
+- Test API calls directly from the browser
+- View request/response schemas
+- Download the OpenAPI specification
+
+### Frontend Type Generation
+
+The frontend uses [Orval](https://orval.dev/) to generate a type-safe API client from the OpenAPI specification.
+
+To regenerate types after backend changes:
+
+```bash
+cd ../nuxt-app
+npm run gen:api
+```
+
+This will:
+1. Fetch the OpenAPI spec from the running backend
+2. Generate TypeScript types in `app/utils/model/`
+3. Generate API client functions in `app/utils/api.ts`
+
+> **Note**: The backend must be running for type generation to work.
 
 ### Build & Start
+
 ```bash
 npm run build
 npm start

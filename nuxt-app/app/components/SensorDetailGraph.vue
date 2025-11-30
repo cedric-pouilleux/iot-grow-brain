@@ -21,7 +21,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { SensorDataPoint } from '../types'
+import type { ChartData, ChartOptions } from 'chart.js'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -34,7 +36,6 @@ import {
 import { Line } from 'vue-chartjs'
 import 'chartjs-adapter-date-fns'
 
-// Enregistrer Chart.js uniquement côté client
 if (process.client) {
   ChartJS.register(
     CategoryScale,
@@ -46,15 +47,22 @@ if (process.client) {
   )
 }
 
-const props = defineProps({
-  selectedSensor: { type: String, default: null },
-  history: { type: Array, default: () => [] },
-  sensorLabel: { type: String, required: true },
-  sensorColor: { type: String, required: true },
-  sensorUnit: { type: String, required: true }
+interface Props {
+  selectedSensor: string | null
+  history: SensorDataPoint[]
+  sensorLabel: string
+  sensorColor: string
+  sensorUnit: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  selectedSensor: null,
+  history: () => []
 })
 
-defineEmits(['close'])
+defineEmits<{
+  close: []
+}>()
 
 const hasHistory = computed(() => props.history && props.history.length >= 2)
 
@@ -74,18 +82,16 @@ const graphMinMax = computed(() => {
 })
 
 // Configuration Chart.js identique aux petits graphiques
-const chartData = computed(() => {
+const chartData = computed<ChartData<'line'> | null>(() => {
   if (!hasHistory.value) return null
   
-  // Trier les données par temps croissant
   const sortedData = [...props.history].sort((a, b) => {
     const timeA = a.time instanceof Date ? a.time.getTime() : new Date(a.time).getTime()
     const timeB = b.time instanceof Date ? b.time.getTime() : new Date(b.time).getTime()
     return timeA - timeB
   })
   
-  // Convertir la couleur hex en rgba pour le fill
-  const hexToRgba = (hex, alpha) => {
+  const hexToRgba = (hex: string, alpha: number): string => {
     const r = parseInt(hex.slice(1, 3), 16)
     const g = parseInt(hex.slice(3, 5), 16)
     const b = parseInt(hex.slice(5, 7), 16)
@@ -99,7 +105,7 @@ const chartData = computed(() => {
         backgroundColor: hexToRgba(props.sensorColor, 0.2),
         borderColor: props.sensorColor,
         borderWidth: 2,
-        data: sortedData.map(m => ({ x: m.time, y: m.value })),
+        data: sortedData.map(m => ({ x: m.time as unknown as number, y: m.value })),
         tension: 0.2,
         fill: true,
         pointRadius: 0,
@@ -110,16 +116,16 @@ const chartData = computed(() => {
   }
 })
 
-const chartOptions = computed(() => ({
+const chartOptions = computed<ChartOptions<'line'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
   interaction: { intersect: false },
   scales: {
     x: {
-      type: 'time',
+      type: 'time' as const,
       display: true,
       time: {
-        unit: 'minute'
+        unit: 'minute' as const
       },
       border: { display: false },
       grid: { color: '#f3f4f6', drawBorder: false },

@@ -275,11 +275,11 @@ const props = defineProps<{
   isOpen: boolean
   deviceStatus: DeviceStatus | null
   formattedUptime: string
+  moduleId: string
 }>()
 
 const openDropdown = ref<'hardware' | 'network' | 'storage' | 'config' | null>(null)
 
-// Fermer le dropdown quand le panel se ferme
 watch(() => props.isOpen, (isOpen) => {
   if (!isOpen) {
     openDropdown.value = null
@@ -302,7 +302,6 @@ const hardwareModel = computed(() => {
   return model
 })
 
-// Flash calculations
 const flashSketchPercent = computed(() => {
   const total = props.deviceStatus?.hardware?.chip?.flash_kb
   const used = props.deviceStatus?.system?.flash?.used_kb
@@ -324,7 +323,6 @@ const flashSystemPercent = computed(() => {
   return (sys / total) * 100
 })
 
-// RAM calculations
 const usedHeap = computed(() => {
   const total = props.deviceStatus?.system?.memory?.heap_total_kb
   const free = props.deviceStatus?.system?.memory?.heap_free_kb
@@ -338,7 +336,6 @@ const heapUsedPercent = computed(() => {
   return (usedHeap.value / total) * 100
 })
 
-// Fermer le dropdown si on clique en dehors
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement
   if (!target.closest('.relative')) {
@@ -353,6 +350,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
+
 const config = ref({
   co2: 60,
   temperature: 60,
@@ -361,7 +359,6 @@ const config = ref({
 
 const saving = ref(false)
 
-// Initialiser la config depuis les props si disponible
 watch(() => props.deviceStatus, (status) => {
   if (status?.sensorsConfig?.sensors) {
     if (status.sensorsConfig.sensors.co2?.interval) config.value.co2 = status.sensorsConfig.sensors.co2.interval
@@ -370,12 +367,9 @@ watch(() => props.deviceStatus, (status) => {
   }
 }, { immediate: true })
 
-// Estimation basée sur l'analyse réelle de la BDD : ~37 bytes/enregistrement
-// (time: 8 bytes, topic: 17-25 bytes, value: 8 bytes, overhead: ~4 bytes)
-// Compression TimescaleDB : ~90-95% (on prend 90% pour être safe, donc facteur 0.1)
 const calculateStorage = (years: number, compressed: boolean) => {
   const secondsPerYear = 365 * 24 * 3600
-  const bytesPerRecord = 37 // Taille moyenne réelle mesurée en production
+  const bytesPerRecord = 37
   
   const recordsCo2 = secondsPerYear / config.value.co2
   const recordsTemp = secondsPerYear / config.value.temperature
@@ -388,7 +382,7 @@ const calculateStorage = (years: number, compressed: boolean) => {
 }
 
 const saveConfig = async () => {
-  if (!props.deviceStatus?.module_id) return
+  if (!props.moduleId) return
   
   saving.value = true
   try {
@@ -400,9 +394,7 @@ const saveConfig = async () => {
       }
     }
     
-    // On suppose que l'API est accessible via /api
-    // Dans Nuxt, on utiliserait useFetch ou $fetch
-    await $fetch(`/api/modules/${props.deviceStatus.module_id}/config`, {
+    await $fetch(`/api/modules/${props.moduleId}/config`, {
       method: 'POST',
       body: payload
     })

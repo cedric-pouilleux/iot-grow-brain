@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type GetApiMetricsHistoryParams = {
-days?: string;
+export type GetApiDbSize200 = {
+  total_size: string;
+  total_size_bytes: number;
 };

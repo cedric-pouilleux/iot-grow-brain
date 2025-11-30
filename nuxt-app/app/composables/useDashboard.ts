@@ -1,5 +1,16 @@
-import type { DashboardData, DeviceStatus } from '../types'
+import type { GetApiDashboard200 } from '../utils/model'
+import type { DeviceStatus, SensorDataPoint } from '../types'
+import { getApiDashboard } from '../utils/api'
 import { processSensorData } from '../utils/data-processing'
+
+interface RawSensorDataPoint {
+  time: string | Date
+  value: number
+}
+
+const isSensorDataArray = (data: unknown): data is RawSensorDataPoint[] => {
+  return Array.isArray(data)
+}
 
 export const useDashboard = () => {
   const isLoading = ref(false)
@@ -8,27 +19,33 @@ export const useDashboard = () => {
   const loadDashboard = async (
     moduleId: string,
     days: number = 1
-  ): Promise<{ status: DeviceStatus | null; sensors: any } | null> => {
+  ): Promise<{ status: DeviceStatus | null; sensors: { co2: SensorDataPoint[]; temp: SensorDataPoint[]; hum: SensorDataPoint[] } } | null> => {
     if (!moduleId) return null
 
     isLoading.value = true
     error.value = null
 
     try {
-      const dashboardData = await $fetch<DashboardData>(
-        `/api/dashboard?module=${moduleId}&days=${days}&_t=${Date.now()}`
-      )
+      const response = await getApiDashboard({ module: moduleId, days: days.toString() })
+      const dashboardData = response.data
+
+      if (!dashboardData) return null
+
+      const co2Data = isSensorDataArray(dashboardData.sensors?.co2) ? dashboardData.sensors.co2 : []
+      const tempData = isSensorDataArray(dashboardData.sensors?.temp) ? dashboardData.sensors.temp : []
+      const humData = isSensorDataArray(dashboardData.sensors?.hum) ? dashboardData.sensors.hum : []
 
       return {
-        status: dashboardData.status,
+        status: dashboardData.status as DeviceStatus | null,
         sensors: {
-          co2: processSensorData(dashboardData.sensors?.co2 || []),
-          temp: processSensorData(dashboardData.sensors?.temp || []),
-          hum: processSensorData(dashboardData.sensors?.hum || [])
+          co2: processSensorData(co2Data),
+          temp: processSensorData(tempData),
+          hum: processSensorData(humData)
         }
       }
-    } catch (e: any) {
-      error.value = `Erreur lors du chargement: ${e.message || 'Erreur inconnue'}`
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'Erreur inconnue'
+      error.value = `Erreur lors du chargement: ${errorMessage}`
       console.error('Erreur fetch dashboard:', e)
       return null
     } finally {
@@ -42,4 +59,3 @@ export const useDashboard = () => {
     loadDashboard
   }
 }
-
