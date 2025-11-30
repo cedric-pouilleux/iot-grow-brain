@@ -25,5 +25,6 @@ export * from './getApiStorage200MeasurementsNewestRecord';
 export * from './getApiStorage200MeasurementsOldestRecord';
 export * from './getApiStorage200TablesItem';
 export * from './getApiStorage200Timescaledb';
+export * from './postApiModulesIdConfig200';
 export * from './postApiModulesIdConfigBody';
 export * from './postApiModulesIdConfigBodySensors';

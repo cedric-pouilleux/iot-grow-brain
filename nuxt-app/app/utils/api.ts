@@ -13,6 +13,7 @@ import type {
   GetApiMetricsHistoryParams,
   GetApiModules200Item,
   GetApiStorage200,
+  PostApiModulesIdConfig200,
   PostApiModulesIdConfigBody
 } from './model';
 
@@ -60,10 +61,10 @@ export const getApiModules = async ( options?: RequestInit): Promise<getApiModul
 
 
 /**
- * @summary Update module configuration
+ * @summary Update module sensor configuration
  */
 export type postApiModulesIdConfigResponse200 = {
-  data: void
+  data: PostApiModulesIdConfig200
   status: 200
 }
     
@@ -104,7 +105,7 @@ export const postApiModulesIdConfig = async (id: string,
 
 
 /**
- * @summary Get dashboard data
+ * @summary Get dashboard data for a module
  */
 export type getApiDashboardResponse200 = {
   data: GetApiDashboard200

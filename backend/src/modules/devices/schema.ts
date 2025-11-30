@@ -28,10 +28,15 @@ export const DashboardQuerySchema = z.object({
 });
 
 export const DashboardResponseSchema = z.object({
-    status: z.any().nullable(),
+    status: z.any(),
     sensors: z.object({
         co2: z.array(z.any()),
         temp: z.array(z.any()),
         hum: z.array(z.any()),
     }),
+});
+
+export const ConfigUpdateResponseSchema = z.object({
+    success: z.boolean(),
+    message: z.string()
 });
