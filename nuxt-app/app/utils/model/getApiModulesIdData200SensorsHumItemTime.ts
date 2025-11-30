@@ -6,7 +6,4 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type PostApiModulesIdConfigBodySensors = {[key: string]: {
-  interval?: number;
-  model?: string;
-}};
+export type GetApiModulesIdData200SensorsHumItemTime = string | string;

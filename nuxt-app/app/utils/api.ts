@@ -6,12 +6,12 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
-  GetApiDashboard200,
-  GetApiDashboardParams,
   GetApiDbSize200,
   GetApiMetricsHistory200,
   GetApiMetricsHistoryParams,
   GetApiModules200Item,
+  GetApiModulesIdData200,
+  GetApiModulesIdDataParams,
   GetApiStorage200,
   PostApiModulesIdConfig200,
   PostApiModulesIdConfigBody
@@ -105,21 +105,22 @@ export const postApiModulesIdConfig = async (id: string,
 
 
 /**
- * @summary Get dashboard data for a module
+ * @summary Get module status and time series measurements
  */
-export type getApiDashboardResponse200 = {
-  data: GetApiDashboard200
+export type getApiModulesIdDataResponse200 = {
+  data: GetApiModulesIdData200
   status: 200
 }
     
-export type getApiDashboardResponseSuccess = (getApiDashboardResponse200) & {
+export type getApiModulesIdDataResponseSuccess = (getApiModulesIdDataResponse200) & {
   headers: Headers;
 };
 ;
 
-export type getApiDashboardResponse = (getApiDashboardResponseSuccess)
+export type getApiModulesIdDataResponse = (getApiModulesIdDataResponseSuccess)
 
-export const getGetApiDashboardUrl = (params: GetApiDashboardParams,) => {
+export const getGetApiModulesIdDataUrl = (id: string,
+    params?: GetApiModulesIdDataParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -131,12 +132,13 @@ export const getGetApiDashboardUrl = (params: GetApiDashboardParams,) => {
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `http://localhost:3001/api/dashboard?${stringifiedParams}` : `http://localhost:3001/api/dashboard`
+  return stringifiedParams.length > 0 ? `http://localhost:3001/api/modules/${id}/data?${stringifiedParams}` : `http://localhost:3001/api/modules/${id}/data`
 }
 
-export const getApiDashboard = async (params: GetApiDashboardParams, options?: RequestInit): Promise<getApiDashboardResponse> => {
+export const getApiModulesIdData = async (id: string,
+    params?: GetApiModulesIdDataParams, options?: RequestInit): Promise<getApiModulesIdDataResponse> => {
   
-  const res = await fetch(getGetApiDashboardUrl(params),
+  const res = await fetch(getGetApiModulesIdDataUrl(id,params),
   {      
     ...options,
     method: 'GET'
@@ -147,8 +149,8 @@ export const getApiDashboard = async (params: GetApiDashboardParams, options?: R
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   
-  const data: getApiDashboardResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as getApiDashboardResponse
+  const data: getApiModulesIdDataResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getApiModulesIdDataResponse
 }
 
 

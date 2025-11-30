@@ -1,6 +1,6 @@
-import type { GetApiDashboard200 } from '../utils/model'
+import type { GetApiModulesIdData200 } from '../utils/model'
 import type { DeviceStatus, SensorDataPoint } from '../types'
-import { getApiDashboard } from '../utils/api'
+import { getApiModulesIdData } from '../utils/api'
 import { processSensorData } from '../utils/data-processing'
 
 interface RawSensorDataPoint {
@@ -26,7 +26,7 @@ export const useDashboard = () => {
     error.value = null
 
     try {
-      const response = await getApiDashboard({ module: moduleId, days: days.toString() })
+      const response = await getApiModulesIdData(moduleId, { days: days.toString() })
       const dashboardData = response.data
 
       if (!dashboardData) return null

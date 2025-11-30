@@ -10,5 +10,5 @@ import type { GetApiMetricsHistory200HistoryItem } from './getApiMetricsHistory2
 export type GetApiMetricsHistory200 = {
   history: GetApiMetricsHistory200HistoryItem[];
   count: number;
-  period_days: number;
+  periodDays: number;
 };

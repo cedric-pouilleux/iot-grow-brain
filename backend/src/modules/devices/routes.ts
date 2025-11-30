@@ -1,9 +1,13 @@
 import { FastifyPluginAsync } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { ModuleConfigSchema, ModuleParamsSchema, DashboardQuerySchema, ModuleListResponseSchema, DashboardResponseSchema, ConfigUpdateResponseSchema } from './schema';
+import { ModuleConfigSchema, ModuleParamsSchema, ModuleDataQuerySchema, ModuleListResponseSchema, ModuleDataResponseSchema, ConfigUpdateResponseSchema } from './schema';
+import { DeviceRepository } from './deviceRepository';
+import type { ModuleListItem, ModuleDataResponse, DeviceStatus, SensorDataPoint, ConfigUpdateResponse } from '../../types/api';
+import type { ModuleConfig } from '../../types/mqtt';
 
 const devicesRoutes: FastifyPluginAsync = async (fastify) => {
     const app = fastify.withTypeProvider<ZodTypeProvider>();
+    const deviceRepo = new DeviceRepository(fastify.db);
 
     // GET /modules - List all modules
     app.get('/modules', {
@@ -16,24 +20,17 @@ const devicesRoutes: FastifyPluginAsync = async (fastify) => {
         }
     }, async (req, res) => {
         try {
-            // Query optimized: use device_system_status for active modules
-            const query = `
-                SELECT DISTINCT module_id
-                FROM device_system_status
-                ORDER BY module_id
-            `;
-            const result = await fastify.db.query(query);
-
-            const modules = result.rows.map(row => {
-                const id = row.module_id;
+            const rows = await deviceRepo.getAllModules();
+            const modules: ModuleListItem[] = rows.map(row => {
+                const id = row.moduleId;
                 const name = id.split('/').pop() || id;
                 return { id, name, type: 'unknown', status: null };
             });
-
             return modules;
-        } catch (err: any) {
-            fastify.log.error(`Error fetching modules: ${err.message}`);
-            return res.status(500).send({ error: 'Failed to fetch modules' });
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+            fastify.log.error(`Error fetching modules: ${errorMessage}`);
+            throw fastify.httpErrors.internalServerError('Failed to fetch modules');
         }
     });
 
@@ -50,22 +47,17 @@ const devicesRoutes: FastifyPluginAsync = async (fastify) => {
         }
     }, async (req, res) => {
         const { id } = req.params;
-        const config = req.body;
+        const config: ModuleConfig = req.body;
 
         try {
-            // Update sensor_config table
             if (config.sensors) {
                 const queries = Object.entries(config.sensors).map(([sensorType, sensorConfig]) => {
-                    return fastify.db.query(`
-                        INSERT INTO sensor_config (module_id, sensor_type, interval_seconds, updated_at)
-                        VALUES ($1, $2, $3, NOW())
-                        ON CONFLICT (module_id, sensor_type) 
-                        DO UPDATE SET 
-                            interval_seconds = EXCLUDED.interval_seconds,
-                            updated_at = NOW()
-                    `, [id, sensorType, (sensorConfig as any).interval]);
+                    const interval = sensorConfig?.interval;
+                    if (interval !== undefined) {
+                        return deviceRepo.updateSensorConfig(id, sensorType, interval);
+                    }
+                    return Promise.resolve();
                 });
-
                 await Promise.all(queries);
             }
 
@@ -73,133 +65,76 @@ const devicesRoutes: FastifyPluginAsync = async (fastify) => {
             const published = fastify.publishConfig(id, config);
 
             if (published) {
-                return { success: true, message: 'Configuration updated and published' };
+                const response: ConfigUpdateResponse = {
+                    success: true,
+                    message: 'Configuration updated and published'
+                };
+                return response;
             } else {
-                return res.status(500).send({ success: false, message: 'Failed to publish configuration' });
+                throw fastify.httpErrors.internalServerError('Failed to publish configuration');
             }
-        } catch (err: any) {
-            fastify.log.error(`Error updating config: ${err.message}`);
-            return res.status(500).send({ success: false, message: err.message });
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+            fastify.log.error(`Error updating config: ${errorMessage}`);
+            throw fastify.httpErrors.internalServerError(errorMessage);
         }
     });
 
-    // GET /dashboard - Get dashboard data for a module
-    app.get('/dashboard', {
+    // GET /modules/:id/data - Get module status and time series measurements
+    app.get('/modules/:id/data', {
         schema: {
             tags: ['Devices'],
-            summary: 'Get dashboard data for a module',
-            querystring: DashboardQuerySchema,
+            summary: 'Get module status and time series measurements',
+            params: ModuleParamsSchema,
+            querystring: ModuleDataQuerySchema,
             response: {
-                200: DashboardResponseSchema
+                200: ModuleDataResponseSchema
             }
         }
     }, async (req, res) => {
-        const { module, days } = req.query;
+        const { id } = req.params;
+        const { days } = req.query;
         const limit = days > 7 ? 10000 : 5000;
 
         try {
-            // Get device status from normalized tables
-            const statusQuery = fastify.db.query(`
-                SELECT 
-                    s.module_id,
-                    s.ip, s.mac, s.uptime_start, s.rssi,
-                    s.flash_used_kb, s.flash_free_kb, s.flash_system_kb,
-                    s.heap_total_kb, s.heap_free_kb, s.heap_min_free_kb,
-                    h.chip_model, h.chip_rev, h.cpu_freq_mhz, h.flash_kb, h.cores
-                FROM device_system_status s
-                LEFT JOIN device_hardware h ON s.module_id = h.module_id
-                WHERE s.module_id = $1
-            `, [module]);
-
-            // Get sensor status
-            const sensorStatusQuery = fastify.db.query(`
-                SELECT sensor_type, status, value
-                FROM sensor_status
-                WHERE module_id = $1
-            `, [module]);
-
-            // Get sensor config
-            const sensorConfigQuery = fastify.db.query(`
-                SELECT sensor_type, interval_seconds, model
-                FROM sensor_config
-                WHERE module_id = $1
-            `, [module]);
-
-            // Get historical data - use continuous aggregates for > 7 days
-            let historyQuery;
-            try {
-                if (days > 7) {
-                    historyQuery = fastify.db.query(`
-                        SELECT bucket as time, sensor_type, avg_value as value
-                        FROM measurements_hourly
-                        WHERE module_id = $1
-                          AND bucket > NOW() - ($2 || ' days')::interval
-                        ORDER BY bucket DESC
-                        LIMIT $3
-                    `, [module, days, limit]);
-                } else {
-                    historyQuery = fastify.db.query(`
-                        SELECT time_bucket('1 minute', time) as time, sensor_type, AVG(value) as value
-                        FROM measurements
-                        WHERE module_id = $1
-                          AND time > NOW() - ($2 || ' days')::interval
-                        GROUP BY time, sensor_type
-                        ORDER BY time DESC
-                        LIMIT $3
-                    `, [module, days, limit]);
-                }
-            } catch (queryErr: any) {
-                fastify.log.error(`❌ History query error for ${module}: ${queryErr.message}`);
-                // Fallback: try without time_bucket if it fails
-                historyQuery = fastify.db.query(`
-                    SELECT time, sensor_type, value
-                    FROM measurements
-                    WHERE module_id = $1
-                      AND time > NOW() - ($2 || ' days')::interval
-                    ORDER BY time DESC
-                    LIMIT $3
-                `, [module, days, limit]);
-            }
-
-            const [statusRes, sensorStatusRes, sensorConfigRes, historyRes] = await Promise.all([
-                statusQuery,
-                sensorStatusQuery,
-                sensorConfigQuery,
-                historyQuery
+            const [statusRow, sensorStatusRows, sensorConfigRows, historyRows] = await Promise.all([
+                deviceRepo.getDeviceStatus(id),
+                deviceRepo.getSensorStatus(id),
+                deviceRepo.getSensorConfig(id),
+                deviceRepo.getHistoryData(id, days, limit)
             ]);
 
-            fastify.log.info(`📊 Dashboard query for ${module}: ${historyRes.rows.length} historical records found`);
+            fastify.log.info(`📊 Dashboard query for ${id}: ${historyRows.length} historical records found`);
 
             // Build response
-            const status: any = {};
+            const status: DeviceStatus = {};
 
-            if (statusRes.rows.length > 0) {
-                const row = statusRes.rows[0];
+            if (statusRow) {
                 status.system = {
-                    ip: row.ip,
-                    mac: row.mac,
-                    uptime_start: row.uptime_start,
-                    rssi: row.rssi,
+                    ip: statusRow.ip,
+                    mac: statusRow.mac,
+                    uptimeStart: statusRow.uptimeStart,
+                    rssi: statusRow.rssi,
                     flash: {
-                        used_kb: row.flash_used_kb,
-                        free_kb: row.flash_free_kb,
-                        system_kb: row.flash_system_kb
+                        usedKb: statusRow.flashUsedKb,
+                        freeKb: statusRow.flashFreeKb,
+                        systemKb: statusRow.flashSystemKb
                     },
                     memory: {
-                        heap_total_kb: row.heap_total_kb,
-                        heap_free_kb: row.heap_free_kb,
-                        heap_min_free_kb: row.heap_min_free_kb
+                        heapTotalKb: statusRow.heapTotalKb,
+                        heapFreeKb: statusRow.heapFreeKb,
+                        heapMinFreeKb: statusRow.heapMinFreeKb
                     }
                 };
 
-                if (row.chip_model) {
+                if (statusRow.chipModel) {
                     status.hardware = {
                         chip: {
-                            model: row.chip_model,
-                            rev: row.chip_rev,
-                            cpu_freq_mhz: row.cpu_freq_mhz,
-                            flash_kb: row.flash_kb,
-                            cores: row.cores
+                            model: statusRow.chipModel,
+                            rev: statusRow.chipRev,
+                            cpuFreqMhz: statusRow.cpuFreqMhz,
+                            flashKb: statusRow.flashKb,
+                            cores: statusRow.cores
                         }
                     };
                 }
@@ -207,48 +142,53 @@ const devicesRoutes: FastifyPluginAsync = async (fastify) => {
 
             // Add sensor status
             status.sensors = {};
-            sensorStatusRes.rows.forEach(row => {
-                status.sensors[row.sensor_type] = {
-                    status: row.status,
+            sensorStatusRows.forEach(row => {
+                status.sensors![row.sensorType] = {
+                    status: row.status ?? 'unknown',
                     value: row.value
                 };
             });
 
             // Add sensor config
             status.sensorsConfig = { sensors: {} };
-            sensorConfigRes.rows.forEach(row => {
-                status.sensorsConfig.sensors[row.sensor_type] = {
-                    interval: row.interval_seconds,
+            sensorConfigRows.forEach(row => {
+                status.sensorsConfig!.sensors[row.sensorType] = {
+                    interval: row.intervalSeconds,
                     model: row.model
                 };
             });
 
             // Process historical data
-            const co2: any[] = [];
-            const temp: any[] = [];
-            const hum: any[] = [];
+            const co2: SensorDataPoint[] = [];
+            const temp: SensorDataPoint[] = [];
+            const hum: SensorDataPoint[] = [];
 
-            historyRes.rows.forEach(row => {
-                const dataPoint = { time: row.time, value: row.value };
+            historyRows.forEach(row => {
+                const dataPoint: SensorDataPoint = {
+                    time: row.time,
+                    value: row.value
+                };
 
-                if (row.sensor_type === 'co2') {
+                if (row.sensorType === 'co2') {
                     co2.push(dataPoint);
-                } else if (row.sensor_type === 'temperature') {
+                } else if (row.sensorType === 'temperature') {
                     temp.push(dataPoint);
-                } else if (row.sensor_type === 'humidity') {
+                } else if (row.sensorType === 'humidity') {
                     hum.push(dataPoint);
                 }
             });
 
             fastify.log.info(`📊 Processed historical data: co2=${co2.length}, temp=${temp.length}, hum=${hum.length}`);
 
-            return {
+            const response: ModuleDataResponse = {
                 status,
                 sensors: { co2, temp, hum }
             };
-        } catch (err: any) {
-            fastify.log.error(`Error fetching dashboard: ${err.message}`);
-            return res.status(500).send({ error: 'Failed to fetch dashboard data' });
+            return response;
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+            fastify.log.error(`Error fetching dashboard: ${errorMessage}`);
+            throw fastify.httpErrors.internalServerError('Failed to fetch dashboard data');
         }
     });
 };

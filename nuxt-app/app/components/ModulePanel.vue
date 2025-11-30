@@ -101,17 +101,18 @@ const sensorTypes = [
 ] as const
 
 const calculatedUptime = computed(() => {
-  if (!props.deviceStatus?.system?.uptime_start) return null
+  if (!props.deviceStatus?.system?.uptimeStart) return null
   
   const now = Math.floor(Date.now() / 1000)
   const system = props.deviceStatus.system
   
-  if (system._config_received_at && system._uptime_start_offset !== undefined) {
-    const elapsedSinceConfig = now - system._config_received_at
-    return system._uptime_start_offset + elapsedSinceConfig
+  // Si on a déjà calculé l'offset, on l'utilise
+  if (system._configReceivedAt && system._uptimeStartOffset !== undefined) {
+    const elapsedSinceConfig = now - system._configReceivedAt
+    return system._uptimeStartOffset + elapsedSinceConfig
   }
   
-  return system.uptime_start
+  return system.uptimeStart
 })
 
 const getSensorHistory = (type: string) => {

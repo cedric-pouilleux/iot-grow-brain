@@ -15,7 +15,7 @@ const SENSOR_TOPICS = {
 
 const MAX_DATA_POINTS = 100
 
-const isStatusTopic = (topic: string) => 
+const isStatusTopic = (topic: string) =>
   topic.endsWith(TOPIC_SYSTEM) ||
   topic.endsWith(TOPIC_SYSTEM_CONFIG) ||
   topic.endsWith(TOPIC_SENSORS_STATUS) ||
@@ -27,11 +27,11 @@ const mergeSystemData = (status: DeviceStatus, metadata: any) => {
   status.system.rssi = metadata.rssi
   if (metadata.memory) {
     if (!status.system.memory) status.system.memory = {}
-    if (metadata.memory.heap_free_kb !== undefined) {
-      status.system.memory.heap_free_kb = metadata.memory.heap_free_kb
+    if (metadata.memory.heapFreeKb !== undefined) {
+      status.system.memory.heapFreeKb = metadata.memory.heapFreeKb
     }
-    if (metadata.memory.heap_min_free_kb !== undefined) {
-      status.system.memory.heap_min_free_kb = metadata.memory.heap_min_free_kb
+    if (metadata.memory.heapMinFreeKb !== undefined) {
+      status.system.memory.heapMinFreeKb = metadata.memory.heapMinFreeKb
     }
     if (metadata.memory.psram) {
       status.system.memory.psram = { ...status.system.memory.psram, ...metadata.memory.psram }
@@ -43,14 +43,14 @@ const mergeSystemConfig = (status: DeviceStatus, metadata: any) => {
   if (!status.system) status.system = {}
   status.system.ip = metadata.ip
   status.system.mac = metadata.mac
-  status.system.uptime_start = metadata.uptime_start
+  status.system.uptimeStart = metadata.uptimeStart
   status.system.flash = metadata.flash
-  status.system._config_received_at = Math.floor(Date.now() / 1000)
-  status.system._uptime_start_offset = metadata.uptime_start
+  status.system._configReceivedAt = Math.floor(Date.now() / 1000)
+  status.system._uptimeStartOffset = metadata.uptimeStart
   if (metadata.memory) {
     if (!status.system.memory) status.system.memory = {}
-    if (metadata.memory.heap_total_kb !== undefined) {
-      status.system.memory.heap_total_kb = metadata.memory.heap_total_kb
+    if (metadata.memory.heapTotalKb !== undefined) {
+      status.system.memory.heapTotalKb = metadata.memory.heapTotalKb
     }
     if (metadata.memory.psram) {
       status.system.memory.psram = metadata.memory.psram
@@ -113,7 +113,7 @@ export const useModulesData = () => {
     }
     // Traiter les messages de capteurs
     else if (message.value !== null) {
-      const sensorKey = Object.entries(SENSOR_TOPICS).find(([suffix]) => 
+      const sensorKey = Object.entries(SENSOR_TOPICS).find(([suffix]) =>
         message.topic.endsWith(suffix)
       )?.[1] as keyof SensorData | undefined
 
@@ -139,26 +139,27 @@ export const useModulesData = () => {
           ...dashboardData.status,
           system: { ...existingStatus.system, ...dashboardData.status.system },
           sensors: { ...existingStatus.sensors, ...dashboardData.status.sensors },
-          sensorsConfig: { ...existingStatus.sensorsConfig, ...dashboardData.status.sensorsConfig }
+          sensorsConfig: { ...existingStatus.sensorsConfig, ...dashboardData.status.sensorsConfig },
+          hardware: { ...existingStatus.hardware, ...dashboardData.status.hardware }
         })
       } else {
         modulesDeviceStatus.value.set(moduleId, dashboardData.status)
       }
     }
-    
+
     // Fusionner les données de capteurs au lieu de les remplacer
     if (dashboardData.sensors) {
       const existingData = modulesSensorData.value.get(moduleId) || { co2: [], temp: [], hum: [] }
       const newData = {
-        co2: processSensorData(dashboardData.sensors?.co2 || []),
-        temp: processSensorData(dashboardData.sensors?.temp || []),
-        hum: processSensorData(dashboardData.sensors?.hum || [])
+        co2: processSensorData(dashboardData.sensors?.co2 || []) as SensorDataPoint[],
+        temp: processSensorData(dashboardData.sensors?.temp || []) as SensorDataPoint[],
+        hum: processSensorData(dashboardData.sensors?.hum || []) as SensorDataPoint[]
       }
-      
+
       // Fonction helper pour fusionner sans doublons (basé sur le timestamp)
       const mergeSensorData = (existing: SensorDataPoint[], incoming: SensorDataPoint[]) => {
         const timeMap = new Map<number, SensorDataPoint>()
-        
+
         // Ajouter les données existantes (priorité aux données WebSocket récentes)
         existing.forEach(point => {
           const timeKey = point.time.getTime()
@@ -166,7 +167,7 @@ export const useModulesData = () => {
             timeMap.set(timeKey, point)
           }
         })
-        
+
         // Ajouter les nouvelles données historiques (ne pas écraser les existantes)
         incoming.forEach(point => {
           const timeKey = point.time.getTime()
@@ -174,13 +175,13 @@ export const useModulesData = () => {
             timeMap.set(timeKey, point)
           }
         })
-        
+
         // Convertir en tableau, trier par temps croissant, limiter la taille
         return Array.from(timeMap.values())
           .sort((a, b) => a.time.getTime() - b.time.getTime())
           .slice(-MAX_DATA_POINTS * 2)
       }
-      
+
       modulesSensorData.value.set(moduleId, {
         co2: mergeSensorData(existingData.co2, newData.co2),
         temp: mergeSensorData(existingData.temp, newData.temp),

@@ -47,7 +47,7 @@
           <div class="flex justify-between">
             <span class="text-gray-600">Fréquence</span>
             <span class="font-mono text-gray-800">
-              {{ deviceStatus?.hardware?.chip?.cpu_freq_mhz || deviceStatus?.system?.chip?.cpu_freq_mhz || '--' }} MHz
+              {{ deviceStatus?.hardware?.chip?.cpuFreqMhz || deviceStatus?.system?.chip?.cpuFreqMhz || '--' }} MHz
             </span>
           </div>
           <div class="flex justify-between">
@@ -60,25 +60,25 @@
           <div class="flex justify-between">
             <span class="text-gray-600">Totale</span>
             <span class="font-mono text-gray-800">
-              {{ deviceStatus?.hardware?.chip?.flash_kb ? formatSize(deviceStatus.hardware.chip.flash_kb) : '--' }}
+              {{ deviceStatus?.hardware?.chip?.flashKb ? formatSize(deviceStatus.hardware.chip.flashKb) : '--' }}
             </span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Sketch (code)</span>
             <span class="font-mono text-gray-800">
-              {{ deviceStatus?.system?.flash?.used_kb ? formatSize(deviceStatus.system.flash.used_kb) : '--' }}
+              {{ deviceStatus?.system?.flash?.usedKb ? formatSize(deviceStatus.system.flash.usedKb) : '--' }}
             </span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Libre (OTA)</span>
             <span class="font-mono text-gray-800">
-              {{ deviceStatus?.system?.flash?.free_kb ? formatSize(deviceStatus.system.flash.free_kb) : '--' }}
+              {{ deviceStatus?.system?.flash?.freeKb ? formatSize(deviceStatus.system.flash.freeKb) : '--' }}
             </span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Partitions système</span>
             <span class="font-mono text-gray-800">
-              {{ deviceStatus?.system?.flash?.system_kb ? formatSize(deviceStatus.system.flash.system_kb) : '--' }}
+              {{ deviceStatus?.system?.flash?.systemKb ? formatSize(deviceStatus.system.flash.systemKb) : '--' }}
             </span>
           </div>
           <div class="mt-2 pt-2 border-t border-gray-300">
@@ -99,16 +99,16 @@
           <div class="flex justify-between">
             <span class="text-gray-600">Totale</span>
             <span class="font-mono text-gray-800">
-              {{ deviceStatus?.system?.memory?.heap_total_kb ? formatSize(deviceStatus.system.memory.heap_total_kb) : '--' }}
+              {{ deviceStatus?.system?.memory?.heapTotalKb ? formatSize(deviceStatus.system.memory.heapTotalKb) : '--' }}
             </span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Libre</span>
-            <span class="font-mono text-gray-800">{{ formatSize(deviceStatus.system?.memory?.heap_free_kb) }}</span>
+            <span class="font-mono text-gray-800">{{ formatSize(deviceStatus.system?.memory?.heapFreeKb) }}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Min. libre</span>
-            <span class="font-mono text-gray-800">{{ formatSize(deviceStatus.system?.memory?.heap_min_free_kb) }}</span>
+            <span class="font-mono text-gray-800">{{ formatSize(deviceStatus.system?.memory?.heapMinFreeKb) }}</span>
           </div>
           <div class="mt-2">
             <div class="flex justify-between text-xs mb-1">
@@ -136,7 +136,7 @@
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Libre</span>
-            <span class="font-mono text-gray-800">{{ formatSize(deviceStatus?.system?.memory?.psram?.free_kb) }}</span>
+            <span class="font-mono text-gray-800">{{ formatSize(deviceStatus?.system?.memory?.psram?.freeKb) }}</span>
           </div>
           <div class="mt-2">
             <div class="flex justify-between text-xs mb-1">
@@ -155,7 +155,7 @@
         <SystemInfoCard title="Base de données" icon="tabler:database">
           <div class="flex justify-between">
             <span class="text-gray-600">Taille totale</span>
-            <span class="font-mono text-gray-800">{{ dbSize ? formatBytes(dbSize.total_size_bytes) : '--' }}</span>
+            <span class="font-mono text-gray-800">{{ dbSize ? formatBytes(dbSize.totalSizeBytes) : '--' }}</span>
           </div>
           <div v-if="dbSize" class="text-xs text-gray-500 italic mt-2">
             Données des capteurs (TimescaleDB)
@@ -241,28 +241,28 @@ const formatBytes = (bytes) => {
 }
 
 const calculatedUptime = computed(() => {
-  if (!props.deviceStatus?.system?.uptime_start) return null
+  if (!props.deviceStatus?.system?.uptimeStart) return null
   const now = Math.floor(Date.now() / 1000)
-  const uptimeStart = props.deviceStatus.system.uptime_start
-  if (!props.deviceStatus.system._config_received_at) {
-    props.deviceStatus.system._config_received_at = now
-    props.deviceStatus.system._uptime_start_offset = uptimeStart
+  const uptimeStart = props.deviceStatus.system.uptimeStart
+  if (!props.deviceStatus.system._configReceivedAt) {
+    props.deviceStatus.system._configReceivedAt = now
+    props.deviceStatus.system._uptimeStartOffset = uptimeStart
   }
-  const elapsedSinceConfig = now - props.deviceStatus.system._config_received_at
-  return props.deviceStatus.system._uptime_start_offset + elapsedSinceConfig
+  const elapsedSinceConfig = now - props.deviceStatus.system._configReceivedAt
+  return props.deviceStatus.system._uptimeStartOffset + elapsedSinceConfig
 })
 
 const calculatedHeapUsedPercent = computed(() => {
-  const total = props.deviceStatus?.system?.memory?.heap_total_kb
-  const free = props.deviceStatus?.system?.memory?.heap_free_kb
+  const total = props.deviceStatus?.system?.memory?.heapTotalKb
+  const free = props.deviceStatus?.system?.memory?.heapFreeKb
   if (!total || free === undefined || free === null) return 0
   const used = total - free
   return (used / total) * 100
 })
 
 const getFlashUsagePercent = () => {
-  const total = props.deviceStatus?.hardware?.chip?.flash_kb
-  const used = props.deviceStatus?.system?.flash?.used_kb
+  const total = props.deviceStatus?.hardware?.chip?.flashKb
+  const used = props.deviceStatus?.system?.flash?.usedKb
   if (!total || !used) return 0
   return Math.round((used / total) * 100)
 }

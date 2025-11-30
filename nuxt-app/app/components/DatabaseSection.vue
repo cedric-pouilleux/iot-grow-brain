@@ -26,7 +26,7 @@
           <div class="space-y-2 text-sm">
             <div class="flex justify-between">
               <span class="text-gray-600">Taille totale</span>
-              <span class="font-mono text-gray-800">{{ dbSize ? formatBytes(dbSize.total_size_bytes) : '--' }}</span>
+              <span class="font-mono text-gray-800">{{ dbSize ? formatBytes(dbSize.totalSizeBytes) : '--' }}</span>
             </div>
             <div v-if="dbSize" class="text-xs text-gray-500 italic mt-2">
               Données des capteurs (TimescaleDB)

@@ -7,6 +7,6 @@
  */
 
 export type GetApiStorage200Database = {
-  total_size: string;
-  total_size_bytes: number;
+  totalSize: string;
+  totalSizeBytes: number;
 };

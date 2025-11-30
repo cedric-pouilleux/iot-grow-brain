@@ -8,8 +8,8 @@
 
 export type GetApiStorage200TablesItem = {
   name: string;
-  total_size: string;
-  total_size_bytes: number;
-  table_size: string;
-  indexes_size: string;
+  totalSize: string;
+  totalSizeBytes: number;
+  tableSize: string;
+  indexesSize: string;
 };

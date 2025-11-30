@@ -9,4 +9,10 @@
 /**
  * @nullable
  */
-export type GetApiModules200ItemStatus = unknown | null;
+export type GetApiModules200ItemStatus = typeof GetApiModules200ItemStatus[keyof typeof GetApiModules200ItemStatus] | null;
+
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const GetApiModules200ItemStatus = {
+  null: 'null',
+} as const;

@@ -10,7 +10,7 @@
  * @nullable
  */
 export type GetApiStorage200Timescaledb = {
-  total_chunks: number;
-  chunks_total_size: string;
-  chunks_total_size_bytes: number;
+  totalChunks: number;
+  chunksTotalSize: string;
+  chunksTotalSizeBytes: number;
 } | null;

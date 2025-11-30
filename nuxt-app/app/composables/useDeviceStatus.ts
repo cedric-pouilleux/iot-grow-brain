@@ -6,7 +6,7 @@ const TOPIC_SENSORS_STATUS = '/sensors/status'
 const TOPIC_SENSORS_CONFIG = '/sensors/config'
 const TOPIC_HARDWARE_CONFIG = '/hardware/config'
 
-const isStatusTopic = (topic: string) => 
+const isStatusTopic = (topic: string) =>
   topic.endsWith(TOPIC_SYSTEM) ||
   topic.endsWith(TOPIC_SYSTEM_CONFIG) ||
   topic.endsWith(TOPIC_SENSORS_STATUS) ||
@@ -15,16 +15,16 @@ const isStatusTopic = (topic: string) =>
 
 const mergeSystemData = (status: DeviceStatus, metadata: any) => {
   if (!status.system) status.system = {}
-  
+
   status.system.rssi = metadata.rssi
-  
+
   if (metadata.memory) {
     if (!status.system.memory) status.system.memory = {}
-    if (metadata.memory.heap_free_kb !== undefined) {
-      status.system.memory.heap_free_kb = metadata.memory.heap_free_kb
+    if (metadata.memory.heapFreeKb !== undefined) {
+      status.system.memory.heapFreeKb = metadata.memory.heapFreeKb
     }
-    if (metadata.memory.heap_min_free_kb !== undefined) {
-      status.system.memory.heap_min_free_kb = metadata.memory.heap_min_free_kb
+    if (metadata.memory.heapMinFreeKb !== undefined) {
+      status.system.memory.heapMinFreeKb = metadata.memory.heapMinFreeKb
     }
     if (metadata.memory.psram) {
       status.system.memory.psram = { ...status.system.memory.psram, ...metadata.memory.psram }
@@ -34,18 +34,18 @@ const mergeSystemData = (status: DeviceStatus, metadata: any) => {
 
 const mergeSystemConfig = (status: DeviceStatus, metadata: any) => {
   if (!status.system) status.system = {}
-  
+
   status.system.ip = metadata.ip
   status.system.mac = metadata.mac
-  status.system.uptime_start = metadata.uptime_start
+  status.system.uptimeStart = metadata.uptimeStart
   status.system.flash = metadata.flash
-  status.system._config_received_at = Math.floor(Date.now() / 1000)
-  status.system._uptime_start_offset = metadata.uptime_start
-  
+  status.system._configReceivedAt = Math.floor(Date.now() / 1000)
+  status.system._uptimeStartOffset = metadata.uptimeStart
+
   if (metadata.memory) {
     if (!status.system.memory) status.system.memory = {}
-    if (metadata.memory.heap_total_kb !== undefined) {
-      status.system.memory.heap_total_kb = metadata.memory.heap_total_kb
+    if (metadata.memory.heapTotalKb !== undefined) {
+      status.system.memory.heapTotalKb = metadata.memory.heapTotalKb
     }
     if (metadata.memory.psram) {
       status.system.memory.psram = metadata.memory.psram
@@ -55,7 +55,7 @@ const mergeSystemConfig = (status: DeviceStatus, metadata: any) => {
 
 const mergeSensorsStatus = (status: DeviceStatus, metadata: any) => {
   if (!status.sensors) status.sensors = {}
-  
+
   Object.keys(metadata).forEach(sensorName => {
     if (!status.sensors![sensorName]) {
       status.sensors![sensorName] = {}
@@ -99,18 +99,18 @@ export const useDeviceStatus = () => {
   }
 
   const calculatedUptime = computed(() => {
-    if (!deviceStatus.value?.system?.uptime_start) return null
-    
+    if (!deviceStatus.value?.system?.uptimeStart) return null
+
     const now = Math.floor(Date.now() / 1000)
     const system = deviceStatus.value.system
-    
-    if (!system._config_received_at) {
-      system._config_received_at = now
-      system._uptime_start_offset = system.uptime_start
+
+    if (!system._configReceivedAt) {
+      system._configReceivedAt = now
+      system._uptimeStartOffset = system.uptimeStart
     }
-    
-    const elapsedSinceConfig = now - system._config_received_at
-    return system._uptime_start_offset! + elapsedSinceConfig
+
+    const elapsedSinceConfig = now - system._configReceivedAt
+    return system._uptimeStartOffset! + elapsedSinceConfig
   })
 
   return {
@@ -120,4 +120,3 @@ export const useDeviceStatus = () => {
     initializeStatus
   }
 }
-

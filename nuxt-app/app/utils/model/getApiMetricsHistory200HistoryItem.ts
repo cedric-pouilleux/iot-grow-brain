@@ -11,6 +11,6 @@ import type { GetApiMetricsHistory200HistoryItemDbSizeBytes } from './getApiMetr
 export type GetApiMetricsHistory200HistoryItem = {
   time: GetApiMetricsHistory200HistoryItemTime;
   /** @nullable */
-  code_size_kb: number | null;
-  db_size_bytes: GetApiMetricsHistory200HistoryItemDbSizeBytes;
+  codeSizeKb: number | null;
+  dbSizeBytes: GetApiMetricsHistory200HistoryItemDbSizeBytes;
 };

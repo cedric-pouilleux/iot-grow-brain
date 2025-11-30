@@ -27,7 +27,7 @@
             <div class="flex justify-between">
               <span class="text-gray-600">Fréquence</span>
               <span class="font-mono text-gray-800">
-                {{ deviceStatus?.hardware?.chip?.cpu_freq_mhz || '--' }} MHz
+                {{ deviceStatus?.hardware?.chip?.cpuFreqMhz || '--' }} MHz
               </span>
             </div>
             <div class="flex justify-between">
@@ -86,7 +86,7 @@
           <div class="mb-4">
             <div class="flex justify-between text-xs mb-2">
               <span class="text-gray-600">Flash</span>
-              <span class="text-gray-800">{{ formatSize(deviceStatus?.system?.flash?.used_kb) }} / {{ formatSize(deviceStatus?.hardware?.chip?.flash_kb) }}</span>
+              <span class="text-gray-800">{{ formatSize(deviceStatus?.system?.flash?.usedKb) }} / {{ formatSize(deviceStatus?.hardware?.chip?.flashKb) }}</span>
             </div>
             <div class="relative w-full h-6 bg-gray-200 rounded overflow-hidden flex">
               <!-- Segments avec labels -->
@@ -94,7 +94,7 @@
                 v-if="flashSketchPercent > 0"
                 class="bg-blue-500 h-full flex items-center justify-center text-white text-xs font-medium"
                 :style="{ width: flashSketchPercent + '%' }"
-                :title="`Sketch: ${formatSize(deviceStatus?.system?.flash?.used_kb)}`"
+                :title="`Sketch: ${formatSize(deviceStatus?.system?.flash?.usedKb)}`"
               >
                 <span v-if="flashSketchPercent > 8" class="px-1">Sketch</span>
               </div>
@@ -102,7 +102,7 @@
                 v-if="flashOtaPercent > 0"
                 class="bg-green-500 h-full flex items-center justify-center text-white text-xs font-medium"
                 :style="{ width: flashOtaPercent + '%' }"
-                :title="`OTA: ${formatSize(deviceStatus?.system?.flash?.free_kb)}`"
+                :title="`OTA: ${formatSize(deviceStatus?.system?.flash?.freeKb)}`"
               >
                 <span v-if="flashOtaPercent > 8" class="px-1">OTA</span>
               </div>
@@ -110,7 +110,7 @@
                 v-if="flashSystemPercent > 0"
                 class="bg-gray-400 h-full flex items-center justify-center text-white text-xs font-medium"
                 :style="{ width: flashSystemPercent + '%' }"
-                :title="`Système: ${formatSize(deviceStatus?.system?.flash?.system_kb)}`"
+                :title="`Système: ${formatSize(deviceStatus?.system?.flash?.systemKb)}`"
               >
                 <span v-if="flashSystemPercent > 8" class="px-1">Sys</span>
               </div>
@@ -136,7 +136,7 @@
           <div>
             <div class="flex justify-between text-xs mb-2">
               <span class="text-gray-600">RAM</span>
-              <span class="text-gray-800">{{ formatSize(usedHeap) }} / {{ formatSize(deviceStatus?.system?.memory?.heap_total_kb) }}</span>
+              <span class="text-gray-800">{{ formatSize(usedHeap) }} / {{ formatSize(deviceStatus?.system?.memory?.heapTotalKb) }}</span>
             </div>
             <div class="relative w-full h-6 bg-gray-200 rounded overflow-hidden">
               <div 
@@ -303,35 +303,35 @@ const hardwareModel = computed(() => {
 })
 
 const flashSketchPercent = computed(() => {
-  const total = props.deviceStatus?.hardware?.chip?.flash_kb
-  const used = props.deviceStatus?.system?.flash?.used_kb
+  const total = props.deviceStatus?.hardware?.chip?.flashKb
+  const used = props.deviceStatus?.system?.flash?.usedKb
   if (!total || !used) return 0
   return (used / total) * 100
 })
 
 const flashOtaPercent = computed(() => {
-  const total = props.deviceStatus?.hardware?.chip?.flash_kb
-  const free = props.deviceStatus?.system?.flash?.free_kb
+  const total = props.deviceStatus?.hardware?.chip?.flashKb
+  const free = props.deviceStatus?.system?.flash?.freeKb
   if (!total || !free) return 0
   return (free / total) * 100
 })
 
 const flashSystemPercent = computed(() => {
-  const total = props.deviceStatus?.hardware?.chip?.flash_kb
-  const sys = props.deviceStatus?.system?.flash?.system_kb
+  const total = props.deviceStatus?.hardware?.chip?.flashKb
+  const sys = props.deviceStatus?.system?.flash?.systemKb
   if (!total || !sys) return 0
   return (sys / total) * 100
 })
 
 const usedHeap = computed(() => {
-  const total = props.deviceStatus?.system?.memory?.heap_total_kb
-  const free = props.deviceStatus?.system?.memory?.heap_free_kb
+  const total = props.deviceStatus?.system?.memory?.heapTotalKb
+  const free = props.deviceStatus?.system?.memory?.heapFreeKb
   if (!total || free === undefined) return 0
   return total - free
 })
 
 const heapUsedPercent = computed(() => {
-  const total = props.deviceStatus?.system?.memory?.heap_total_kb
+  const total = props.deviceStatus?.system?.memory?.heapTotalKb
   if (!total || !usedHeap.value) return 0
   return (usedHeap.value / total) * 100
 })

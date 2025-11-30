@@ -9,10 +9,10 @@ import type { GetApiStorage200MeasurementsOldestRecord } from './getApiStorage20
 import type { GetApiStorage200MeasurementsNewestRecord } from './getApiStorage200MeasurementsNewestRecord';
 
 export type GetApiStorage200Measurements = {
-  total_rows: number;
-  unique_topics: number;
+  totalRows: number;
+  uniqueTopics: number;
   /** @nullable */
-  oldest_record: GetApiStorage200MeasurementsOldestRecord;
+  oldestRecord: GetApiStorage200MeasurementsOldestRecord;
   /** @nullable */
-  newest_record: GetApiStorage200MeasurementsNewestRecord;
+  newestRecord: GetApiStorage200MeasurementsNewestRecord;
 };

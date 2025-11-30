@@ -19,9 +19,9 @@ export interface SensorData {
 }
 
 export interface SystemMemory {
-  heap_total_kb?: number
-  heap_free_kb?: number
-  heap_min_free_kb?: number
+  heapTotalKb?: number
+  heapFreeKb?: number
+  heapMinFreeKb?: number
   psram?: {
     total?: number
     free?: number
@@ -31,18 +31,18 @@ export interface SystemMemory {
 export interface SystemInfo {
   ip?: string
   mac?: string
-  uptime_start?: number
+  uptimeStart?: number
   flash?: {
     size?: number
     used?: number
-    used_kb?: number
-    free_kb?: number
-    system_kb?: number
+    usedKb?: number
+    freeKb?: number
+    systemKb?: number
   }
   memory?: SystemMemory
   rssi?: number
-  _config_received_at?: number
-  _uptime_start_offset?: number
+  _configReceivedAt?: number
+  _uptimeStartOffset?: number
 }
 
 export interface SensorStatus {

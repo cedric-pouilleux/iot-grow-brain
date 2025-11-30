@@ -19,10 +19,10 @@ String SystemInfoCollector::buildPsramJson() {
     float psramUsedPercent = ((float)(ESP.getPsramSize() - ESP.getFreePsram()) / ESP.getPsramSize()) * 100.0;
     char buffer[128];
     snprintf(buffer, sizeof(buffer), 
-        ",\"psram\":{"
-            "\"total_kb\":%d,"
-            "\"free_kb\":%d,"
-            "\"used_percent\":%.1f"
+        ",\\\"psram\":{"
+            "\\\"totalKb\\\":%d,"
+            "\\\"freeKb\\\":%d,"
+            "\\\"usedPercent\\\":%.1f"
         "}",
         ESP.getPsramSize() / 1024,
         ESP.getFreePsram() / 1024,
@@ -30,4 +30,3 @@ String SystemInfoCollector::buildPsramJson() {
     );
     return String(buffer);
 }
-
