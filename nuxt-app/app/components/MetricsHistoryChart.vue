@@ -19,7 +19,7 @@ import {
   TimeScale,
   Filler,
   Legend,
-  Tooltip
+  Tooltip,
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
 import 'chartjs-adapter-date-fns'
@@ -41,8 +41,8 @@ if (process.client) {
 const props = defineProps({
   history: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 const chartData = computed(() => {
@@ -57,21 +57,21 @@ const chartData = computed(() => {
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         tension: 0.3,
         fill: true,
-        yAxisID: 'y-code'
+        yAxisID: 'y-code',
       },
       {
         label: 'Taille BDD (MB)',
-        data: props.history.map(m => ({ 
-          x: m.time, 
-          y: m.db_size_bytes ? (m.db_size_bytes / 1024 / 1024) : null 
+        data: props.history.map(m => ({
+          x: m.time,
+          y: m.db_size_bytes ? m.db_size_bytes / 1024 / 1024 : null,
         })),
         borderColor: '#10b981',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
         tension: 0.3,
         fill: true,
-        yAxisID: 'y-db'
-      }
-    ]
+        yAxisID: 'y-db',
+      },
+    ],
   }
 })
 
@@ -84,43 +84,42 @@ const chartOptions = computed(() => ({
       type: 'time',
       time: {
         unit: 'day',
-        tooltipFormat: 'dd/MM/yyyy HH:mm'
+        tooltipFormat: 'dd/MM/yyyy HH:mm',
       },
       title: {
         display: true,
-        text: 'Date'
-      }
+        text: 'Date',
+      },
     },
     'y-code': {
       type: 'linear',
       position: 'left',
       title: {
         display: true,
-        text: 'Taille code (KB)'
+        text: 'Taille code (KB)',
       },
       grid: {
-        drawOnChartArea: false
-      }
+        drawOnChartArea: false,
+      },
     },
     'y-db': {
       type: 'linear',
       position: 'right',
       title: {
         display: true,
-        text: 'Taille BDD (MB)'
-      }
-    }
+        text: 'Taille BDD (MB)',
+      },
+    },
   },
   plugins: {
     legend: {
       display: true,
-      position: 'top'
+      position: 'top',
     },
     tooltip: {
       mode: 'index',
-      intersect: false
-    }
-  }
+      intersect: false,
+    },
+  },
 }))
 </script>
-

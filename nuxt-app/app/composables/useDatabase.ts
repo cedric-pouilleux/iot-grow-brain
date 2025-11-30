@@ -19,7 +19,7 @@ export const useDatabase = () => {
         dbSize.value = response.data
       }
     } catch (e) {
-      console.error("Erreur fetch db-size:", e)
+      console.error('Erreur fetch db-size:', e)
     }
   }
 
@@ -33,7 +33,7 @@ export const useDatabase = () => {
         metricsHistory.value = response.data.history
       }
     } catch (e) {
-      console.error("Erreur fetch metrics-history:", e)
+      console.error('Erreur fetch metrics-history:', e)
     }
   }
 
@@ -41,7 +41,6 @@ export const useDatabase = () => {
     dbSize: readonly(dbSize),
     metricsHistory: readonly(metricsHistory),
     loadDbSize,
-    loadMetricsHistory
+    loadMetricsHistory,
   }
 }
-

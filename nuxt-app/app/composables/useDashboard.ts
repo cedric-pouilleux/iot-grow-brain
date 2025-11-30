@@ -19,7 +19,10 @@ export const useDashboard = () => {
   const loadDashboard = async (
     moduleId: string,
     days: number = 1
-  ): Promise<{ status: DeviceStatus | null; sensors: { co2: SensorDataPoint[]; temp: SensorDataPoint[]; hum: SensorDataPoint[] } } | null> => {
+  ): Promise<{
+    status: DeviceStatus | null
+    sensors: { co2: SensorDataPoint[]; temp: SensorDataPoint[]; hum: SensorDataPoint[] }
+  } | null> => {
     if (!moduleId) return null
 
     isLoading.value = true
@@ -32,7 +35,9 @@ export const useDashboard = () => {
       if (!dashboardData) return null
 
       const co2Data = isSensorDataArray(dashboardData.sensors?.co2) ? dashboardData.sensors.co2 : []
-      const tempData = isSensorDataArray(dashboardData.sensors?.temp) ? dashboardData.sensors.temp : []
+      const tempData = isSensorDataArray(dashboardData.sensors?.temp)
+        ? dashboardData.sensors.temp
+        : []
       const humData = isSensorDataArray(dashboardData.sensors?.hum) ? dashboardData.sensors.hum : []
 
       return {
@@ -40,8 +45,8 @@ export const useDashboard = () => {
         sensors: {
           co2: processSensorData(co2Data),
           temp: processSensorData(tempData),
-          hum: processSensorData(humData)
-        }
+          hum: processSensorData(humData),
+        },
       }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Erreur inconnue'
@@ -56,6 +61,6 @@ export const useDashboard = () => {
   return {
     isLoading: readonly(isLoading),
     error: readonly(error),
-    loadDashboard
+    loadDashboard,
   }
 }

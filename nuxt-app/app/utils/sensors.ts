@@ -1,14 +1,14 @@
 /**
  * Type pour les types de capteurs supportés
  */
-export type SensorType = 
-  | 'co2' 
-  | 'temperature' 
-  | 'temp' 
-  | 'humidity' 
-  | 'hum' 
-  | 'pm25' 
-  | 'voc' 
+export type SensorType =
+  | 'co2'
+  | 'temperature'
+  | 'temp'
+  | 'humidity'
+  | 'hum'
+  | 'pm25'
+  | 'voc'
   | 'pressure'
 
 /**
@@ -17,15 +17,15 @@ export type SensorType =
  * @returns Le label correspondant
  */
 export function getSensorLabel(type: string): string {
-  const map: Record<string, string> = { 
-    co2: 'CO2', 
+  const map: Record<string, string> = {
+    co2: 'CO2',
     temperature: 'Température',
-    temp: 'Température', 
+    temp: 'Température',
     humidity: 'Humidité',
     hum: 'Humidité',
-    pm25: 'PM2.5', 
-    voc: 'COV', 
-    pressure: 'Pression' 
+    pm25: 'PM2.5',
+    voc: 'COV',
+    pressure: 'Pression',
   }
   return map[type] || type
 }
@@ -35,16 +35,16 @@ export function getSensorLabel(type: string): string {
  * @param type - Le type de capteur
  * @returns La couleur hexadécimale correspondante
  */
-export function getSensorColor(type: string): string { 
-  const map: Record<string, string> = { 
-    co2: '#10b981', 
+export function getSensorColor(type: string): string {
+  const map: Record<string, string> = {
+    co2: '#10b981',
     temperature: '#f97316',
-    temp: '#f97316', 
+    temp: '#f97316',
     humidity: '#3b82f6',
-    hum: '#3b82f6', 
-    pm25: '#8b5cf6', 
-    voc: '#ec4899', 
-    pressure: '#06b6d4' 
+    hum: '#3b82f6',
+    pm25: '#8b5cf6',
+    voc: '#ec4899',
+    pressure: '#06b6d4',
   }
   return map[type] || '#9ca3af'
 }
@@ -63,7 +63,7 @@ export function getSensorUnit(type: string): string {
     hum: '%',
     pm25: 'µg/m³',
     voc: 'ppb',
-    pressure: 'hPa'
+    pressure: 'hPa',
   }
   return unitMap[type] || ''
 }
@@ -78,4 +78,3 @@ export function normalizeSensorType(sensorType: string): string {
   if (sensorType === 'humidity') return 'hum'
   return sensorType
 }
-

@@ -30,7 +30,7 @@ export const useModules = () => {
         id: moduleId,
         name: moduleId,
         type: 'unknown',
-        status: null
+        status: null,
       })
       return moduleId
     }
@@ -42,7 +42,6 @@ export const useModules = () => {
     modules: readonly(modules),
     error: readonly(error),
     loadModules,
-    addModuleFromTopic
+    addModuleFromTopic,
   }
 }
-

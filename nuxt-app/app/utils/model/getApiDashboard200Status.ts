@@ -9,4 +9,4 @@
 /**
  * @nullable
  */
-export type GetApiDashboard200Status = unknown | null;
+export type GetApiDashboard200Status = unknown | null

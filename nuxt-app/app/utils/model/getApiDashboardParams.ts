@@ -7,7 +7,7 @@
  */
 
 export type GetApiDashboardParams = {
-module: string;
-days?: string;
-limit?: string;
-};
+  module: string
+  days?: string
+  limit?: string
+}

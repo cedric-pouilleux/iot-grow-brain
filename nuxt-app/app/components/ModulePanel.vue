@@ -2,13 +2,15 @@
   <div class="mb-6">
     <!-- Loading state -->
     <div v-if="!props.deviceStatus" class="text-center py-8 text-gray-400">
-      <div class="animate-spin w-8 h-8 border-2 border-gray-300 border-t-emerald-500 rounded-full mx-auto mb-4"></div>
+      <div
+        class="animate-spin w-8 h-8 border-2 border-gray-300 border-t-emerald-500 rounded-full mx-auto mb-4"
+      ></div>
       Chargement de {{ moduleName }}...
     </div>
 
     <template v-else-if="props.deviceStatus">
       <!-- ModuleHeader avec menus à droite -->
-      <ModuleHeader 
+      <ModuleHeader
         :module-name="moduleName"
         :rssi="deviceStatus?.system?.rssi"
         :device-status="deviceStatus"
@@ -16,10 +18,12 @@
       />
 
       <!-- Grille des Capteurs -->
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
-        <SensorMiniCard v-for="type in sensorTypes" :key="type.key"
-          :label="type.label" 
-          :sensor="getSensorData(type.key)" 
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <SensorMiniCard
+          v-for="type in sensorTypes"
+          :key="type.key"
+          :label="type.label"
+          :sensor="getSensorData(type.key)"
           :color="type.color"
           :history="getSensorHistory(type.key)"
           :is-graph-open="selectedGraphSensor === normalizeSensorType(type.key)"
@@ -49,7 +53,12 @@ import type { DeviceStatus, SensorData } from '../types'
 import ModuleHeader from './ModuleHeader.vue'
 import SensorDetailGraph from './SensorDetailGraph.vue'
 import { formatUptime } from '../utils/time'
-import { getSensorLabel, getSensorColor, getSensorUnit, normalizeSensorType } from '../utils/sensors'
+import {
+  getSensorLabel,
+  getSensorColor,
+  getSensorUnit,
+  normalizeSensorType,
+} from '../utils/sensors'
 
 interface Props {
   moduleId: string
@@ -59,7 +68,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  sensorData: () => ({ co2: [], temp: [], hum: [] })
+  sensorData: () => ({ co2: [], temp: [], hum: [] }),
 })
 
 const getSensorData = (sensorName: string) => {
@@ -67,7 +76,7 @@ const getSensorData = (sensorName: string) => {
   const config = props.deviceStatus?.sensorsConfig?.sensors?.[sensorName] || {}
   return {
     ...status,
-    ...(config.model && { model: config.model })
+    ...(config.model && { model: config.model }),
   }
 }
 
@@ -76,16 +85,16 @@ const isToggling = ref(false)
 
 const toggleGraph = (sensorType: string) => {
   if (isToggling.value) return
-  
+
   isToggling.value = true
   const normalizedType = normalizeSensorType(sensorType)
-  
+
   if (selectedGraphSensor.value === normalizedType) {
     selectedGraphSensor.value = null
   } else {
     selectedGraphSensor.value = normalizedType
   }
-  
+
   setTimeout(() => {
     isToggling.value = false
   }, 100)
@@ -97,21 +106,21 @@ const sensorTypes = [
   { key: 'humidity', label: 'Humidité', color: 'blue' },
   { key: 'pm25', label: 'PM2.5', color: 'violet' },
   { key: 'voc', label: 'COV', color: 'pink' },
-  { key: 'pressure', label: 'Pression', color: 'cyan' }
+  { key: 'pressure', label: 'Pression', color: 'cyan' },
 ] as const
 
 const calculatedUptime = computed(() => {
   if (!props.deviceStatus?.system?.uptimeStart) return null
-  
+
   const now = Math.floor(Date.now() / 1000)
   const system = props.deviceStatus.system
-  
+
   // Si on a déjà calculé l'offset, on l'utilise
   if (system._configReceivedAt && system._uptimeStartOffset !== undefined) {
     const elapsedSinceConfig = now - system._configReceivedAt
     return system._uptimeStartOffset + elapsedSinceConfig
   }
-  
+
   return system.uptimeStart
 })
 
@@ -123,4 +132,3 @@ const getSensorHistory = (type: string) => {
   return []
 }
 </script>
-

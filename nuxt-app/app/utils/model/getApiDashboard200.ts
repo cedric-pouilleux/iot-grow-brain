@@ -5,9 +5,9 @@
  * API for IoT Dashboard
  * OpenAPI spec version: 1.0.0
  */
-import type { GetApiDashboard200Sensors } from './getApiDashboard200Sensors';
+import type { GetApiDashboard200Sensors } from './getApiDashboard200Sensors'
 
 export type GetApiDashboard200 = {
-  status: unknown;
-  sensors: GetApiDashboard200Sensors;
-};
+  status: unknown
+  sensors: GetApiDashboard200Sensors
+}

@@ -5,6 +5,7 @@
 La documentation du projet est organisée de manière modulaire pour faciliter la maintenance et la navigation.
 
 ### Principe de Base
+
 - **README.md** : Vue d'ensemble, quick start, liens vers la doc détaillée
 - **docs/** : Documentation détaillée, organisée par thème
 
@@ -26,6 +27,7 @@ backend/
 ## ✍️ Règles d'Écriture
 
 ### README.md Principal
+
 - **Objectif** : Permettre à un développeur de démarrer rapidement
 - **Contenu** :
   - Description en 2-3 phrases
@@ -37,6 +39,7 @@ backend/
 - **Ton** : Concis, orienté action
 
 ### Fichiers docs/
+
 - **Objectif** : Documentation technique détaillée
 - **Contenu** :
   - Explications approfondies
@@ -49,11 +52,13 @@ backend/
 ## 🎯 Quand Créer un Nouveau Fichier
 
 Créer un nouveau fichier dans `docs/` quand :
+
 - Le sujet dépasse 50 lignes
 - Le sujet est autonome (peut être lu indépendamment)
 - Le sujet nécessite des exemples de code détaillés
 
 Exemples de sujets qui méritent leur propre fichier :
+
 - Configuration d'un service (MQTT, Socket.IO)
 - Guide de migration (ex: Drizzle ORM)
 - Conventions de code spécifiques
@@ -67,6 +72,7 @@ Exemples de sujets qui méritent leur propre fichier :
 > Résumé en une phrase de ce que couvre ce document
 
 ## Table des Matières
+
 - [Section 1](#section-1)
 - [Section 2](#section-2)
 
@@ -80,6 +86,7 @@ Code example:
 \`\`\`
 
 ## Voir Aussi
+
 - [Autre doc](./autre-doc.md)
 - [README](../README.md)
 ```
@@ -87,11 +94,13 @@ Code example:
 ## 🔄 Maintenance
 
 ### Mise à Jour de la Documentation
+
 1. **Changement mineur** : Éditer directement le fichier concerné
 2. **Nouveau feature** : Ajouter une section ou créer un nouveau fichier
 3. **Refactoring majeur** : Mettre à jour tous les fichiers impactés + README
 
 ### Checklist Avant Commit
+
 - [ ] README.md reste concis (< 100 lignes)
 - [ ] Liens entre fichiers sont à jour
 - [ ] Code examples sont testés
@@ -100,6 +109,7 @@ Code example:
 ## 🤖 Pour les IA
 
 Quand vous contribuez à la documentation :
+
 1. **Lire** ce fichier en premier
 2. **Respecter** la structure modulaire
 3. **Garder** le README principal concis
@@ -109,6 +119,7 @@ Quand vous contribuez à la documentation :
 7. **Éviter** la duplication d'information
 
 ### Exemple de Contribution
+
 ❌ **Mauvais** : Ajouter 50 lignes sur Drizzle ORM dans le README
 ✅ **Bon** : Créer `docs/database.md` et ajouter un lien dans le README
 

@@ -1,19 +1,19 @@
 <template>
   <div class="border-t border-gray-100 bg-gray-50">
-    <button 
-      @click="isOpen = !isOpen"
+    <button
       class="w-full p-4 flex items-center justify-between hover:bg-gray-100 transition-colors"
+      @click="isOpen = !isOpen"
     >
       <div class="flex items-center gap-3">
         <Icon name="tabler:device-desktop" class="w-5 h-5 text-gray-600" />
         <h3 class="font-semibold text-gray-700">Informations Système</h3>
       </div>
-      <Icon 
-        :name="isOpen ? 'tabler:chevron-up' : 'tabler:chevron-down'" 
+      <Icon
+        :name="isOpen ? 'tabler:chevron-up' : 'tabler:chevron-down'"
         class="w-5 h-5 text-gray-400"
       />
     </button>
-    
+
     <div v-if="isOpen" class="p-4 bg-white border-t border-gray-100">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <SystemInfoCard title="Réseau" icon="tabler:network">
@@ -23,11 +23,15 @@
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">MAC</span>
-            <span class="font-mono text-gray-800 text-xs">{{ deviceStatus?.system?.mac || '--' }}</span>
+            <span class="font-mono text-gray-800 text-xs">{{
+              deviceStatus?.system?.mac || '--'
+            }}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Signal WiFi</span>
-            <span class="font-mono text-gray-800">{{ deviceStatus?.system?.rssi || '--' }} dBm</span>
+            <span class="font-mono text-gray-800"
+              >{{ deviceStatus?.system?.rssi || '--' }} dBm</span
+            >
           </div>
         </SystemInfoCard>
 
@@ -47,7 +51,12 @@
           <div class="flex justify-between">
             <span class="text-gray-600">Fréquence</span>
             <span class="font-mono text-gray-800">
-              {{ deviceStatus?.hardware?.chip?.cpuFreqMhz || deviceStatus?.system?.chip?.cpuFreqMhz || '--' }} MHz
+              {{
+                deviceStatus?.hardware?.chip?.cpuFreqMhz ||
+                deviceStatus?.system?.chip?.cpuFreqMhz ||
+                '--'
+              }}
+              MHz
             </span>
           </div>
           <div class="flex justify-between">
@@ -60,25 +69,41 @@
           <div class="flex justify-between">
             <span class="text-gray-600">Totale</span>
             <span class="font-mono text-gray-800">
-              {{ deviceStatus?.hardware?.chip?.flashKb ? formatSize(deviceStatus.hardware.chip.flashKb) : '--' }}
+              {{
+                deviceStatus?.hardware?.chip?.flashKb
+                  ? formatSize(deviceStatus.hardware.chip.flashKb)
+                  : '--'
+              }}
             </span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Sketch (code)</span>
             <span class="font-mono text-gray-800">
-              {{ deviceStatus?.system?.flash?.usedKb ? formatSize(deviceStatus.system.flash.usedKb) : '--' }}
+              {{
+                deviceStatus?.system?.flash?.usedKb
+                  ? formatSize(deviceStatus.system.flash.usedKb)
+                  : '--'
+              }}
             </span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Libre (OTA)</span>
             <span class="font-mono text-gray-800">
-              {{ deviceStatus?.system?.flash?.freeKb ? formatSize(deviceStatus.system.flash.freeKb) : '--' }}
+              {{
+                deviceStatus?.system?.flash?.freeKb
+                  ? formatSize(deviceStatus.system.flash.freeKb)
+                  : '--'
+              }}
             </span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Partitions système</span>
             <span class="font-mono text-gray-800">
-              {{ deviceStatus?.system?.flash?.systemKb ? formatSize(deviceStatus.system.flash.systemKb) : '--' }}
+              {{
+                deviceStatus?.system?.flash?.systemKb
+                  ? formatSize(deviceStatus.system.flash.systemKb)
+                  : '--'
+              }}
             </span>
           </div>
           <div class="mt-2 pt-2 border-t border-gray-300">
@@ -87,7 +112,7 @@
               <span class="text-gray-700">{{ getFlashUsagePercent() }}%</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 class="bg-blue-500 h-2 rounded-full transition-all"
                 :style="{ width: getFlashUsagePercent() + '%' }"
               ></div>
@@ -99,16 +124,24 @@
           <div class="flex justify-between">
             <span class="text-gray-600">Totale</span>
             <span class="font-mono text-gray-800">
-              {{ deviceStatus?.system?.memory?.heapTotalKb ? formatSize(deviceStatus.system.memory.heapTotalKb) : '--' }}
+              {{
+                deviceStatus?.system?.memory?.heapTotalKb
+                  ? formatSize(deviceStatus.system.memory.heapTotalKb)
+                  : '--'
+              }}
             </span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Libre</span>
-            <span class="font-mono text-gray-800">{{ formatSize(deviceStatus.system?.memory?.heapFreeKb) }}</span>
+            <span class="font-mono text-gray-800">{{
+              formatSize(deviceStatus.system?.memory?.heapFreeKb)
+            }}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Min. libre</span>
-            <span class="font-mono text-gray-800">{{ formatSize(deviceStatus.system?.memory?.heapMinFreeKb) }}</span>
+            <span class="font-mono text-gray-800">{{
+              formatSize(deviceStatus.system?.memory?.heapMinFreeKb)
+            }}</span>
           </div>
           <div class="mt-2">
             <div class="flex justify-between text-xs mb-1">
@@ -116,7 +149,7 @@
               <span class="text-gray-700">{{ calculatedHeapUsedPercent.toFixed(1) }}%</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 class="h-2 rounded-full transition-all"
                 :class="getHeapColorClass()"
                 :style="{ width: calculatedHeapUsedPercent + '%' }"
@@ -125,26 +158,32 @@
           </div>
         </SystemInfoCard>
 
-        <SystemInfoCard 
-          v-if="deviceStatus?.system?.memory?.psram" 
-          title="PSRAM" 
+        <SystemInfoCard
+          v-if="deviceStatus?.system?.memory?.psram"
+          title="PSRAM"
           icon="tabler:memory-stick"
         >
           <div class="flex justify-between">
             <span class="text-gray-600">Totale</span>
-            <span class="font-mono text-gray-800">{{ formatSize(deviceStatus?.system?.memory?.psram?.total_kb) }}</span>
+            <span class="font-mono text-gray-800">{{
+              formatSize(deviceStatus?.system?.memory?.psram?.total_kb)
+            }}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Libre</span>
-            <span class="font-mono text-gray-800">{{ formatSize(deviceStatus?.system?.memory?.psram?.freeKb) }}</span>
+            <span class="font-mono text-gray-800">{{
+              formatSize(deviceStatus?.system?.memory?.psram?.freeKb)
+            }}</span>
           </div>
           <div class="mt-2">
             <div class="flex justify-between text-xs mb-1">
               <span class="text-gray-500">Utilisation</span>
-              <span class="text-gray-700">{{ deviceStatus?.system?.memory?.psram?.used_percent?.toFixed(1) || '--' }}%</span>
+              <span class="text-gray-700"
+                >{{ deviceStatus?.system?.memory?.psram?.used_percent?.toFixed(1) || '--' }}%</span
+              >
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 class="bg-purple-500 h-2 rounded-full transition-all"
                 :style="{ width: (deviceStatus?.system?.memory?.psram?.used_percent || 0) + '%' }"
               ></div>
@@ -155,14 +194,16 @@
         <SystemInfoCard title="Base de données" icon="tabler:database">
           <div class="flex justify-between">
             <span class="text-gray-600">Taille totale</span>
-            <span class="font-mono text-gray-800">{{ dbSize ? formatBytes(dbSize.totalSizeBytes) : '--' }}</span>
+            <span class="font-mono text-gray-800">{{
+              dbSize ? formatBytes(dbSize.totalSizeBytes) : '--'
+            }}</span>
           </div>
           <div v-if="dbSize" class="text-xs text-gray-500 italic mt-2">
             Données des capteurs (TimescaleDB)
           </div>
-          <button 
-            @click="showMetricsHistory = !showMetricsHistory"
+          <button
             class="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
+            @click="showMetricsHistory = !showMetricsHistory"
           >
             {{ showMetricsHistory ? 'Masquer' : 'Voir' }} l'historique
           </button>
@@ -193,7 +234,7 @@ import MetricsHistoryChart from './MetricsHistoryChart.vue'
 const props = defineProps({
   deviceStatus: { type: Object, default: null },
   dbSize: { type: Object, default: null },
-  metricsHistory: { type: Array, default: () => [] }
+  metricsHistory: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['update:metricsHistory'])
@@ -202,7 +243,7 @@ const isOpen = ref(false)
 const showMetricsHistory = ref(false)
 
 // Charger l'historique des métriques quand on affiche la section
-watch(showMetricsHistory, (show) => {
+watch(showMetricsHistory, show => {
   if (show && props.metricsHistory.length === 0) {
     loadMetricsHistory()
   }
@@ -214,25 +255,25 @@ const loadMetricsHistory = async () => {
     // Émettre un événement pour mettre à jour metricsHistory dans le parent
     emit('update:metricsHistory', data.history || [])
   } catch (e) {
-    console.error("Erreur fetch metrics-history:", e)
+    console.error('Erreur fetch metrics-history:', e)
   }
 }
 
-const formatUptime = (seconds) => {
+const formatUptime = seconds => {
   if (!seconds && seconds !== 0) return '--'
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
   return `${h}h ${m}m`
 }
 
-const formatSize = (kb) => {
+const formatSize = kb => {
   if (!kb && kb !== 0) return '--'
   if (kb < 1024) return kb + ' KB'
   if (kb < 1024 * 1024) return (kb / 1024).toFixed(1) + ' MB'
   return (kb / (1024 * 1024)).toFixed(2) + ' GB'
 }
 
-const formatBytes = (bytes) => {
+const formatBytes = bytes => {
   if (!bytes && bytes !== 0) return '--'
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
@@ -274,4 +315,3 @@ const getHeapColorClass = () => {
   return 'bg-red-500'
 }
 </script>
-

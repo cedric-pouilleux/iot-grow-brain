@@ -28,4 +28,3 @@ export function useTimeAgo(date: () => Date | string | null | undefined) {
 
   return timeAgo
 }
-

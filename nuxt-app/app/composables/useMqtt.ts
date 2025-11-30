@@ -14,9 +14,9 @@ export const useMqtt = (options: {
     if (socket?.connected) return
 
     try {
-      socket = io(config.public.socketUrl, { 
-        transports: ['websocket'], 
-        upgrade: false 
+      socket = io(config.public.socketUrl, {
+        transports: ['websocket'],
+        upgrade: false,
       })
 
       socket.on('connect', () => {
@@ -27,7 +27,7 @@ export const useMqtt = (options: {
         options.onDisconnect?.()
       })
 
-      socket.on('connect_error', (error) => {
+      socket.on('connect_error', error => {
         options.onError?.(error)
       })
 
@@ -49,7 +49,6 @@ export const useMqtt = (options: {
 
   return {
     connect,
-    disconnect
+    disconnect,
   }
 }
-

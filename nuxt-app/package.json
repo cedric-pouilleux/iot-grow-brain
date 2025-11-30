@@ -8,7 +8,11 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "gen:api": "orval"
+    "gen:api": "orval",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@nuxt/icon": "^2.1.0",
@@ -22,13 +26,22 @@
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "@iconify-json/ph": "^1.2.2",
     "@iconify-json/tabler": "^1.2.23",
+    "@nuxt/eslint-config": "^1.11.0",
     "@nuxtjs/tailwindcss": "^6.12.2",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-vue": "^10.6.2",
     "orval": "^7.13.2",
     "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.17"
+    "prettier": "^3.7.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.0"
   },
   "packageManager": "pnpm@8.7.4+sha1.9dfcac89c4010a00ce092c3cda76dab72cd99198"
 }

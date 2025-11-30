@@ -10,7 +10,7 @@ const TOPIC_HARDWARE_CONFIG = '/hardware/config'
 const SENSOR_TOPICS = {
   '/co2': 'co2',
   '/temperature': 'temp',
-  '/humidity': 'hum'
+  '/humidity': 'hum',
 } as const
 
 const MAX_DATA_POINTS = 100
@@ -67,7 +67,7 @@ const mergeSensorsStatus = (status: DeviceStatus, metadata: any) => {
     status.sensors![sensorName] = {
       ...status.sensors![sensorName],
       status: metadata[sensorName].status,
-      value: metadata[sensorName].value
+      value: metadata[sensorName].value,
     }
   })
 }
@@ -87,7 +87,12 @@ export const useModulesData = () => {
   const handleModuleMessage = (moduleId: string, message: MqttMessage) => {
     // Initialiser les structures si nécessaire
     if (!modulesDeviceStatus.value.has(moduleId)) {
-      modulesDeviceStatus.value.set(moduleId, { system: {}, sensors: {}, hardware: {}, sensorsConfig: {} })
+      modulesDeviceStatus.value.set(moduleId, {
+        system: {},
+        sensors: {},
+        hardware: {},
+        sensorsConfig: {},
+      })
     }
     if (!modulesSensorData.value.has(moduleId)) {
       modulesSensorData.value.set(moduleId, { co2: [], temp: [], hum: [] })
@@ -128,7 +133,10 @@ export const useModulesData = () => {
     }
   }
 
-  const loadModuleDashboard = (moduleId: string, dashboardData: { status: DeviceStatus | null; sensors: any }) => {
+  const loadModuleDashboard = (
+    moduleId: string,
+    dashboardData: { status: DeviceStatus | null; sensors: any }
+  ) => {
     // Fusionner le statut au lieu de le remplacer
     if (dashboardData.status) {
       const existingStatus = modulesDeviceStatus.value.get(moduleId)
@@ -140,7 +148,7 @@ export const useModulesData = () => {
           system: { ...existingStatus.system, ...dashboardData.status.system },
           sensors: { ...existingStatus.sensors, ...dashboardData.status.sensors },
           sensorsConfig: { ...existingStatus.sensorsConfig, ...dashboardData.status.sensorsConfig },
-          hardware: { ...existingStatus.hardware, ...dashboardData.status.hardware }
+          hardware: { ...existingStatus.hardware, ...dashboardData.status.hardware },
         })
       } else {
         modulesDeviceStatus.value.set(moduleId, dashboardData.status)
@@ -153,7 +161,7 @@ export const useModulesData = () => {
       const newData = {
         co2: processSensorData(dashboardData.sensors?.co2 || []) as SensorDataPoint[],
         temp: processSensorData(dashboardData.sensors?.temp || []) as SensorDataPoint[],
-        hum: processSensorData(dashboardData.sensors?.hum || []) as SensorDataPoint[]
+        hum: processSensorData(dashboardData.sensors?.hum || []) as SensorDataPoint[],
       }
 
       // Fonction helper pour fusionner sans doublons (basé sur le timestamp)
@@ -185,7 +193,7 @@ export const useModulesData = () => {
       modulesSensorData.value.set(moduleId, {
         co2: mergeSensorData(existingData.co2, newData.co2),
         temp: mergeSensorData(existingData.temp, newData.temp),
-        hum: mergeSensorData(existingData.hum, newData.hum)
+        hum: mergeSensorData(existingData.hum, newData.hum),
       })
     }
   }
@@ -196,7 +204,6 @@ export const useModulesData = () => {
     getModuleDeviceStatus,
     getModuleSensorData,
     handleModuleMessage,
-    loadModuleDashboard
+    loadModuleDashboard,
   }
 }
-

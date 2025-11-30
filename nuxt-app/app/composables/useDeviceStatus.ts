@@ -63,7 +63,7 @@ const mergeSensorsStatus = (status: DeviceStatus, metadata: any) => {
     status.sensors![sensorName] = {
       ...status.sensors![sensorName],
       status: metadata[sensorName].status,
-      value: metadata[sensorName].value
+      value: metadata[sensorName].value,
     }
   })
 }
@@ -117,6 +117,6 @@ export const useDeviceStatus = () => {
     deviceStatus: deviceStatus as Ref<DeviceStatus | null>,
     calculatedUptime,
     handleStatusMessage,
-    initializeStatus
+    initializeStatus,
   }
 }

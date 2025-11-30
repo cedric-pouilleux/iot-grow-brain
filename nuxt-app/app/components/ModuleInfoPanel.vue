@@ -1,17 +1,16 @@
 <template>
   <div v-if="isOpen" class="border-b border-gray-100 bg-gray-50 p-4 animate-fade-in">
     <div class="flex items-center justify-center gap-6">
-      
       <!-- Hardware -->
       <div class="relative">
         <button
-          @click="openDropdown = openDropdown === 'hardware' ? null : 'hardware'"
           class="flex items-center justify-center w-10 h-10 bg-white rounded-lg shadow-sm border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
           title="Hardware"
+          @click="openDropdown = openDropdown === 'hardware' ? null : 'hardware'"
         >
           <Icon name="tabler:cpu" class="w-5 h-5" />
         </button>
-        
+
         <div
           v-if="openDropdown === 'hardware'"
           class="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50"
@@ -41,13 +40,13 @@
       <!-- Réseau -->
       <div class="relative">
         <button
-          @click="openDropdown = openDropdown === 'network' ? null : 'network'"
           class="flex items-center justify-center w-10 h-10 bg-white rounded-lg shadow-sm border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
           title="Réseau"
+          @click="openDropdown = openDropdown === 'network' ? null : 'network'"
         >
           <Icon name="tabler:network" class="w-5 h-5" />
         </button>
-        
+
         <div
           v-if="openDropdown === 'network'"
           class="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50"
@@ -60,7 +59,9 @@
             </div>
             <div class="flex justify-between">
               <span class="text-gray-600">MAC</span>
-              <span class="font-mono text-gray-800 text-xs">{{ deviceStatus?.system?.mac || '--' }}</span>
+              <span class="font-mono text-gray-800 text-xs">{{
+                deviceStatus?.system?.mac || '--'
+              }}</span>
             </div>
           </div>
         </div>
@@ -69,28 +70,31 @@
       <!-- Stockage -->
       <div class="relative">
         <button
-          @click="openDropdown = openDropdown === 'storage' ? null : 'storage'"
           class="flex items-center justify-center w-10 h-10 bg-white rounded-lg shadow-sm border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
           title="Stockage"
+          @click="openDropdown = openDropdown === 'storage' ? null : 'storage'"
         >
           <Icon name="tabler:device-sd-card" class="w-5 h-5" />
         </button>
-        
+
         <div
           v-if="openDropdown === 'storage'"
           class="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50"
         >
           <h4 class="text-xs font-semibold text-gray-500 uppercase mb-3">Stockage</h4>
-          
+
           <!-- Flash -->
           <div class="mb-4">
             <div class="flex justify-between text-xs mb-2">
               <span class="text-gray-600">Flash</span>
-              <span class="text-gray-800">{{ formatSize(deviceStatus?.system?.flash?.usedKb) }} / {{ formatSize(deviceStatus?.hardware?.chip?.flashKb) }}</span>
+              <span class="text-gray-800"
+                >{{ formatSize(deviceStatus?.system?.flash?.usedKb) }} /
+                {{ formatSize(deviceStatus?.hardware?.chip?.flashKb) }}</span
+              >
             </div>
             <div class="relative w-full h-6 bg-gray-200 rounded overflow-hidden flex">
               <!-- Segments avec labels -->
-              <div 
+              <div
                 v-if="flashSketchPercent > 0"
                 class="bg-blue-500 h-full flex items-center justify-center text-white text-xs font-medium"
                 :style="{ width: flashSketchPercent + '%' }"
@@ -98,7 +102,7 @@
               >
                 <span v-if="flashSketchPercent > 8" class="px-1">Sketch</span>
               </div>
-              <div 
+              <div
                 v-if="flashOtaPercent > 0"
                 class="bg-green-500 h-full flex items-center justify-center text-white text-xs font-medium"
                 :style="{ width: flashOtaPercent + '%' }"
@@ -106,7 +110,7 @@
               >
                 <span v-if="flashOtaPercent > 8" class="px-1">OTA</span>
               </div>
-              <div 
+              <div
                 v-if="flashSystemPercent > 0"
                 class="bg-gray-400 h-full flex items-center justify-center text-white text-xs font-medium"
                 :style="{ width: flashSystemPercent + '%' }"
@@ -136,10 +140,13 @@
           <div>
             <div class="flex justify-between text-xs mb-2">
               <span class="text-gray-600">RAM</span>
-              <span class="text-gray-800">{{ formatSize(usedHeap) }} / {{ formatSize(deviceStatus?.system?.memory?.heapTotalKb) }}</span>
+              <span class="text-gray-800"
+                >{{ formatSize(usedHeap) }} /
+                {{ formatSize(deviceStatus?.system?.memory?.heapTotalKb) }}</span
+              >
             </div>
             <div class="relative w-full h-6 bg-gray-200 rounded overflow-hidden">
-              <div 
+              <div
                 class="bg-purple-500 h-full flex items-center justify-center text-white text-xs font-medium"
                 :style="{ width: heapUsedPercent + '%' }"
               >
@@ -158,26 +165,25 @@
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
       <!-- Configuration -->
       <div class="relative">
         <button
-          @click="openDropdown = openDropdown === 'config' ? null : 'config'"
           class="flex items-center justify-center w-10 h-10 bg-white rounded-lg shadow-sm border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
           title="Configuration"
+          @click="openDropdown = openDropdown === 'config' ? null : 'config'"
         >
           <Icon name="tabler:settings" class="w-5 h-5" />
         </button>
-        
+
         <div
           v-if="openDropdown === 'config'"
           class="absolute top-full right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50"
         >
           <h4 class="text-xs font-semibold text-gray-500 uppercase mb-3">Configuration Capteurs</h4>
-          
+
           <div class="space-y-4">
             <!-- CO2 -->
             <div class="space-y-1">
@@ -185,11 +191,11 @@
                 <label class="text-sm font-medium text-gray-700">CO2</label>
                 <span class="text-xs text-gray-500">{{ config.co2 }}s</span>
               </div>
-              <input 
-                type="range" 
-                v-model.number="config.co2" 
-                min="10" 
-                max="300" 
+              <input
+                v-model.number="config.co2"
+                type="range"
+                min="10"
+                max="300"
                 step="10"
                 class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
@@ -201,11 +207,11 @@
                 <label class="text-sm font-medium text-gray-700">Température</label>
                 <span class="text-xs text-gray-500">{{ config.temperature }}s</span>
               </div>
-              <input 
-                type="range" 
-                v-model.number="config.temperature" 
-                min="10" 
-                max="300" 
+              <input
+                v-model.number="config.temperature"
+                type="range"
+                min="10"
+                max="300"
                 step="10"
                 class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
@@ -217,11 +223,11 @@
                 <label class="text-sm font-medium text-gray-700">Humidité</label>
                 <span class="text-xs text-gray-500">{{ config.humidity }}s</span>
               </div>
-              <input 
-                type="range" 
-                v-model.number="config.humidity" 
-                min="10" 
-                max="300" 
+              <input
+                v-model.number="config.humidity"
+                type="range"
+                min="10"
+                max="300"
                 step="10"
                 class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
@@ -251,10 +257,10 @@
 
             <!-- Actions -->
             <div class="flex justify-end pt-2">
-              <button 
-                @click="saveConfig"
+              <button
                 :disabled="saving"
                 class="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+                @click="saveConfig"
               >
                 <Icon v-if="saving" name="tabler:loader-2" class="w-3 h-3 animate-spin" />
                 {{ saving ? 'Enregistrement...' : 'Appliquer' }}
@@ -263,7 +269,6 @@
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>
@@ -280,11 +285,14 @@ const props = defineProps<{
 
 const openDropdown = ref<'hardware' | 'network' | 'storage' | 'config' | null>(null)
 
-watch(() => props.isOpen, (isOpen) => {
-  if (!isOpen) {
-    openDropdown.value = null
+watch(
+  () => props.isOpen,
+  isOpen => {
+    if (!isOpen) {
+      openDropdown.value = null
+    }
   }
-})
+)
 
 const formatSize = (kb: number | undefined | null): string => {
   if (kb === null || kb === undefined) return '--'
@@ -354,51 +362,58 @@ onUnmounted(() => {
 const config = ref({
   co2: 60,
   temperature: 60,
-  humidity: 60
+  humidity: 60,
 })
 
 const saving = ref(false)
 
-watch(() => props.deviceStatus, (status) => {
-  if (status?.sensorsConfig?.sensors) {
-    if (status.sensorsConfig.sensors.co2?.interval) config.value.co2 = status.sensorsConfig.sensors.co2.interval
-    if (status.sensorsConfig.sensors.temperature?.interval) config.value.temperature = status.sensorsConfig.sensors.temperature.interval
-    if (status.sensorsConfig.sensors.humidity?.interval) config.value.humidity = status.sensorsConfig.sensors.humidity.interval
-  }
-}, { immediate: true })
+watch(
+  () => props.deviceStatus,
+  status => {
+    if (status?.sensorsConfig?.sensors) {
+      if (status.sensorsConfig.sensors.co2?.interval)
+        config.value.co2 = status.sensorsConfig.sensors.co2.interval
+      if (status.sensorsConfig.sensors.temperature?.interval)
+        config.value.temperature = status.sensorsConfig.sensors.temperature.interval
+      if (status.sensorsConfig.sensors.humidity?.interval)
+        config.value.humidity = status.sensorsConfig.sensors.humidity.interval
+    }
+  },
+  { immediate: true }
+)
 
 const calculateStorage = (years: number, compressed: boolean) => {
   const secondsPerYear = 365 * 24 * 3600
   const bytesPerRecord = 37
-  
+
   const recordsCo2 = secondsPerYear / config.value.co2
   const recordsTemp = secondsPerYear / config.value.temperature
   const recordsHum = secondsPerYear / config.value.humidity
-  
+
   const totalRecords = (recordsCo2 + recordsTemp + recordsHum) * years
   const totalBytes = totalRecords * bytesPerRecord
-  
+
   return compressed ? totalBytes * 0.1 : totalBytes
 }
 
 const saveConfig = async () => {
   if (!props.moduleId) return
-  
+
   saving.value = true
   try {
     const payload = {
       sensors: {
         co2: { interval: config.value.co2 },
         temperature: { interval: config.value.temperature },
-        humidity: { interval: config.value.humidity }
-      }
+        humidity: { interval: config.value.humidity },
+      },
     }
-    
+
     await $fetch(`/api/modules/${props.moduleId}/config`, {
       method: 'POST',
-      body: payload
+      body: payload,
     })
-    
+
     openDropdown.value = null
   } catch (err) {
     console.error('Erreur sauvegarde config:', err)

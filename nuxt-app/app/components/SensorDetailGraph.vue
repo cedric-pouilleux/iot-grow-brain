@@ -4,7 +4,7 @@
       <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: sensorColor }"></span>
       {{ sensorLabel }}
     </h3>
-    
+
     <div class="h-80 w-full relative">
       <ClientOnly>
         <Line v-if="chartData" :data="chartData" :options="chartOptions" />
@@ -31,20 +31,13 @@ import {
   PointElement,
   LineElement,
   TimeScale,
-  Filler
+  Filler,
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
 import 'chartjs-adapter-date-fns'
 
 if (process.client) {
-  ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    TimeScale,
-    Filler
-  )
+  ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Filler)
 }
 
 interface Props {
@@ -57,7 +50,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   selectedSensor: null,
-  history: () => []
+  history: () => [],
 })
 
 defineEmits<{
@@ -72,32 +65,32 @@ const graphMinMax = computed(() => {
   if (values.length === 0) return { min: 0, max: 100 }
   let min = Math.min(...values)
   let max = Math.max(...values)
-  
+
   // Petit padding pour ne pas coller aux bords
   const range = max - min || 1
-  return { 
-    min: min - (range * 0.1), 
-    max: max + (range * 0.1) 
+  return {
+    min: min - range * 0.1,
+    max: max + range * 0.1,
   }
 })
 
 // Configuration Chart.js identique aux petits graphiques
 const chartData = computed<ChartData<'line'> | null>(() => {
   if (!hasHistory.value) return null
-  
+
   const sortedData = [...props.history].sort((a, b) => {
     const timeA = a.time instanceof Date ? a.time.getTime() : new Date(a.time).getTime()
     const timeB = b.time instanceof Date ? b.time.getTime() : new Date(b.time).getTime()
     return timeA - timeB
   })
-  
+
   const hexToRgba = (hex: string, alpha: number): string => {
     const r = parseInt(hex.slice(1, 3), 16)
     const g = parseInt(hex.slice(3, 5), 16)
     const b = parseInt(hex.slice(5, 7), 16)
     return `rgba(${r}, ${g}, ${b}, ${alpha})`
   }
-  
+
   return {
     datasets: [
       {
@@ -110,9 +103,9 @@ const chartData = computed<ChartData<'line'> | null>(() => {
         fill: true,
         pointRadius: 0,
         pointHoverRadius: 6,
-        spanGaps: true
-      }
-    ]
+        spanGaps: true,
+      },
+    ],
   }
 })
 
@@ -125,15 +118,15 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
       type: 'time' as const,
       display: true,
       time: {
-        unit: 'minute' as const
+        unit: 'minute' as const,
       },
       border: { display: false },
       grid: { color: '#f3f4f6', drawBorder: false },
-      ticks: { 
-        font: { family: "'Inter', sans-serif", size: 11 }, 
+      ticks: {
+        font: { family: "'Inter', sans-serif", size: 11 },
         color: '#9ca3af',
-        maxTicksLimit: 8
-      }
+        maxTicksLimit: 8,
+      },
     },
     y: {
       display: true,
@@ -141,11 +134,11 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
       max: graphMinMax.value.max,
       border: { display: false },
       grid: { color: '#f3f4f6', drawBorder: false },
-      ticks: { 
+      ticks: {
         color: props.sensorColor,
-        font: { family: "'Inter', sans-serif", size: 11 }
-      }
-    }
+        font: { family: "'Inter', sans-serif", size: 11 },
+      },
+    },
   },
   plugins: {
     legend: { display: false },
@@ -154,9 +147,8 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
       backgroundColor: '#1f2937',
       padding: 10,
       cornerRadius: 8,
-      displayColors: false
-    }
-  }
+      displayColors: false,
+    },
+  },
 }))
 </script>
-

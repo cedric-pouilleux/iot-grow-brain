@@ -3,6 +3,7 @@
 > Configuration MQTT, buffering et diffusion WebSocket
 
 ## Table des Matières
+
 - [Configuration](#configuration)
 - [Topics](#topics)
 - [Buffering](#buffering)
@@ -27,8 +28,8 @@ const client = mqtt.connect(config.mqtt.broker, {
   username: config.mqtt.username,
   password: config.mqtt.password,
   reconnectPeriod: 5000,
-  connectTimeout: 30000
-});
+  connectTimeout: 30000,
+})
 ```
 
 ## Topics
@@ -40,6 +41,7 @@ const client = mqtt.connect(config.mqtt.broker, {
 ```
 
 **Exemples** :
+
 ```
 croissance/system
 croissance/system/config
@@ -54,9 +56,11 @@ croissance/humidity
 ### Types de Messages
 
 #### System Status
+
 **Topic** : `{module_id}/system`
 
 **Payload** (camelCase) :
+
 ```json
 {
   "rssi": -45,
@@ -70,9 +74,11 @@ croissance/humidity
 **Action** : Mise à jour `device_system_status` (mapping automatique DB snake_case)
 
 #### System Config
+
 **Topic** : `{module_id}/system/config`
 
 **Payload** (camelCase) :
+
 ```json
 {
   "ip": "192.168.1.100",
@@ -92,9 +98,11 @@ croissance/humidity
 **Action** : Mise à jour `device_system_status` (mapping automatique DB snake_case)
 
 #### Hardware Config
+
 **Topic** : `{module_id}/hardware/config`
 
 **Payload** (camelCase) :
+
 ```json
 {
   "chip": {
@@ -110,9 +118,11 @@ croissance/humidity
 **Action** : Mise à jour `device_hardware` (mapping automatique DB snake_case)
 
 #### Sensor Data
+
 **Topic** : `{module_id}/{sensor_type}`
 
 **Payload** :
+
 ```json
 {
   "value": 450.5,
@@ -127,8 +137,8 @@ croissance/humidity
 ### Stratégie
 
 ```typescript
-const FLUSH_INTERVAL = 5000;   // 5 secondes
-const BATCH_SIZE = 100;         // 100 mesures
+const FLUSH_INTERVAL = 5000 // 5 secondes
+const BATCH_SIZE = 100 // 100 mesures
 
 // Flush automatique sur :
 // - Intervalle de 5s
@@ -139,20 +149,20 @@ const BATCH_SIZE = 100;         // 100 mesures
 
 ```typescript
 // src/plugins/mqtt.ts
-const measurementBuffer: MqttMeasurement[] = [];
+const measurementBuffer: MqttMeasurement[] = []
 
 async function flushMeasurements() {
-  if (measurementBuffer.length === 0) return;
-  
-  const batch = [...measurementBuffer];
-  measurementBuffer = [];
-  
+  if (measurementBuffer.length === 0) return
+
+  const batch = [...measurementBuffer]
+  measurementBuffer = []
+
   // Insertion batch via Drizzle (mapping automatique)
-  await mqttRepo.insertMeasurementsBatch(batch);
+  await mqttRepo.insertMeasurementsBatch(batch)
 }
 
 // Flush périodique
-setInterval(flushMeasurements, FLUSH_INTERVAL);
+setInterval(flushMeasurements, FLUSH_INTERVAL)
 ```
 
 **Note** : Les mesures sont en camelCase dans TypeScript (`moduleId`, `sensorType`) mais insérées en snake_case dans la DB (`module_id`, `sensor_type`) automatiquement par Drizzle.
@@ -173,17 +183,17 @@ fastify.io.emit('mqtt-message', {
   topic: message.topic,
   value: message.value,
   time: message.time,
-  metadata: message.metadata
-});
+  metadata: message.metadata,
+})
 ```
 
 ### Frontend
 
 ```typescript
 // Frontend reçoit et traite
-socket.on('mqtt-message', (message) => {
-  handleModuleMessage(moduleId, message);
-});
+socket.on('mqtt-message', message => {
+  handleModuleMessage(moduleId, message)
+})
 ```
 
 ### Latence
@@ -197,23 +207,24 @@ socket.on('mqtt-message', (message) => {
 ### Reconnexion MQTT
 
 ```typescript
-client.on('error', (err) => {
-  fastify.log.error('MQTT error:', err);
-});
+client.on('error', err => {
+  fastify.log.error('MQTT error:', err)
+})
 
 client.on('reconnect', () => {
-  fastify.log.info('MQTT reconnecting...');
-});
+  fastify.log.info('MQTT reconnecting...')
+})
 
 client.on('connect', () => {
-  fastify.log.info('✅ MQTT connected');
-  client.subscribe('#'); // Subscribe all topics
-});
+  fastify.log.info('✅ MQTT connected')
+  client.subscribe('#') // Subscribe all topics
+})
 ```
 
 ### Buffer Overflow
 
 Si le buffer dépasse la taille max avant le flush :
+
 1. Flush immédiat
 2. Log warning
 3. Continuer l'opération
@@ -222,14 +233,15 @@ Si le buffer dépasse la taille max avant le flush :
 
 ```typescript
 try {
-  await flushBuffer();
+  await flushBuffer()
 } catch (err) {
-  fastify.log.error('❌ Buffer flush failed:', err);
+  fastify.log.error('❌ Buffer flush failed:', err)
   // Les mesures sont perdues, mais le système continue
 }
 ```
 
 ## Voir Aussi
+
 - [Architecture](./architecture.md) - Flux de données
 - [Database](./database.md) - Schéma measurements
 - [API](./api.md) - Endpoints configuration

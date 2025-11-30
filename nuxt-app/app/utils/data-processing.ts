@@ -10,4 +10,3 @@ export function processSensorData<T extends { time: string | Date }>(
   if (!arr) return []
   return arr.map(m => ({ ...m, time: new Date(m.time) })).reverse() as Array<T & { time: Date }>
 }
-

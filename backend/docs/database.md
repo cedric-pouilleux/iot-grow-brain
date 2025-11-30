@@ -3,6 +3,7 @@
 > PostgreSQL + TimescaleDB avec Drizzle ORM pour le typage et les migrations
 
 ## Table des Matières
+
 - [Schéma](#schéma)
 - [Drizzle ORM](#drizzle-orm)
 - [Conventions de Nommage](#conventions-de-nommage)
@@ -14,6 +15,7 @@
 ### Tables Principales
 
 #### `device_system_status`
+
 Statut système des modules IoT
 
 ```sql
@@ -34,6 +36,7 @@ CREATE TABLE device_system_status (
 ```
 
 #### `device_hardware`
+
 Informations matérielles (CPU, flash, etc.)
 
 ```sql
@@ -49,6 +52,7 @@ CREATE TABLE device_hardware (
 ```
 
 #### `sensor_status`
+
 Statut actuel des capteurs
 
 ```sql
@@ -63,6 +67,7 @@ CREATE TABLE sensor_status (
 ```
 
 #### `sensor_config`
+
 Configuration des capteurs
 
 ```sql
@@ -78,6 +83,7 @@ CREATE TABLE sensor_config (
 ```
 
 #### `measurements` (TimescaleDB Hypertable)
+
 Mesures des capteurs (séries temporelles)
 
 ```sql
@@ -98,6 +104,7 @@ SELECT create_hypertable('measurements', 'time');
 ### Configuration
 
 **drizzle.config.ts** :
+
 ```typescript
 export default {
   schema: './src/db/schema.ts',
@@ -109,15 +116,16 @@ export default {
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-  }
+  },
 }
 ```
 
 ### Schéma TypeScript
 
 **src/db/schema.ts** :
+
 ```typescript
-import { pgTable, text, integer, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, timestamp } from 'drizzle-orm/pg-core'
 
 export const deviceSystemStatus = pgTable('device_system_status', {
   moduleId: text('module_id').primaryKey(),
@@ -126,14 +134,14 @@ export const deviceSystemStatus = pgTable('device_system_status', {
   uptimeStart: integer('uptime_start'),
   rssi: integer('rssi'),
   // ...
-});
+})
 ```
 
 ### Utilisation dans les Repositories
 
 ```typescript
-import { eq } from 'drizzle-orm';
-import * as schema from '../db/schema';
+import { eq } from 'drizzle-orm'
+import * as schema from '../db/schema'
 
 export class DeviceRepository {
   constructor(private db: NodePgDatabase<typeof schema>) {}
@@ -150,9 +158,9 @@ export class DeviceRepository {
         schema.deviceHardware,
         eq(schema.deviceSystemStatus.moduleId, schema.deviceHardware.moduleId)
       )
-      .where(eq(schema.deviceSystemStatus.moduleId, moduleId));
+      .where(eq(schema.deviceSystemStatus.moduleId, moduleId))
 
-    return result[0] || null;
+    return result[0] || null
   }
 }
 ```
@@ -169,11 +177,11 @@ Drizzle ORM fait le mapping automatiquement via le schéma :
 ```typescript
 // src/db/schema.ts
 export const deviceSystemStatus = pgTable('device_system_status', {
-  moduleId: text('module_id'),           // DB: module_id → TS: moduleId
-  heapFreeKb: integer('heap_free_kb'),   // DB: heap_free_kb → TS: heapFreeKb
-  uptimeStart: integer('uptime_start'),   // DB: uptime_start → TS: uptimeStart
-  updatedAt: timestamp('updated_at'),     // DB: updated_at → TS: updatedAt
-});
+  moduleId: text('module_id'), // DB: module_id → TS: moduleId
+  heapFreeKb: integer('heap_free_kb'), // DB: heap_free_kb → TS: heapFreeKb
+  uptimeStart: integer('uptime_start'), // DB: uptime_start → TS: uptimeStart
+  updatedAt: timestamp('updated_at'), // DB: updated_at → TS: updatedAt
+})
 ```
 
 ### Base de Données (snake_case) ✅
@@ -182,11 +190,12 @@ export const deviceSystemStatus = pgTable('device_system_status', {
 
 ```sql
 -- Requête SQL directe
-SELECT module_id, heap_free_kb, uptime_start 
+SELECT module_id, heap_free_kb, uptime_start
 FROM device_system_status;
 ```
 
 ### API REST (camelCase)
+
 ```json
 {
   "moduleId": "croissance",
@@ -204,7 +213,7 @@ FROM device_system_status;
 const status = await db
   .select()
   .from(deviceSystemStatus)
-  .where(eq(deviceSystemStatus.moduleId, 'croissance'));
+  .where(eq(deviceSystemStatus.moduleId, 'croissance'))
 
 // status[0].moduleId ✅ camelCase (pas besoin de conversion)
 // status[0].heapFreeKb ✅ camelCase
@@ -215,33 +224,36 @@ const status = await db
 ```typescript
 // Les colonnes DB restent en snake_case
 const result = await db.execute<{
-  module_id: string;      // DB column name
-  heap_free_kb: number;
+  module_id: string // DB column name
+  heap_free_kb: number
 }>(sql`
   SELECT module_id, heap_free_kb 
   FROM device_system_status
-`);
+`)
 
 // Mais vous pouvez mapper vers camelCase dans le résultat
 const mapped = result.rows.map(row => ({
-  moduleId: row.module_id,      // Mapping manuel si nécessaire
-  heapFreeKb: row.heap_free_kb
-}));
+  moduleId: row.module_id, // Mapping manuel si nécessaire
+  heapFreeKb: row.heap_free_kb,
+}))
 ```
 
 ### Règles à Suivre
 
 1. **Schéma Drizzle** : Toujours définir le mapping explicitement
+
    ```typescript
-   moduleId: text('module_id')  // ✅ Nom TS: 'nom_db'
+   moduleId: text('module_id') // ✅ Nom TS: 'nom_db'
    ```
 
 2. **Requêtes Drizzle** : Utiliser les propriétés camelCase
+
    ```typescript
-   schema.deviceSystemStatus.moduleId  // ✅ camelCase
+   schema.deviceSystemStatus.moduleId // ✅ camelCase
    ```
 
 3. **SQL brut** : Utiliser snake_case pour les colonnes
+
    ```sql
    SELECT module_id FROM device_system_status  -- ✅ snake_case
    ```
@@ -249,7 +261,7 @@ const mapped = result.rows.map(row => ({
 4. **Types API** : Toujours camelCase
    ```typescript
    interface DeviceStatus {
-     moduleId: string;  // ✅ camelCase
+     moduleId: string // ✅ camelCase
    }
    ```
 
@@ -264,6 +276,7 @@ SELECT create_hypertable('measurements', 'time');
 ```
 
 **Avantages** :
+
 - Partitionnement automatique par temps
 - Compression automatique
 - Requêtes optimisées sur séries temporelles
@@ -334,16 +347,17 @@ Ouvre `https://local.drizzle.studio`
 
 ## Résumé des Conventions
 
-| Contexte | Convention | Exemple |
-|----------|-----------|---------|
-| **Base de données** | `snake_case` | `module_id`, `heap_free_kb` |
-| **TypeScript** | `camelCase` | `moduleId`, `heapFreeKb` |
-| **API JSON** | `camelCase` | `{"moduleId": "..."}` |
-| **Schéma Drizzle** | Mapping explicite | `moduleId: text('module_id')` |
+| Contexte            | Convention        | Exemple                       |
+| ------------------- | ----------------- | ----------------------------- |
+| **Base de données** | `snake_case`      | `module_id`, `heap_free_kb`   |
+| **TypeScript**      | `camelCase`       | `moduleId`, `heapFreeKb`      |
+| **API JSON**        | `camelCase`       | `{"moduleId": "..."}`         |
+| **Schéma Drizzle**  | Mapping explicite | `moduleId: text('module_id')` |
 
 **Règle d'or** : Vous n'avez jamais besoin de faire le mapping manuellement. Drizzle s'en charge automatiquement.
 
 ## Voir Aussi
+
 - [Architecture](./architecture.md) - Vue d'ensemble
 - [MQTT](./mqtt.md) - Messages et buffering
 - [API](./api.md) - Endpoints et types

@@ -1,0 +1,22 @@
+# Dependencies
+node_modules
+.nuxt
+.output
+dist
+
+# Build files
+*.min.js
+*.min.css
+
+# Generated files
+.nuxt/**
+.output/**
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+

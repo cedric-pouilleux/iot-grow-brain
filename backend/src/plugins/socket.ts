@@ -1,31 +1,31 @@
-import fp from 'fastify-plugin';
-import { Server, ServerOptions } from 'socket.io';
+import fp from 'fastify-plugin'
+import { Server } from 'socket.io'
 
 declare module 'fastify' {
-    interface FastifyInstance {
-        io: Server;
-    }
+  interface FastifyInstance {
+    io: Server
+  }
 }
 
-export default fp(async (fastify) => {
-    const io = new Server(fastify.server, {
-        cors: {
-            origin: "*",
-            methods: ["GET", "POST"]
-        }
-    });
+export default fp(async fastify => {
+  const io = new Server(fastify.server, {
+    cors: {
+      origin: '*',
+      methods: ['GET', 'POST'],
+    },
+  })
 
-    io.on('connection', (socket) => {
-        fastify.log.info('🔌 New WebSocket client connected');
-        socket.on('disconnect', () => {
-            // fastify.log.info('🔌 Client disconnected');
-        });
-    });
+  io.on('connection', socket => {
+    fastify.log.info('🔌 New WebSocket client connected')
+    socket.on('disconnect', () => {
+      // fastify.log.info('🔌 Client disconnected');
+    })
+  })
 
-    fastify.decorate('io', io);
+  fastify.decorate('io', io)
 
-    fastify.addHook('onClose', (instance, done) => {
-        instance.io.close();
-        done();
-    });
-});
+  fastify.addHook('onClose', (instance, done) => {
+    instance.io.close()
+    done()
+  })
+})

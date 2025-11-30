@@ -5,11 +5,13 @@ Modern, scalable backend for IoT Dashboard with **Fastify**, **Drizzle ORM**, an
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 20+
 - PostgreSQL with TimescaleDB
 - MQTT Broker (Mosquitto)
 
 ### Installation
+
 ```bash
 npm install
 cp .env.example .env  # Configure your environment
@@ -36,6 +38,7 @@ npm start            # Run production
 ```
 
 ### Drizzle ORM
+
 ```bash
 npm run db:generate  # Generate migrations
 npm run db:migrate   # Apply migrations
@@ -43,12 +46,14 @@ npm run db:studio    # Open Drizzle Studio
 ```
 
 ### Frontend Type Generation
+
 ```bash
 cd ../nuxt-app
 npm run gen:api      # Generate types from Swagger
 ```
 
 ## 🏗️ Tech Stack
+
 - **Framework**: Fastify v5
 - **Language**: TypeScript
 - **ORM**: Drizzle ORM (mapping automatique DB ↔ TypeScript)
@@ -67,6 +72,7 @@ Voir [Database Documentation](./docs/database.md#conventions-de-nommage) pour pl
 ## 📜 Recent Changes
 
 **Nov 2025** - Drizzle ORM Migration
+
 - Migrated from raw SQL to Drizzle ORM
 - Full TypeScript type safety
 - Automatic mapping: DB (snake_case) ↔ TypeScript (camelCase)
@@ -74,6 +80,7 @@ Voir [Database Documentation](./docs/database.md#conventions-de-nommage) pour pl
 - Strong typing throughout the codebase
 
 **Nov 2025** - TypeScript & Fastify Migration
+
 - Converted from Express/JS to Fastify/TS
 - Added Zod validation
 - Implemented MQTT buffering

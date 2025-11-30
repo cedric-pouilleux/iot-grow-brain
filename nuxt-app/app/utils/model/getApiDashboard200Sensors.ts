@@ -7,7 +7,7 @@
  */
 
 export type GetApiDashboard200Sensors = {
-  co2: unknown[];
-  temp: unknown[];
-  hum: unknown[];
-};
+  co2: unknown[]
+  temp: unknown[]
+  hum: unknown[]
+}
