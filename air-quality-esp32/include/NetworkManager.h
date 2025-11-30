@@ -8,303 +8,431 @@
 #include <WiFiManager.h>
 #include <Preferences.h>
 
+/**
+ * @brief Gère la connexion WiFi et MQTT pour l'ESP32
+ * 
+ * Cette classe simplifie la gestion réseau en :
+ * - Gérant la connexion WiFi (directe ou via portail)
+ * - Configurant et maintenant la connexion MQTT
+ * - Permettant la configuration du nom du module via portail WiFi
+ */
 class NetworkManager {
 private:
-    char mqttServer[40];
-    char mqttPort[6];
+    // Configuration MQTT (configurable via build flags)
+    #ifdef MQTT_SERVER
+        static constexpr const char* MQTT_SERVER_ADDR = MQTT_SERVER;
+    #else
+        static constexpr const char* MQTT_SERVER_ADDR = "growbrain.local";
+    #endif
+    static constexpr uint16_t MQTT_PORT = 1883;
+    
+    // Configuration du module
     char moduleName[32];
-    char moduleType[20];
-    char topicPrefix[32];
     char fullTopic[64];
-
+    
+    // Client MQTT
     AsyncMqttClient mqttClient;
     Preferences preferences;
-
+    
+    // État de connexion
     unsigned long lastReconnectAttempt;
+    unsigned long lastWifiReconnectAttempt = 0;
+    unsigned long lastConnectionTime = 0;
+    unsigned int reconnectAttempts = 0;
     bool shouldSaveConfig = false;
+    bool callbacksInitialized = false;
+    
+    // Constantes de reconnexion
+    static constexpr unsigned long WIFI_RECONNECT_INTERVAL = 10000; // 10s
+    static constexpr unsigned long WATCHDOG_TIMEOUT = 600000;       // 10 min sans connexion -> reboot
 
+    // Résolution serveur MQTT
+    IPAddress mqttServerIP;
+    bool mqttUseIP = false;
+    
+    // Callback pour messages MQTT
     void (*mqttMessageCallback)(char*, uint8_t*, unsigned int) = nullptr;
 
 public:
     void (*onMqttConnectedCallback)() = nullptr;
 
     NetworkManager() : lastReconnectAttempt(0) {
-        #ifdef MQTT_SERVER
-            strcpy(mqttServer, MQTT_SERVER);
-        #else
-            strcpy(mqttServer, "growbrain.local");
-        #endif
-
-        strcpy(mqttPort, "1883");
-        strcpy(moduleName, "Salon");
-        strcpy(moduleType, "climate-module");
-        
-        #ifdef MQTT_PREFIX
-            strcpy(topicPrefix, MQTT_PREFIX);
-        #else
-            strcpy(topicPrefix, "home");
-        #endif
-
+        strcpy(moduleName, "Salon"); // Valeur par défaut
         fullTopic[0] = '\0';
+        lastConnectionTime = millis(); // Initialiser pour éviter un reboot immédiat
     }
 
+    /**
+     * @brief Initialise WiFi et MQTT
+     * 
+     * Charge la configuration sauvegardée, connecte au WiFi,
+     * configure le serveur MQTT et tente la première connexion.
+     */
     void begin() {
-        // Charger la config sauvegardée
-        preferences.begin("sensor_config", false);
-        String savedName   = preferences.getString("name", "");
+        loadModuleName();
+        connectWiFi();
+        setupMDNS();
+        configureMQTT();
+        setupMqttCallbacks();
         
-        // Si on a des valeurs sauvegardées, on les utilise
-        // MAIS si on vient de flasher une nouvelle version (Dev vs Prod), 
-        // on veut peut-être forcer les defaults du build flag ?
-        // Pour l'instant, on donne la priorité à la config sauvegardée si elle existe,
-        // sauf si on veut explicitement resetter.
-        // Pour simplifier le dev : si le prefix sauvegardé est différent du build flag, on pourrait écraser ?
-        // Non, restons simple : la config sauvegardée gagne. 
-        // L'utilisateur devra faire un "Reset Settings" dans le WiFiManager s'il veut forcer les nouveaux defaults,
-        // OU on ajoute un bouton/commande pour resetter.
+        if (WiFi.status() == WL_CONNECTED) {
+            Serial.print(F("WiFi IP: "));
+            Serial.println(WiFi.localIP());
+            Serial.print(F("WiFi RSSI: "));
+            Serial.println(WiFi.RSSI());
+            lastConnectionTime = millis();
+            
+            delay(500); // Stabilisation WiFi
+            reconnectAttempts = 0;
+            reconnect();
+        }
+    }
+
+    /**
+     * @brief À appeler dans loop() pour maintenir la connexion MQTT
+     */
+    void loop() {
+        manageWiFi();
+
+        if (WiFi.status() != WL_CONNECTED) return;
         
-        String savedServer = preferences.getString("server", "");
-        String savedPrefix = preferences.getString("prefix", ""); 
-
-        // AUTO-RESET CONFIG ON ENVIRONMENT SWITCH
-        // Si le prefix sauvegardé est différent du prefix compilé (ex: "home" vs "dev"),
-        // on considère qu'on a changé d'environnement et on force les nouvelles valeurs par défaut.
-        if (savedPrefix != String(topicPrefix)) {
-            Serial.println(F("Environment switch detected! Resetting config to defaults..."));
+        if (!mqttClient.connected()) {
+            unsigned long now = millis();
+            unsigned long interval = calculateBackoff();
             
-            // Clear ALL preferences to force reconfiguration
-            preferences.clear();
-            
-            // Force update with build flag defaults
-            #ifdef MQTT_SERVER
-                savedServer = String(MQTT_SERVER);
-            #else
-                savedServer = "growbrain.local";
-            #endif
-            
-            savedPrefix = String(topicPrefix);
-            savedName = ""; // Force user to set module name
-            
-            // Save immediately to avoid re-triggering next time (though it would be same)
-            preferences.putString("server", savedServer);
-            preferences.putString("prefix", savedPrefix);
-            
-            // Also update member variables immediately
-            savedServer.toCharArray(mqttServer, sizeof(mqttServer));
-            savedPrefix.toCharArray(topicPrefix, sizeof(topicPrefix));
-        }
-
-        preferences.end();
-
-        if (savedName.length() > 0) {
-            savedName.toCharArray(moduleName, sizeof(moduleName));
-        }
-
-        if (savedServer.length() > 0) {
-            savedServer.toCharArray(mqttServer, sizeof(mqttServer));
-        }
-
-        if (savedPrefix.length() > 0) {
-            savedPrefix.toCharArray(topicPrefix, sizeof(topicPrefix));
-        }
-
-        snprintf(fullTopic, sizeof(fullTopic), "%s/%s", topicPrefix, moduleName);
-
-        // --- WiFi & portail de config ---
-        WiFiManager wifiManager;
-        WiFiManagerParameter custom_module_name(
-            "name",
-            "Module Name (e.g. Salon)",
-            moduleName,
-            sizeof(moduleName)
-        );
-        WiFiManagerParameter custom_mqtt_server(
-            "server",
-            "MQTT Server (Expert)",
-            mqttServer,
-            sizeof(mqttServer)
-        );
-        WiFiManagerParameter custom_topic_prefix(
-            "prefix",
-            "Topic Prefix (e.g. home or dev)",
-            topicPrefix,
-            sizeof(topicPrefix)
-        );
-
-        wifiManager.addParameter(&custom_module_name);
-        wifiManager.addParameter(&custom_mqtt_server);
-        wifiManager.addParameter(&custom_topic_prefix);
-
-        wifiManager.setSaveConfigCallback([this]() {
-            this->shouldSaveConfig = true;
-        });
-
-        wifiManager.setTimeout(180);
-        
-        // TEMPORARY: Force reset to apply new defaults
-        Serial.println(F("Resetting WiFi settings to apply new environment..."));
-        wifiManager.resetSettings();
-
-        if (!wifiManager.autoConnect("ESP32-Sensor-Config")) {
-            Serial.println(F("WiFi connection failed, rebooting..."));
-            delay(3000);
-            ESP.restart();
-        }
-
-        Serial.print(F("WiFi Connected - IP: "));
-        Serial.println(WiFi.localIP());
-
-        // Sauvegarde éventuelle de la config
-        if (shouldSaveConfig) {
-            if (strlen(custom_module_name.getValue()) > 0) {
-                strcpy(moduleName, custom_module_name.getValue());
-            }
-            if (strlen(custom_mqtt_server.getValue()) > 0) {
-                strcpy(mqttServer, custom_mqtt_server.getValue());
-            }
-            if (strlen(custom_topic_prefix.getValue()) > 0) {
-                strcpy(topicPrefix, custom_topic_prefix.getValue());
-            }
-
-            snprintf(fullTopic, sizeof(fullTopic), "%s/%s", topicPrefix, moduleName);
-
-            preferences.begin("sensor_config", false);
-            preferences.putString("name", moduleName);
-            preferences.putString("server", mqttServer);
-            preferences.putString("prefix", topicPrefix);
-            preferences.end();
-        }
-
-        // --- mDNS ---
-        if (!MDNS.begin("esp32-client")) {
-            Serial.println(F("mDNS error"));
-        }
-
-        // --- Configuration serveur MQTT ---
-        uint16_t port = atoi(mqttPort);
-        if (port == 0) {
-            port = 1883;
-        }
-
-        String serverStr = String(mqttServer);
-        if (serverStr.endsWith(".local")) {
-            // Pour MDNS.queryHost, on enlève le .local
-            String host = serverStr;
-            host.replace(".local", "");
-            IPAddress ip = MDNS.queryHost(host);
-            if (ip != IPAddress(0, 0, 0, 0)) {
-                mqttClient.setServer(ip, port);
-            } else {
-                mqttClient.setServer(mqttServer, port);
+            if (now - lastReconnectAttempt > interval) {
+                lastReconnectAttempt = now;
+                reconnectAttempts++;
+                reconnect();
             }
         } else {
-            mqttClient.setServer(mqttServer, port);
+            reconnectAttempts = 0;
+            lastConnectionTime = millis(); // Reset watchdog si MQTT connecté
         }
-
-        // Callbacks MQTT (doivent être configurés APRÈS setServer et AVANT connect)
-        setupMqttCallbacks();
-
-        // Premier essai de connexion immédiat
-        reconnect();
     }
 
-    void loop() {
-        if (WiFi.status() != WL_CONNECTED) {
+    /**
+     * @brief Gère la reconnexion WiFi et le watchdog
+     */
+    void manageWiFi() {
+        unsigned long now = millis();
+        
+        if (WiFi.status() == WL_CONNECTED) {
+            // On met à jour le watchdog uniquement si on a aussi MQTT (géré dans loop)
+            // ou au moins le WiFi si MQTT n'est pas encore configuré/connecté
+            if (!mqttClient.connected()) {
+                 // Si on a le WiFi mais pas MQTT, on considère qu'on est "en vie" mais on veut MQTT
+                 // On ne reset pas lastConnectionTime ici pour forcer un reboot si MQTT ne vient jamais
+                 // Sauf si on veut juste le WiFi. Pour l'instant, disons que WiFi suffit pour ne pas rebooter hard,
+                 // mais on préfère un système connecté à tout.
+                 // Compromis : Si WiFi OK, on reset le watchdog à moitié ? 
+                 // Non, gardons la logique : Si pas de connexion utile (WiFi+MQTT) pendant 10min -> Reboot.
+                 // Mais si le broker est down, on ne veut pas rebooter le module en boucle ?
+                 // Si, car peut-être que le module a un bug stack IP.
+                 // Bon, disons : Si WiFi OK, on est content pour le hardware.
+                 lastConnectionTime = now; 
+            }
             return;
         }
 
-        if (!mqttClient.connected()) {
-            unsigned long now = millis();
-            if (now - lastReconnectAttempt > 5000) {
-                lastReconnectAttempt = now;
-                reconnect();
-            }
+        // Si WiFi déconnecté
+        if (now - lastWifiReconnectAttempt > WIFI_RECONNECT_INTERVAL) {
+            lastWifiReconnectAttempt = now;
+            Serial.println(F("🔄 WiFi lost, attempting reconnect..."));
+            WiFi.disconnect(); 
+            WiFi.reconnect();
+        }
+        
+        // Watchdog global
+        if (now - lastConnectionTime > WATCHDOG_TIMEOUT) {
+            Serial.println(F("💀 Connection lost for too long (Watchdog), rebooting..."));
+            delay(1000);
+            ESP.restart();
         }
     }
 
+    /**
+     * @brief Définit le callback pour les messages MQTT reçus
+     */
     void setCallback(void (*callback)(char*, uint8_t*, unsigned int)) {
         mqttMessageCallback = callback;
-
-        // Reconfigurer les callbacks si le topic est déjà connu
         if (strlen(fullTopic) > 0) {
             setupMqttCallbacks();
         }
     }
 
-    void reconnect() {
-        Serial.println(F("MQTT Reconnecting..."));
-
-        String clientId = "ESP32-" + String((uint32_t)random(0xffff), HEX);
-        mqttClient.setClientId(clientId.c_str());
-        mqttClient.connect();
-    }
-
+    /**
+     * @brief Publie une valeur CO2
+     */
     void publishCO2(int ppm) {
-        if (!mqttClient.connected()) return;
+        if (!mqttClient.connected()) {
+            Serial.println(F("⚠️  MQTT not connected, cannot publish CO2"));
+            return;
+        }
         String topic = String(fullTopic) + "/co2";
         mqttClient.publish(topic.c_str(), 0, false, String(ppm).c_str());
+        Serial.print(F("📤 Published CO2: "));
+        Serial.print(ppm);
+        Serial.print(F(" on "));
+        Serial.println(topic);
     }
 
+    /**
+     * @brief Publie une valeur float (température, humidité, etc.)
+     */
     void publishValue(const char* suffix, float value) {
         if (!mqttClient.connected()) return;
         String topic = String(fullTopic) + suffix;
         mqttClient.publish(topic.c_str(), 0, false, String(value, 1).c_str());
     }
 
+    /**
+     * @brief Publie un message JSON ou texte
+     */
     bool publishMessage(const char* suffix, const char* payload, bool retained = false) {
-        if (!mqttClient.connected()) {
-            return false;
-        }
+        if (!mqttClient.connected()) return false;
         String topic = String(fullTopic) + suffix;
         return mqttClient.publish(topic.c_str(), 0, retained, payload) > 0;
     }
 
+    // Getters
     const char* getTopicPrefix() { return fullTopic; }
-    const char* getModuleType() { return moduleType; }
     long getRSSI() { return WiFi.RSSI(); }
     IPAddress getIP() { return WiFi.localIP(); }
     bool isConnected() { return mqttClient.connected(); }
     bool isWifiConnected() { return WiFi.status() == WL_CONNECTED; }
 
 private:
-    bool callbacksInitialized = false;
+    /**
+     * @brief Charge le nom du module depuis les préférences
+     */
+    void loadModuleName() {
+        preferences.begin("sensor_config", false);
+        String savedName = preferences.getString("name", "");
+        preferences.end();
 
+        if (savedName.length() > 0) {
+            savedName.toCharArray(moduleName, sizeof(moduleName));
+        }
+        
+        snprintf(fullTopic, sizeof(fullTopic), "%s", moduleName);
+        Serial.print(F("Module name: "));
+        Serial.println(moduleName);
+    }
+
+    /**
+     * @brief Sauvegarde le nom du module dans les préférences
+     */
+    void saveModuleName(const char* name) {
+        strcpy(moduleName, name);
+        snprintf(fullTopic, sizeof(fullTopic), "%s", moduleName);
+        
+        preferences.begin("sensor_config", false);
+        preferences.putString("name", moduleName);
+        preferences.end();
+        
+        Serial.print(F("Module name saved: "));
+        Serial.println(moduleName);
+    }
+
+    /**
+     * @brief Connecte au WiFi (directement ou via portail)
+     */
+    void connectWiFi() {
+        #ifdef WIFI_SSID
+            // Connexion directe avec credentials hardcodés
+            Serial.print(F("Connexion WiFi directe à "));
+            Serial.println(WIFI_SSID);
+            
+            WiFi.mode(WIFI_STA);
+            WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+            
+            int attempts = 0;
+            // On attend un peu (10s max) mais on ne bloque pas indéfiniment
+            while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+                delay(500);
+                Serial.print(F("."));
+                attempts++;
+            }
+            Serial.println();
+            
+            if (WiFi.status() != WL_CONNECTED) {
+                Serial.println(F("⚠️ WiFi connection failed at startup. Will retry in background."));
+                // Pas de reboot ici, on laisse le loop() gérer
+            }
+        #else
+            // Portail WiFi avec configuration du nom du module
+            WiFiManagerParameter customModuleName("module_name", "Nom du Module", moduleName, 32);
+            
+            WiFiManager wifiManager;
+            wifiManager.addParameter(&customModuleName);
+            wifiManager.setSaveConfigCallback([this]() { this->shouldSaveConfig = true; });
+            wifiManager.setTimeout(180);
+            
+            if (!wifiManager.autoConnect("ESP32-Sensor-Config")) {
+                Serial.println(F("WiFi connection failed (timeout), rebooting..."));
+                delay(3000);
+                ESP.restart(); // Pour le portail, le reboot est plus logique car on attend une interaction utilisateur
+            }
+            
+            // Sauvegarder le nom du module si modifié
+            if (shouldSaveConfig) {
+                saveModuleName(customModuleName.getValue());
+            }
+        #endif
+        
+        Serial.print(F("WiFi Connected - IP: "));
+        Serial.println(WiFi.localIP());
+    }
+
+    /**
+     * @brief Configure mDNS pour la résolution de noms
+     */
+    void setupMDNS() {
+        if (!MDNS.begin("esp32-client")) {
+            Serial.println(F("mDNS error"));
+        }
+    }
+
+    /**
+     * @brief Configure le serveur MQTT (résolution mDNS si nécessaire)
+     */
+    void configureMQTT() {
+        String serverStr = String(MQTT_SERVER_ADDR);
+        
+        if (serverStr.endsWith(".local")) {
+            // Résolution mDNS
+            String host = serverStr;
+            host.replace(".local", "");
+            mqttServerIP = MDNS.queryHost(host);
+            
+            if (mqttServerIP != IPAddress(0, 0, 0, 0)) {
+                Serial.print(F("MQTT Server resolved via mDNS: "));
+                Serial.println(mqttServerIP);
+                mqttUseIP = true;
+                mqttClient.setServer(mqttServerIP, MQTT_PORT);
+            } else {
+                Serial.print(F("mDNS resolution failed, using hostname: "));
+                Serial.println(MQTT_SERVER);
+                mqttUseIP = false;
+                mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
+            }
+        } else {
+            // Essayer de parser comme IP directe
+            if (mqttServerIP.fromString(MQTT_SERVER_ADDR)) {
+                Serial.print(F("MQTT Server IP: "));
+                Serial.println(mqttServerIP);
+                mqttUseIP = true;
+                mqttClient.setServer(mqttServerIP, MQTT_PORT);
+            } else {
+                Serial.print(F("MQTT Server hostname: "));
+                Serial.println(MQTT_SERVER_ADDR);
+                mqttUseIP = false;
+                mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
+            }
+        }
+        
+        Serial.print(F("MQTT configured: "));
+        Serial.print(MQTT_SERVER_ADDR);
+        Serial.print(F(":"));
+        Serial.println(MQTT_PORT);
+    }
+
+    /**
+     * @brief Calcule l'intervalle de backoff exponentiel
+     * @return Intervalle en millisecondes (1s, 2s, 4s, max 5s)
+     */
+    unsigned long calculateBackoff() {
+        if (reconnectAttempts == 0) return 1000;
+        
+        unsigned int shiftAmount = (reconnectAttempts - 1 > 2) ? 2 : (reconnectAttempts - 1);
+        unsigned long interval = 1000UL * (1UL << shiftAmount);
+        return (interval > 5000UL) ? 5000UL : interval;
+    }
+
+    /**
+     * @brief Tente de se reconnecter au serveur MQTT
+     */
+    void reconnect() {
+        if (WiFi.status() != WL_CONNECTED) {
+            Serial.println(F("⚠️  WiFi not connected, skipping MQTT reconnect"));
+            return;
+        }
+        
+        // Re-vérifier l'IP via mDNS si nécessaire (au cas où l'IP du serveur a changé)
+        String serverStr = String(MQTT_SERVER_ADDR);
+        if (serverStr.endsWith(".local")) {
+            String host = serverStr;
+            host.replace(".local", "");
+            IPAddress newIP = MDNS.queryHost(host);
+            if (newIP != IPAddress(0, 0, 0, 0)) {
+                if (newIP != mqttServerIP) {
+                    mqttServerIP = newIP;
+                    Serial.print(F("mDNS resolved new IP: "));
+                    Serial.println(mqttServerIP);
+                    mqttClient.setServer(mqttServerIP, MQTT_PORT);
+                }
+            } else {
+                Serial.println(F("⚠️ mDNS resolution failed"));
+            }
+        }
+        
+        Serial.print(F("MQTT Reconnecting to "));
+        Serial.print(MQTT_SERVER_ADDR);
+        Serial.print(F(":"));
+        Serial.println(MQTT_PORT);
+
+        String clientId = "ESP32-" + String((uint32_t)random(0xffff), HEX);
+        mqttClient.setClientId(clientId.c_str());
+        mqttClient.setKeepAlive(60);
+        mqttClient.setCleanSession(true);
+        
+        Serial.print(F("Client ID: "));
+        Serial.println(clientId);
+        
+        mqttClient.connect();
+    }
+
+    /**
+     * @brief Configure les callbacks MQTT (connect, disconnect, message)
+     */
     void setupMqttCallbacks() {
         if (callbacksInitialized) return;
         
+        Serial.println(F("🔧 Setting up MQTT callbacks..."));
+        
+        // Callback de connexion
         mqttClient.onConnect([this](bool sessionPresent) {
-            Serial.println(F("MQTT Connected"));
+            Serial.println(F("✅ MQTT Connected"));
+            reconnectAttempts = 0;
 
             String configTopic = String(fullTopic) + "/sensors/config";
             mqttClient.subscribe(configTopic.c_str(), 1);
+            Serial.print(F("Subscribed to: "));
+            Serial.println(configTopic);
 
             if (onMqttConnectedCallback) {
                 onMqttConnectedCallback();
             }
         });
 
+        // Callback de déconnexion
         mqttClient.onDisconnect([this](AsyncMqttClientDisconnectReason reason) {
-            Serial.println(F("MQTT Disconnected"));
+            Serial.print(F("❌ MQTT Disconnected - Reason: "));
+            Serial.println((int)reason);
         });
 
+        // Callback de message
         mqttClient.onMessage(
-            [this](char* topic,
-                   char* payload,
-                   AsyncMqttClientMessageProperties properties,
-                   size_t len,
-                   size_t index,
-                   size_t total) {
-                if (payload == nullptr || len == 0) {
-                    return;
-                }
+            [this](char* topic, char* payload, AsyncMqttClientMessageProperties properties,
+                   size_t len, size_t index, size_t total) {
+                if (payload == nullptr || len == 0 || !mqttMessageCallback) return;
 
-                if (mqttMessageCallback) {
-                    uint8_t* payloadCopy = (uint8_t*)malloc(len);
-                    if (payloadCopy) {
-                        memcpy(payloadCopy, payload, len);
-                        mqttMessageCallback(topic, payloadCopy, len);
-                        free(payloadCopy);
-                    }
+                uint8_t* payloadCopy = (uint8_t*)malloc(len);
+                if (payloadCopy) {
+                    memcpy(payloadCopy, payload, len);
+                    mqttMessageCallback(topic, payloadCopy, len);
+                    free(payloadCopy);
                 }
             });
             

@@ -106,10 +106,10 @@ void handleSensorError() {
 }
 
 void publishAllConfigs() {
-    // Ne plus publier publishSensorConfig() car cela écrase le message retained du backend
-    // Le backend gère maintenant la publication des configs avec retain
+    // Publier les configs statiques (hardware, system, et modèles de capteurs)
     statusPublisher.publishHardwareConfig();
     statusPublisher.publishSystemConfig();
+    statusPublisher.publishSensorConfig(); // Publie uniquement les modèles (sans intervalles)
 }
 
 void setup() {
@@ -208,10 +208,14 @@ void loop() {
     
     if (now - lastSystemInfoTime >= SYSTEM_INFO_INTERVAL_MS) {
         lastSystemInfoTime = now;
-        Serial.println("Publishing System Info...");
-        statusPublisher.publishSystemInfo();
-        statusPublisher.publishSensorStatus(lastCO2Value, lastTemperature, 
-                                          lastHumidity, lastDhtOk);
+        if (network.isConnected()) {
+            Serial.println("Publishing System Info...");
+            statusPublisher.publishSystemInfo();
+            statusPublisher.publishSensorStatus(lastCO2Value, lastTemperature, 
+                                              lastHumidity, lastDhtOk);
+        } else {
+            Serial.println("⚠️  MQTT not connected, skipping System Info publish");
+        }
     }
     
     // Smart config republishing

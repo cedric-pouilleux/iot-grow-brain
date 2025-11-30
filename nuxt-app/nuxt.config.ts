@@ -9,8 +9,8 @@ export default defineNuxtConfig({
     serverBundle: 'local',
     clientBundle: {
       scan: true,
-      includeCustomCollections: true, 
-    }, 
+      includeCustomCollections: true,
+    },
   },
 
   runtimeConfig: {
@@ -18,12 +18,13 @@ export default defineNuxtConfig({
       // En prod, on utilise SOCKET_URL=/ pour passer par Nginx (port 80)
       // En dev local, on utilise directement le backend sur le port 3001
       // Vous pouvez surcharger avec NUXT_PUBLIC_SOCKET_URL=http://localhost:3001
-      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || (process.env.NODE_ENV !== 'production' ? 'http://localhost:3001' : '/')
+      socketUrl: process.env.NUXT_PUBLIC_SOCKET_URL || (process.env.NODE_ENV !== 'production' ? 'http://localhost:3001' : '/'),
+      // mqttPrefix removed
     }
   },
-  
+
   typescript: {
-    strict: false, 
+    strict: false,
     typeCheck: false
   },
 

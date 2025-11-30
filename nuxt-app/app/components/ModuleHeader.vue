@@ -227,14 +227,6 @@
           </div>
         </div>
         
-        <button 
-          @click="$emit('toggle-config')"
-          class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center"
-          title="Configuration"
-        >
-          <Icon name="ph:gear-bold" class="w-4 h-4 text-gray-600" />
-        </button>
-        
         <div class="relative group/rssi cursor-help flex items-center justify-center">
           <Icon :name="wifiIcon" class="w-6 h-6" :class="rssiClass" />
           <div class="absolute top-full right-0 mt-1 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/rssi:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
@@ -256,8 +248,6 @@ const props = defineProps<{
   deviceStatus: DeviceStatus | null
   formattedUptime: string
 }>()
-
-defineEmits(['toggle-config'])
 
 const capitalizedModuleName = computed(() => {
   if (!props.moduleName) return ''

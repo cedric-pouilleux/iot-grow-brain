@@ -1,0 +1,67 @@
+import fastify from 'fastify';
+import cors from '@fastify/cors';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
+import sensible from '@fastify/sensible';
+import { serializerCompiler, validatorCompiler, ZodTypeProvider, jsonSchemaTransform } from 'fastify-type-provider-zod';
+import { config } from './config/env';
+
+// Plugins
+import dbPlugin from './plugins/db';
+import socketPlugin from './plugins/socket';
+import mqttPlugin from './plugins/mqtt';
+
+// Routes
+import devicesRoutes from './modules/devices/routes';
+import systemRoutes from './modules/system/routes';
+
+export async function buildApp() {
+    const app = fastify({
+        logger: true
+    }).withTypeProvider<ZodTypeProvider>();
+
+    // Validation
+    app.setValidatorCompiler(validatorCompiler);
+    app.setSerializerCompiler(serializerCompiler);
+
+    // Sensible (HTTP Errors)
+    await app.register(sensible);
+
+    // CORS
+    await app.register(cors, {
+        origin: '*',
+        methods: ['GET', 'POST', 'PUT', 'DELETE']
+    });
+
+    // Swagger
+    await app.register(swagger, {
+        openapi: {
+            info: {
+                title: 'IoT Backend API',
+                description: 'API for IoT Dashboard',
+                version: '1.0.0',
+            },
+            servers: [],
+        },
+        transform: jsonSchemaTransform,
+    });
+
+    await app.register(swaggerUi, {
+        routePrefix: '/documentation',
+    });
+
+    // Core Plugins
+    await app.register(dbPlugin);
+    await app.register(socketPlugin);
+    await app.register(mqttPlugin);
+
+    // Routes
+    await app.register(devicesRoutes, { prefix: '/api' });
+    await app.register(systemRoutes, { prefix: '/api' });
+
+    app.get('/health', async () => {
+        return { status: 'ok' };
+    });
+
+    return app;
+}

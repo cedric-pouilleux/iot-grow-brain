@@ -137,10 +137,20 @@ void StatusPublisher::publishSensorConfig() {
     if (!network.isConnected()) {
         return;
     }
-    // NE PAS publier les modèles car cela écrase les intervalles envoyés par le backend
-    // On ne publie plus de message vide car cela écrase le message retained du backend
-    // Le backend gère maintenant la publication des configs avec retain
-    // Cette fonction est conservée pour compatibilité mais ne fait plus rien
+    
+    // Publier uniquement les modèles des capteurs (sans les intervalles qui sont gérés par le backend)
+    // Format: { "co2": { "model": "MH-Z14A" }, "temperature": { "model": "DHT22" }, "humidity": { "model": "DHT22" } }
+    char sensorConfigMsg[256];
+    snprintf(sensorConfigMsg, sizeof(sensorConfigMsg), 
+        "{"
+            "\"co2\":{\"model\":\"MH-Z14A\"},"
+            "\"temperature\":{\"model\":\"DHT22\"},"
+            "\"humidity\":{\"model\":\"DHT22\"}"
+        "}"
+    );
+    
+    // Publier avec retained pour que le backend récupère les modèles au démarrage
+    network.publishMessage("/sensors/config", sensorConfigMsg, true);
 }
 
 void StatusPublisher::publishSystemInfo() {
@@ -152,7 +162,8 @@ void StatusPublisher::publishSystemInfo() {
     String psramStr = SystemInfoCollector::buildPsramJson();
     String systemMsg = buildSystemJson(sysInfo, psramStr);
     
-    network.publishMessage("/system", systemMsg.c_str(), true);
+    // Ne pas utiliser retained pour les données dynamiques (rssi, memory change souvent)
+    network.publishMessage("/system", systemMsg.c_str(), false);
 }
 
 void StatusPublisher::publishSensorStatus(int lastCO2Value, float lastTemperature, 
@@ -163,7 +174,8 @@ void StatusPublisher::publishSensorStatus(int lastCO2Value, float lastTemperatur
 
     String sensorStatusMsg = buildSensorStatusJson(lastCO2Value, lastTemperature, 
                                                    lastHumidity, lastDhtOk);
-    network.publishMessage("/sensors/status", sensorStatusMsg.c_str(), true);
+    // Ne pas utiliser retained pour les données dynamiques (valeurs changent souvent)
+    network.publishMessage("/sensors/status", sensorStatusMsg.c_str(), false);
 }
 
 void StatusPublisher::publishSensorData(int ppm, DisplayManager& display, 

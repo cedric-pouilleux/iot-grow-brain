@@ -1,53 +1,34 @@
 <template>
   <div class="min-h-screen bg-gray-100 text-gray-800 p-4 sm:p-8">
     <div class="max-w-7xl mx-auto">
-      
       <main>
         <ClientOnly>
-          
-            <ModuleHeader 
-              :module-name="currentModuleName"
-              :rssi="deviceStatus?.system?.rssi"
-              :device-status="deviceStatus"
-              :formatted-uptime="formatUptime(calculatedUptime)"
-              @toggle-config="showConfig = !showConfig"
-            /> 
-
-          <!-- SENSOR GRID -->
-          <SensorGrid 
-            :sensors="sensorList"
-            :selected-graph-sensor="selectedGraphSensor"
-            :device-status="deviceStatus"
-            :sensor-data="sensorData"
-            :module-id="selectedModuleId"
-            @toggle-graph="toggleGraph"
-          />
-
-          <!-- SENSOR DETAIL GRAPH -->
-          <SensorDetailGraph 
-            v-if="selectedGraphSensor"
-            :selected-sensor="selectedGraphSensor"
-            :history="getSensorHistory(selectedGraphSensor)"
-            :sensor-label="getSensorLabel(selectedGraphSensor)"
-            :sensor-color="getSensorColor(selectedGraphSensor)"
-            :sensor-unit="getSensorUnit(selectedGraphSensor)"
-            @close="selectedGraphSensor = null"
-          />
-          
-          <!-- Loading/Error states (affichés en overlay si nécessaire) -->
-          <div v-if="isLoading" class="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
-            <div class="text-center">
-              <div class="animate-spin w-8 h-8 border-2 border-gray-300 border-t-emerald-500 rounded-full mx-auto mb-4"></div>
-              <div class="text-gray-400">Chargement...</div>
-            </div>
+          <div v-if="isLoading" class="text-center py-8">
+            <div class="animate-spin w-8 h-8 border-2 border-gray-300 border-t-emerald-500 rounded-full mx-auto mb-4"></div>
+            <div class="text-gray-400">Chargement des modules...</div>
           </div>
           
-          <div v-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 m-4">
+          <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 m-4">
             <div class="text-lg font-semibold mb-2 text-red-700">Erreur</div>
             <div class="text-sm text-red-600">{{ error }}</div>
             <button @click="reloadPage" class="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
               Réessayer
             </button>
+          </div>
+
+          <div v-else-if="modules.length === 0" class="text-center py-8 text-gray-500">
+            Aucun module trouvé
+          </div>
+
+          <div v-else class="space-y-6">
+            <ModulePanel
+              v-for="module in modules"
+              :key="module.id"
+              :module-id="module.id"
+              :module-name="module.name"
+              :device-status="getModuleDeviceStatus(module.id)"
+              :sensor-data="getModuleSensorData(module.id)"
+            />
           </div>
           
           <template #fallback>
@@ -60,328 +41,98 @@
 </template>
 
 <script setup lang="ts">
-import { io, Socket } from 'socket.io-client'
-import ModuleHeader from './components/ModuleHeader.vue' 
-import SensorGrid from './components/SensorGrid.vue'
-import SensorDetailGraph from './components/SensorDetailGraph.vue'
-import { formatUptime } from './utils/time'
-import { getSensorLabel, getSensorColor, getSensorUnit, normalizeSensorType } from './utils/sensors'
-import { processSensorData } from './utils/data-processing'
+import ModulePanel from './components/ModulePanel.vue'
 import { useDatabase } from './composables/useDatabase'
-import type { Module, DeviceStatus, SensorData, DashboardData, MqttMessage } from './types'
+import { useModules } from './composables/useModules'
+import { useModulesData } from './composables/useModulesData'
+import { useDashboard } from './composables/useDashboard'
+import { useMqtt } from './composables/useMqtt'
 
-// État réactif
-const modules = ref<Module[]>([])
-const selectedModuleId = ref<string>('')
-const deviceStatus = ref<DeviceStatus | null>(null)
-const sensorData = ref<SensorData>({ co2: [], temp: [], hum: [] })
-const selectedGraphSensor = ref<string | null>(null)
-const showConfig = ref(false)
-const isLoading = ref(true)
-const error = ref<string | null>(null)
-
-// Gestion de la base de données (logique extraite, non affichée pour le moment)
+// Composables
 const { loadDbSize } = useDatabase()
+const { 
+  modules,
+  error: modulesError,
+  loadModules, 
+  addModuleFromTopic 
+} = useModules()
 
-let socket: Socket | null = null
+const {
+  getModuleDeviceStatus,
+  getModuleSensorData,
+  handleModuleMessage,
+  loadModuleDashboard
+} = useModulesData()
 
-// Configuration des capteurs
-interface SensorConfig {
-  key: string
-  label: string
-  color: string
+const { 
+  isLoading: dashboardLoading, 
+  error: dashboardError, 
+  loadDashboard: fetchDashboard 
+} = useDashboard()
+
+// État local
+const isInitialLoading = ref(true)
+const isLoading = computed(() => isInitialLoading.value || dashboardLoading.value)
+const error = computed(() => modulesError.value || dashboardError.value)
+
+// Gestion des messages MQTT
+const handleMqttMessage = (message: any) => {
+  // Extraire le moduleId du topic
+  const topicParts = message.topic.split('/')
+  if (topicParts.length < 2) return
+  
+  const moduleId = topicParts[0]
+  
+  // Ajouter le module s'il n'existe pas
+  addModuleFromTopic(message.topic)
+  
+  // Traiter le message pour ce module
+  handleModuleMessage(moduleId, message)
 }
 
-const sensorList: SensorConfig[] = [
-  { key: 'co2', label: 'CO2', color: 'emerald' },
-  { key: 'temperature', label: 'Température', color: 'orange' },
-  { key: 'humidity', label: 'Humidité', color: 'blue' },
-  { key: 'pm25', label: 'PM2.5', color: 'violet' },
-  { key: 'voc', label: 'COV', color: 'pink' },
-  { key: 'pressure', label: 'Pression', color: 'cyan' }
-]
-
-// Computed
-const currentModuleName = computed(() => {
-  const mod = modules.value.find(m => m.id === selectedModuleId.value)
-  return mod?.name || selectedModuleId.value
+// Connexion MQTT
+const { connect: connectMqtt, disconnect: disconnectMqtt } = useMqtt({
+  onMessage: handleMqttMessage
 })
 
-const calculatedUptime = computed(() => {
-  if (!deviceStatus.value?.system?.uptime_start) return null
-  const now = Math.floor(Date.now() / 1000)
-  const uptimeStart = deviceStatus.value.system.uptime_start
-  if (!deviceStatus.value.system._config_received_at) {
-    deviceStatus.value.system._config_received_at = now
-    deviceStatus.value.system._uptime_start_offset = uptimeStart
-  }
-  const elapsedSinceConfig = now - deviceStatus.value.system._config_received_at
-  return deviceStatus.value.system._uptime_start_offset! + elapsedSinceConfig
-})
-
-// Fonctions
-const toggleGraph = (sensorType: string) => {
-  const normalizedType = normalizeSensorType(sensorType)
-  if (selectedGraphSensor.value === normalizedType) {
-    selectedGraphSensor.value = null
-  } else {
-    selectedGraphSensor.value = normalizedType
-  }
+// Charger le dashboard pour tous les modules
+const loadAllDashboards = async () => {
+  const promises = modules.value.map(async (module) => {
+    const result = await fetchDashboard(module.id)
+    if (result) {
+      loadModuleDashboard(module.id, result)
+    }
+  })
+  await Promise.all(promises)
 }
 
-const getSensorHistory = (type: string) => {
-  const typeMap: Record<string, keyof SensorData> = {
-    'co2': 'co2',
-    'temperature': 'temp',
-    'humidity': 'hum',
-    'temp': 'temp',
-    'hum': 'hum'
-  }
-  const dataKey = typeMap[type] || type
-  return sensorData.value[dataKey as keyof SensorData] || []
-}
-
+// Recharger la page
 const reloadPage = () => {
   if (typeof window !== 'undefined') {
     window.location.reload()
   }
 }
 
-const loadDashboard = async (moduleId: string) => {
-  if (!moduleId) return
-  
-  try {
-    const dashboardData = await $fetch<DashboardData>(`/api/dashboard?module=${moduleId}&days=1&_t=${Date.now()}`)
-    
-    deviceStatus.value = dashboardData.status
-    
-    sensorData.value = {
-      co2: processSensorData(dashboardData.sensors?.co2 || []),
-      temp: processSensorData(dashboardData.sensors?.temp || []),
-      hum: processSensorData(dashboardData.sensors?.hum || [])
-    }
-  } catch (e) {
-    console.error("❌ Erreur fetch dashboard:", e)
-  }
-}
-
-// Watchers
-watch(selectedModuleId, (newModuleId) => {
-  if (newModuleId) {
-    loadDashboard(newModuleId)
-  }
-})
-
 // Initialisation
 onMounted(async () => {
-  isLoading.value = true
-  error.value = null
+  isInitialLoading.value = true
   
-  const promises: Promise<any>[] = []
+  // Charger les modules et la taille de la DB en parallèle
+  await Promise.all([
+    loadModules(),
+    loadDbSize()
+  ])
   
-  // 1. Charger les modules
-  promises.push(
-    $fetch<Module[]>('/api/modules', { timeout: 5000, retry: 0 })
-      .then(data => {
-        modules.value = data
-        if (modules.value.length > 0 && !selectedModuleId.value) {
-          selectedModuleId.value = modules.value[0].id
-        }
-      })
-      .catch((e: Error) => {
-        console.error("Erreur fetch modules:", e)
-        error.value = `Impossible de charger les modules: ${e.message || 'Erreur de connexion'}`
-      })
-  )
+  // Connecter MQTT
+  connectMqtt()
   
-  // 2. Charger la taille de la base de données (non bloquant, logique extraite)
-  promises.push(loadDbSize())
+  // Charger les dashboards de tous les modules
+  await loadAllDashboards()
   
-  // 3. Initialiser WebSocket (non bloquant)
-  const config = useRuntimeConfig()
-  try {
-    console.log('🔌 Connexion WebSocket à:', config.public.socketUrl)
-    socket = io(config.public.socketUrl, { transports: ['websocket'], upgrade: false })
-    
-    socket.on('connect', () => {
-      console.log('✅ WebSocket connecté au backend')
-    })
-    
-    socket.on('disconnect', () => {
-      console.warn('⚠️  WebSocket déconnecté')
-    })
-    
-    socket.on('connect_error', (err) => {
-      console.error('❌ Erreur connexion WebSocket:', err)
-    })
-    
-    socket.on('mqtt:data', (message: MqttMessage) => {
-      console.log('📩 Message WebSocket reçu:', message.topic, 'Module sélectionné:', selectedModuleId.value, 'Valeur:', message.value, 'Metadata:', message.metadata ? 'présente' : 'absente')
-      
-      // Extraire le moduleId du topic
-      // Le moduleId est toujours les deux premiers segments (prefix + nom du module)
-      // Exemples:
-      // - "dev/croissance/co2" -> "dev/croissance"
-      // - "dev/croissance/temperature" -> "dev/croissance"
-      // - "dev/croissance/system" -> "dev/croissance"
-      // - "dev/croissance/sensors/status" -> "dev/croissance"
-      // - "dev/croissance/system/config" -> "dev/croissance"
-      const topicParts = message.topic.split('/')
-      let messageModuleId = ''
-      
-      if (topicParts.length >= 2) {
-        // Le moduleId est toujours les deux premiers segments
-        messageModuleId = topicParts.slice(0, 2).join('/')
-      }
-      
-      console.log('   🔍 ModuleId extrait:', messageModuleId, 'depuis topic:', message.topic)
-      
-      // Créer le module s'il n'existe pas, même si un autre module est sélectionné
-      if (messageModuleId) {
-        const existingModule = modules.value.find(m => m.id === messageModuleId)
-        if (!existingModule) {
-          // Créer un nouveau module
-          const moduleName = topicParts[1] || messageModuleId.split('/').pop() || 'Unknown'
-          modules.value.push({
-            id: messageModuleId,
-            name: moduleName,
-            type: 'unknown',
-            status: null
-          })
-          console.log('   ➕ Nouveau module créé depuis WebSocket:', messageModuleId)
-        }
-        
-        // En mode dev, basculer automatiquement vers le module "dev" qui envoie des messages
-        // Priorité aux modules "dev" en développement
-        if (messageModuleId.startsWith('dev/')) {
-          if (selectedModuleId.value !== messageModuleId) {
-            selectedModuleId.value = messageModuleId
-            console.log('   🔄 Basculement automatique vers le module dev:', messageModuleId)
-          }
-        } else if (!selectedModuleId.value) {
-          // Si aucun module n'est sélectionné et ce n'est pas un module dev, sélectionner celui qui envoie des messages
-          selectedModuleId.value = messageModuleId
-          console.log('   ✅ Module sélectionné automatiquement:', selectedModuleId.value)
-        }
-      }
-      
-      // Filtrer par module sélectionné si un module est sélectionné
-      if (selectedModuleId.value && !message.topic.startsWith(selectedModuleId.value)) {
-        console.log('   ⏭️  Message ignoré (topic ne correspond pas au module sélectionné)')
-        return
-      }
-
-      if ((message.topic.endsWith('/system') || message.topic.endsWith('/system/config') || message.topic.endsWith('/sensors/status') || message.topic.endsWith('/sensors/config') || message.topic.endsWith('/hardware/config')) && message.metadata) {
-          // Initialiser deviceStatus si nécessaire
-          if (!deviceStatus.value) {
-              deviceStatus.value = { system: {}, sensors: {}, hardware: {}, sensorsConfig: {} }
-          }
-          
-          // Fusionner les données selon le topic
-          if (message.topic.endsWith('/system')) {
-              // Données dynamiques (rssi, memory dynamique) - fusion avec config existante
-              if (!deviceStatus.value.system) {
-                  deviceStatus.value.system = {}
-              }
-              deviceStatus.value.system.rssi = message.metadata.rssi
-              // Fusionner seulement les valeurs dynamiques de memory (sans écraser heap_total_kb)
-              if (message.metadata.memory) {
-                  if (!deviceStatus.value.system.memory) {
-                      deviceStatus.value.system.memory = {}
-                  }
-                  if (message.metadata.memory.heap_free_kb !== undefined) {
-                      deviceStatus.value.system.memory.heap_free_kb = message.metadata.memory.heap_free_kb
-                  }
-                  if (message.metadata.memory.heap_min_free_kb !== undefined) {
-                      deviceStatus.value.system.memory.heap_min_free_kb = message.metadata.memory.heap_min_free_kb
-                  }
-                  if (message.metadata.memory.psram) {
-                      deviceStatus.value.system.memory.psram = { ...deviceStatus.value.system.memory.psram, ...message.metadata.memory.psram }
-                  }
-              }
-          } else if (message.topic.endsWith('/system/config')) {
-              // Données statiques système (ip, mac, uptime_start, flash, memory.heap_total_kb) - envoyé une seule fois
-              if (!deviceStatus.value.system) {
-                  deviceStatus.value.system = {}
-              }
-              deviceStatus.value.system.ip = message.metadata.ip
-              deviceStatus.value.system.mac = message.metadata.mac
-              deviceStatus.value.system.uptime_start = message.metadata.uptime_start
-              deviceStatus.value.system.flash = message.metadata.flash
-              // Stocker le timestamp de réception pour calculer l'uptime précisément
-              deviceStatus.value.system._config_received_at = Math.floor(Date.now() / 1000)
-              deviceStatus.value.system._uptime_start_offset = message.metadata.uptime_start
-              
-              if (message.metadata.memory) {
-                  if (!deviceStatus.value.system.memory) {
-                      deviceStatus.value.system.memory = {}
-                  }
-                  if (message.metadata.memory.heap_total_kb !== undefined) {
-                      deviceStatus.value.system.memory.heap_total_kb = message.metadata.memory.heap_total_kb
-                  }
-                  if (message.metadata.memory.psram) {
-                      deviceStatus.value.system.memory.psram = message.metadata.memory.psram
-                  }
-              }
-          } else if (message.topic.endsWith('/sensors/status')) {
-              // Stocker uniquement status et value (pas de modèles)
-              if (!deviceStatus.value.sensors) {
-                  deviceStatus.value.sensors = {}
-              }
-              Object.keys(message.metadata).forEach(sensorName => {
-                  if (!deviceStatus.value.sensors[sensorName]) {
-                      deviceStatus.value.sensors[sensorName] = {}
-                  }
-                  deviceStatus.value.sensors[sensorName] = {
-                      ...deviceStatus.value.sensors[sensorName],
-                      status: message.metadata[sensorName].status,
-                      value: message.metadata[sensorName].value
-                  }
-              })
-          } else if (message.topic.endsWith('/sensors/config')) {
-              // Stocker la config des capteurs (modèles) dans un objet séparé
-              deviceStatus.value.sensorsConfig = { ...deviceStatus.value.sensorsConfig, ...message.metadata }
-          } else if (message.topic.endsWith('/hardware/config')) {
-              // Stocker la config hardware statique
-              deviceStatus.value.hardware = { ...deviceStatus.value.hardware, ...message.metadata }
-              }
-      }
-      else if (message.value !== null) {
-          const newData = { time: new Date(message.time), value: message.value }
-          
-          if (message.topic.endsWith('/co2')) {
-              sensorData.value.co2.push(newData)
-              if (sensorData.value.co2.length > 100) sensorData.value.co2.shift()
-          }
-          else if (message.topic.endsWith('/temperature')) {
-              sensorData.value.temp.push(newData)
-              if (sensorData.value.temp.length > 100) sensorData.value.temp.shift()
-          }
-          else if (message.topic.endsWith('/humidity')) {
-              sensorData.value.hum.push(newData)
-              if (sensorData.value.hum.length > 100) sensorData.value.hum.shift()
-          }
-      }
-    })
-  } catch (e) {
-    console.error("Erreur connexion WebSocket:", e)
-  }
-  
-  // Attendre que les modules soient chargés avant de charger le dashboard
-  await promises[0]
-  
-  // Charger le dashboard si un module est sélectionné
-  if (selectedModuleId.value) {
-    loadDashboard(selectedModuleId.value)
-  }
-  
-  isLoading.value = false
+  isInitialLoading.value = false
 })
 
 onUnmounted(() => {
-  if (socket) {
-    socket.disconnect()
-    socket = null
-  }
+  disconnectMqtt()
 })
 </script>
