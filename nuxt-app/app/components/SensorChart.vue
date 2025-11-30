@@ -86,6 +86,10 @@ const props = defineProps({
   yMin: Number,
   yMax: Number,
   lastUpdate: [Date, String],
+  unit: {
+    type: String,
+    default: '',
+  },
 })
 
 const timeAgo = ref('')
@@ -140,7 +144,11 @@ const chartData = computed(() => {
         tension: 0.2,
         fill: true,
         pointRadius: 0,
-        pointHoverRadius: 6,
+        pointHoverRadius: 8,
+        pointHoverBorderWidth: 3,
+        pointHoverBackgroundColor: '#ffffff',
+        pointHoverBorderColor: props.color,
+        hitRadius: 10,
         spanGaps: false,
       },
     ],
@@ -150,7 +158,10 @@ const chartData = computed(() => {
 const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
-  interaction: { intersect: false, mode: 'index' },
+  interaction: {
+    intersect: false,
+    mode: 'index',
+  },
   scales: {
     x: {
       type: 'time',
@@ -177,16 +188,61 @@ const chartOptions = computed(() => ({
       beginAtZero: props.yMin === 0,
       border: { display: false },
       grid: { color: '#f3f4f6', drawBorder: false },
-      ticks: { color: props.color },
+      ticks: {
+        color: props.color,
+        font: { family: "'Inter', sans-serif", size: 11 },
+        maxTicksLimit: 6,
+        callback: function (value) {
+          if (typeof value === 'number') {
+            return Math.round(value).toString()
+          }
+          return String(value)
+        },
+      },
     },
   },
   plugins: {
     legend: { display: false },
     tooltip: {
+      enabled: true,
       backgroundColor: '#1f2937',
-      padding: 10,
+      padding: 12,
       cornerRadius: 8,
-      displayColors: false,
+      displayColors: true,
+      titleColor: '#f9fafb',
+      bodyColor: '#f9fafb',
+      borderColor: '#374151',
+      borderWidth: 1,
+      titleFont: {
+        family: "'Inter', sans-serif",
+        size: 12,
+        weight: 'bold',
+      },
+      bodyFont: {
+        family: "'Inter', sans-serif",
+        size: 13,
+        weight: '500',
+      },
+      callbacks: {
+        title: context => {
+          const date = new Date(context[0].parsed.x)
+          return date.toLocaleString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        },
+        label: context => {
+          const value = context.parsed.y
+          const formattedValue = Number.isInteger(value)
+            ? value.toString()
+            : value.toFixed(1).replace(/\.0$/, '')
+          const unit = props.unit ? ` ${props.unit}` : ''
+          return `${props.title}: ${formattedValue}${unit}`.trim()
+        },
+      },
     },
   },
 }))

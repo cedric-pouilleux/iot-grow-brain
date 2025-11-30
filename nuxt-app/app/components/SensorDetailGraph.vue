@@ -32,12 +32,21 @@ import {
   LineElement,
   TimeScale,
   Filler,
+  Tooltip,
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
 import 'chartjs-adapter-date-fns'
 
 if (process.client) {
-  ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Filler)
+  ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    TimeScale,
+    Filler,
+    Tooltip
+  )
 }
 
 interface Props {
@@ -69,8 +78,8 @@ const graphMinMax = computed(() => {
   // Petit padding pour ne pas coller aux bords
   const range = max - min || 1
   return {
-    min: min - range * 0.1,
-    max: max + range * 0.1,
+    min: Math.floor(min - range * 0.1),
+    max: Math.ceil(max + range * 0.1),
   }
 })
 
@@ -102,17 +111,24 @@ const chartData = computed<ChartData<'line'> | null>(() => {
         tension: 0.2,
         fill: true,
         pointRadius: 0,
-        pointHoverRadius: 6,
+        pointHoverRadius: 8,
+        pointHoverBorderWidth: 3,
+        pointHoverBackgroundColor: '#ffffff',
+        pointHoverBorderColor: props.sensorColor,
+        hitRadius: 10,
         spanGaps: true,
       },
     ],
   }
 })
 
-const chartOptions = computed<ChartOptions<'line'>>(() => ({
+const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
-  interaction: { intersect: false },
+  interaction: {
+    intersect: false,
+    mode: 'index' as const,
+  },
   scales: {
     x: {
       type: 'time' as const,
@@ -137,6 +153,13 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
       ticks: {
         color: props.sensorColor,
         font: { family: "'Inter', sans-serif", size: 11 },
+        maxTicksLimit: 6,
+        callback: function (value) {
+          if (typeof value === 'number') {
+            return Math.round(value).toString()
+          }
+          return String(value)
+        },
       },
     },
   },
@@ -145,9 +168,45 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
     tooltip: {
       enabled: true,
       backgroundColor: '#1f2937',
-      padding: 10,
+      padding: 12,
       cornerRadius: 8,
-      displayColors: false,
+      displayColors: true,
+      titleColor: '#f9fafb',
+      bodyColor: '#f9fafb',
+      borderColor: '#374151',
+      borderWidth: 1,
+      titleFont: {
+        family: "'Inter', sans-serif",
+        size: 12,
+        weight: 'bold' as const,
+      },
+      bodyFont: {
+        family: "'Inter', sans-serif",
+        size: 13,
+        weight: 'normal' as const,
+      },
+      callbacks: {
+        title: context => {
+          const date = new Date(context[0].parsed.x)
+          return date.toLocaleString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          })
+        },
+        label: context => {
+          const value = context.parsed.y
+          if (typeof value !== 'number') return ''
+          const formattedValue = Number.isInteger(value)
+            ? value.toString()
+            : value.toFixed(1).replace(/\.0$/, '')
+          const unit = props.sensorUnit || ''
+          return `${props.sensorLabel}: ${formattedValue} ${unit}`.trim()
+        },
+      },
     },
   },
 }))
