@@ -1,4 +1,4 @@
-import type { DeviceStatus, SensorData, MqttMessage } from '../types'
+import type { DeviceStatus, SensorData, SensorDataPoint, MqttMessage } from '../types'
 import { processSensorData } from '../utils/data-processing'
 
 const TOPIC_SYSTEM = '/system'
@@ -129,14 +129,62 @@ export const useModulesData = () => {
   }
 
   const loadModuleDashboard = (moduleId: string, dashboardData: { status: DeviceStatus | null; sensors: any }) => {
+    // Fusionner le statut au lieu de le remplacer
     if (dashboardData.status) {
-      modulesDeviceStatus.value.set(moduleId, dashboardData.status)
+      const existingStatus = modulesDeviceStatus.value.get(moduleId)
+      if (existingStatus) {
+        // Fusionner les données existantes avec les nouvelles
+        modulesDeviceStatus.value.set(moduleId, {
+          ...existingStatus,
+          ...dashboardData.status,
+          system: { ...existingStatus.system, ...dashboardData.status.system },
+          sensors: { ...existingStatus.sensors, ...dashboardData.status.sensors },
+          sensorsConfig: { ...existingStatus.sensorsConfig, ...dashboardData.status.sensorsConfig }
+        })
+      } else {
+        modulesDeviceStatus.value.set(moduleId, dashboardData.status)
+      }
     }
+    
+    // Fusionner les données de capteurs au lieu de les remplacer
     if (dashboardData.sensors) {
-      modulesSensorData.value.set(moduleId, {
+      const existingData = modulesSensorData.value.get(moduleId) || { co2: [], temp: [], hum: [] }
+      const newData = {
         co2: processSensorData(dashboardData.sensors?.co2 || []),
         temp: processSensorData(dashboardData.sensors?.temp || []),
         hum: processSensorData(dashboardData.sensors?.hum || [])
+      }
+      
+      // Fonction helper pour fusionner sans doublons (basé sur le timestamp)
+      const mergeSensorData = (existing: SensorDataPoint[], incoming: SensorDataPoint[]) => {
+        const timeMap = new Map<number, SensorDataPoint>()
+        
+        // Ajouter les données existantes (priorité aux données WebSocket récentes)
+        existing.forEach(point => {
+          const timeKey = point.time.getTime()
+          if (!timeMap.has(timeKey)) {
+            timeMap.set(timeKey, point)
+          }
+        })
+        
+        // Ajouter les nouvelles données historiques (ne pas écraser les existantes)
+        incoming.forEach(point => {
+          const timeKey = point.time.getTime()
+          if (!timeMap.has(timeKey)) {
+            timeMap.set(timeKey, point)
+          }
+        })
+        
+        // Convertir en tableau, trier par temps croissant, limiter la taille
+        return Array.from(timeMap.values())
+          .sort((a, b) => a.time.getTime() - b.time.getTime())
+          .slice(-MAX_DATA_POINTS * 2)
+      }
+      
+      modulesSensorData.value.set(moduleId, {
+        co2: mergeSensorData(existingData.co2, newData.co2),
+        temp: mergeSensorData(existingData.temp, newData.temp),
+        hum: mergeSensorData(existingData.hum, newData.hum)
       })
     }
   }

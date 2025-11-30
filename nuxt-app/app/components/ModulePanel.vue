@@ -64,7 +64,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const getSensorData = (sensorName: string) => {
   const status = props.deviceStatus?.sensors?.[sensorName] || {}
-  const config = props.deviceStatus?.sensorsConfig?.[sensorName] || {}
+  const config = props.deviceStatus?.sensorsConfig?.sensors?.[sensorName] || {}
   return {
     ...status,
     ...(config.model && { model: config.model })
