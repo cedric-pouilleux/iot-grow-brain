@@ -235,6 +235,22 @@
               />
             </div>
 
+            <!-- VOC -->
+            <div class="space-y-1">
+              <div class="flex justify-between items-center">
+                <label class="text-sm font-medium text-gray-700">VOC</label>
+                <span class="text-xs text-gray-500">{{ config.voc }}s</span>
+              </div>
+              <input
+                v-model.number="config.voc"
+                type="range"
+                min="10"
+                max="300"
+                step="10"
+                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              />
+            </div>
+
             <!-- Storage Prediction -->
             <div class="bg-blue-50 p-3 rounded-md border border-blue-100 mt-4">
               <h5 class="text-xs font-semibold text-blue-800 mb-2 flex items-center gap-1">
@@ -341,6 +357,7 @@ const config = ref({
   co2: 60,
   temperature: 60,
   humidity: 60,
+  voc: 60,
 })
 
 const saving = ref(false)
@@ -356,6 +373,8 @@ watch(
         config.value.temperature = status.sensorsConfig.sensors.temperature.interval
       if (status.sensorsConfig.sensors.humidity?.interval)
         config.value.humidity = status.sensorsConfig.sensors.humidity.interval
+      if (status.sensorsConfig.sensors.voc?.interval)
+        config.value.voc = status.sensorsConfig.sensors.voc.interval
     }
   },
   { immediate: true }
@@ -377,6 +396,7 @@ const saveConfig = async () => {
         co2: { interval: config.value.co2 },
         temperature: { interval: config.value.temperature },
         humidity: { interval: config.value.humidity },
+        voc: { interval: config.value.voc },
       },
     }
 

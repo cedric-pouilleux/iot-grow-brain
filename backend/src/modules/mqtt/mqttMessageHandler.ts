@@ -154,7 +154,7 @@ export class MqttMessageHandler {
     // Format: module_id/sensor_type (ESP32 format)
     if (parts.length === 2) {
       const sensorType = parts[1]
-      const validTypes = ['co2', 'temperature', 'humidity']
+      const validTypes = ['co2', 'temperature', 'humidity', 'voc']
 
       if (!validTypes.includes(sensorType)) {
         this.fastify.log.debug(`⚠️ Topic not a sensor measurement: ${topic} (value: ${payload})`)

@@ -178,6 +178,19 @@ public:
     }
 
     /**
+     * @brief Publie une valeur VOC Index
+     */
+    void publishVocIndex(int vocIndex) {
+        if (!mqttClient.connected()) return;
+        String topic = String(fullTopic) + "/voc";
+        mqttClient.publish(topic.c_str(), 0, false, String(vocIndex).c_str());
+        Serial.print(F("📤 Published VOC: "));
+        Serial.print(vocIndex);
+        Serial.print(F(" on "));
+        Serial.println(topic);
+    }
+
+    /**
      * @brief Publie une valeur float (température, humidité, etc.)
      */
     void publishValue(const char* suffix, float value) {

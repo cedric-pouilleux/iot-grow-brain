@@ -188,6 +188,7 @@ const devicesRoutes: FastifyPluginAsync = async fastify => {
         const co2: SensorDataPoint[] = []
         const temp: SensorDataPoint[] = []
         const hum: SensorDataPoint[] = []
+        const voc: SensorDataPoint[] = []
 
         historyRows.forEach(row => {
           const dataPoint: SensorDataPoint = {
@@ -201,16 +202,18 @@ const devicesRoutes: FastifyPluginAsync = async fastify => {
             temp.push(dataPoint)
           } else if (row.sensorType === 'humidity') {
             hum.push(dataPoint)
+          } else if (row.sensorType === 'voc') {
+            voc.push(dataPoint)
           }
         })
 
         fastify.log.info(
-          `📊 Processed historical data: co2=${co2.length}, temp=${temp.length}, hum=${hum.length}`
+          `📊 Processed historical data: co2=${co2.length}, temp=${temp.length}, hum=${hum.length}, voc=${voc.length}`
         )
 
         const response: ModuleDataResponse = {
           status,
-          sensors: { co2, temp, hum },
+          sensors: { co2, temp, hum, voc },
         }
         return response
       } catch (err) {

@@ -34,7 +34,7 @@ export const useModulesData = () => {
    * Get sensor data for a specific module
    */
   const getModuleSensorData = (moduleId: string): SensorData => {
-    return modulesSensorData.value.get(moduleId) || { co2: [], temp: [], hum: [] }
+    return modulesSensorData.value.get(moduleId) || { co2: [], temp: [], hum: [], voc: [] }
   }
 
   /**
@@ -50,7 +50,7 @@ export const useModulesData = () => {
       })
     }
     if (!modulesSensorData.value.has(moduleId)) {
-      modulesSensorData.value.set(moduleId, { co2: [], temp: [], hum: [] })
+      modulesSensorData.value.set(moduleId, { co2: [], temp: [], hum: [], voc: [] })
     }
   }
 
@@ -176,12 +176,14 @@ export const useModulesData = () => {
         co2: processSensorData(dashboardData.sensors?.co2 || []) as SensorDataPoint[],
         temp: processSensorData(dashboardData.sensors?.temp || []) as SensorDataPoint[],
         hum: processSensorData(dashboardData.sensors?.hum || []) as SensorDataPoint[],
+        voc: processSensorData(dashboardData.sensors?.voc || []) as SensorDataPoint[],
       }
 
       modulesSensorData.value.set(moduleId, {
         co2: mergeSensorData(existingData.co2, newData.co2),
         temp: mergeSensorData(existingData.temp, newData.temp),
         hum: mergeSensorData(existingData.hum, newData.hum),
+        voc: mergeSensorData(existingData.voc, newData.voc),
       })
     }
   }

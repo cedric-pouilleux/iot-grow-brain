@@ -21,7 +21,12 @@ export const useDashboard = () => {
     days: number = 1
   ): Promise<{
     status: DeviceStatus | null
-    sensors: { co2: SensorDataPoint[]; temp: SensorDataPoint[]; hum: SensorDataPoint[] }
+    sensors: {
+      co2: SensorDataPoint[]
+      temp: SensorDataPoint[]
+      hum: SensorDataPoint[]
+      voc: SensorDataPoint[]
+    }
   } | null> => {
     if (!moduleId) return null
 
@@ -34,11 +39,11 @@ export const useDashboard = () => {
 
       if (!dashboardData) return null
 
-      const co2Data = isSensorDataArray(dashboardData.sensors?.co2) ? dashboardData.sensors.co2 : []
-      const tempData = isSensorDataArray(dashboardData.sensors?.temp)
-        ? dashboardData.sensors.temp
-        : []
-      const humData = isSensorDataArray(dashboardData.sensors?.hum) ? dashboardData.sensors.hum : []
+      const sensors = dashboardData.sensors as any
+      const co2Data = isSensorDataArray(sensors?.co2) ? sensors.co2 : []
+      const tempData = isSensorDataArray(sensors?.temp) ? sensors.temp : []
+      const humData = isSensorDataArray(sensors?.hum) ? sensors.hum : []
+      const vocData = isSensorDataArray(sensors?.voc) ? sensors.voc : []
 
       return {
         status: dashboardData.status as DeviceStatus | null,
@@ -46,6 +51,7 @@ export const useDashboard = () => {
           co2: processSensorData(co2Data),
           temp: processSensorData(tempData),
           hum: processSensorData(humData),
+          voc: processSensorData(vocData),
         },
       }
     } catch (e) {

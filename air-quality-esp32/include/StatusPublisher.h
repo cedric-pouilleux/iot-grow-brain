@@ -7,18 +7,15 @@
 #include "NetworkManager.h"
 #include "SensorData.h"
 #include "SensorReader.h"
-#include "DisplayManager.h"
 
 class StatusPublisher {
 public:
     StatusPublisher(NetworkManager& network, HardwareSerial& co2Serial, DHT_Unified& dht);
     
-    void publishSensorData(int ppm, DisplayManager& display, int& lastCO2Value, 
-                          float& lastTemperature, float& lastHumidity, bool& lastDhtOk);
     void publishSystemInfo();
     void publishSystemConfig();
     void publishSensorStatus(int lastCO2Value, float lastTemperature, 
-                            float lastHumidity, bool lastDhtOk);
+                            float lastHumidity, bool lastDhtOk, int lastVocValue);
     void publishSensorConfig();
     void publishHardwareConfig();
     
@@ -29,7 +26,7 @@ private:
     
     String buildSystemJson(const SystemInfo& sysInfo, const String& psramStr);
     String buildSensorStatusJson(int lastCO2Value, float lastTemperature, 
-                                float lastHumidity, bool lastDhtOk);
+                                float lastHumidity, bool lastDhtOk, int lastVocValue);
 };
 
 #endif

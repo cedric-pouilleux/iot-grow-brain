@@ -2,16 +2,15 @@
 #include <DHT_U.h>
 #include <WiFi.h>
 
-void SystemInitializer::initHardware(DisplayManager& display, HardwareSerial& co2Serial, 
+void SystemInitializer::initHardware(HardwareSerial& co2Serial, 
                                      DHT_Unified& dht, NetworkManager& network, OtaManager& ota) {
     Serial.begin(115200);
     Serial.println("=== ESP32 CO2 + DHT Sensor ===");
     
-    display.begin();
     co2Serial.begin(9600, SERIAL_8N1, 16, 17); // MHZ_RX_PIN, MHZ_TX_PIN
     dht.begin();
     
-    display.showMessage("WiFi...", "Connexion...", "Attente Portail");
+    Serial.println("Connecting to WiFi...");
     network.begin();
 
     if (WiFi.status() == WL_CONNECTED) {
@@ -23,13 +22,13 @@ void SystemInitializer::initHardware(DisplayManager& display, HardwareSerial& co
     ota.begin(generateOtaHostname().c_str());
 }
 
-void SystemInitializer::configureSensor(DisplayManager& display) {
-    display.showMessage("Initialisation...", "Capteur CO2...", "Capteur DHT...");
+void SystemInitializer::configureSensor() {
+    Serial.println("Initializing sensors...");
     delay(500);
 }
 
-void SystemInitializer::runWarmupSequence(DisplayManager& display) {
-    display.showMessage("Prechauffage...", "Systeme OK");
+void SystemInitializer::runWarmupSequence() {
+    Serial.println("Warmup sequence...");
     delay(2000);
 }
 

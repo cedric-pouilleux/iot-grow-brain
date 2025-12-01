@@ -77,6 +77,7 @@ export interface ModuleDataResponse {
     co2: SensorDataPoint[]
     temp: SensorDataPoint[]
     hum: SensorDataPoint[]
+    voc: SensorDataPoint[]
   }
 }
 

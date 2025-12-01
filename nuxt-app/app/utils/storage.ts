@@ -94,7 +94,7 @@ export function calculateRamPercentages(memory: SystemMemory | undefined): RamPe
  * @returns Estimated storage in bytes
  */
 export function calculateStoragePrediction(
-  sensorIntervals: { co2: number; temperature: number; humidity: number },
+  sensorIntervals: { co2: number; temperature: number; humidity: number; voc: number },
   years: number,
   compressed: boolean
 ): number {
@@ -104,8 +104,9 @@ export function calculateStoragePrediction(
   const recordsCo2 = secondsPerYear / sensorIntervals.co2
   const recordsTemp = secondsPerYear / sensorIntervals.temperature
   const recordsHum = secondsPerYear / sensorIntervals.humidity
+  const recordsVoc = secondsPerYear / sensorIntervals.voc
 
-  const totalRecords = (recordsCo2 + recordsTemp + recordsHum) * years
+  const totalRecords = (recordsCo2 + recordsTemp + recordsHum + recordsVoc) * years
   const totalBytes = totalRecords * bytesPerRecord
 
   return compressed ? totalBytes * 0.1 : totalBytes

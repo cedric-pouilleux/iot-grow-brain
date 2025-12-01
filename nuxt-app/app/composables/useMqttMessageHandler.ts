@@ -18,6 +18,7 @@ export const SENSOR_TOPICS = {
   '/co2': 'co2',
   '/temperature': 'temp',
   '/humidity': 'hum',
+  '/voc': 'voc',
 } as const
 
 /**

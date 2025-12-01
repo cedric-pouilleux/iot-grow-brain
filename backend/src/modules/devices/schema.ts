@@ -96,6 +96,7 @@ export const ModuleDataResponseSchema = z.object({
     co2: z.array(SensorDataPointSchema),
     temp: z.array(SensorDataPointSchema),
     hum: z.array(SensorDataPointSchema),
+    voc: z.array(SensorDataPointSchema),
   }),
 })
 

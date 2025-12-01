@@ -6,6 +6,35 @@ SensorReader::SensorReader(HardwareSerial& co2Serial, DHT_Unified& dht)
     : co2Serial(co2Serial), dht(dht) {
 }
 
+bool SensorReader::begin() {
+    return sgp.begin();
+}
+
+int SensorReader::readVocIndex() {
+    sensors_event_t temp, humidity;
+    dht.temperature().getEvent(&temp);
+    dht.humidity().getEvent(&humidity);
+    
+    float t = isnan(temp.temperature) ? 25.0 : temp.temperature;
+    float h = isnan(humidity.relative_humidity) ? 50.0 : humidity.relative_humidity;
+    
+    int32_t voc = sgp.measureVocIndex(t, h);
+    
+    // Debug: print detailed info
+    static int readCount = 0;
+    readCount++;
+    
+    if (readCount <= 5 || readCount % 10 == 0) {
+        Serial.printf("VOC Reading #%d: value=%d, T=%.1f°C, H=%.1f%%\n", 
+                      readCount, voc, t, h);
+        if (readCount <= 5) {
+            Serial.println("  Note: SGP40 needs 10-15 min warm-up for accurate readings");
+        }
+    }
+    
+    return voc;
+}
+
 int SensorReader::readCO2() {
     co2Serial.write(CO2_READ_CMD, 9);
     delay(50);

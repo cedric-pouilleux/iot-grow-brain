@@ -1,6 +1,4 @@
 #include <Arduino.h>
-#include <Wire.h>
-#include "DisplayManager.h"
 #include "NetworkManager.h"
 #include "OtaManager.h"
 #include <Adafruit_Sensor.h>
@@ -10,8 +8,8 @@
 #include "StatusPublisher.h"
 #include "SystemInitializer.h"
 #include <ArduinoJson.h>
+#include <Wire.h>
 
-#define LCD_ADDR    0x27
 #define DHT_PIN     4
 #define DHT_TYPE    DHT22
 
@@ -25,9 +23,9 @@ struct SensorConfig {
     unsigned long co2Interval = 60000;
     unsigned long tempInterval = 60000;
     unsigned long humInterval = 60000;
+    unsigned long vocInterval = 60000;
 } sensorConfig;
 
-DisplayManager display(LCD_ADDR);
 HardwareSerial co2Serial(2);
 DHT_Unified dht(DHT_PIN, DHT_TYPE);
 OtaManager ota;
@@ -39,6 +37,7 @@ StatusPublisher statusPublisher(network, co2Serial, dht);
 unsigned long lastCo2ReadTime = 0;
 unsigned long lastTempReadTime = 0;
 unsigned long lastHumReadTime = 0;
+unsigned long lastVocReadTime = 0;
 
 unsigned long lastSystemInfoTime = 0;
 unsigned long lastConfigPublishTime = 0;
@@ -48,6 +47,7 @@ int firstValidPpm = -1;
 bool mqttJustConnected = false;
 
 int lastCO2Value = 0;
+int lastVocValue = 0;
 float lastTemperature = 0.0;
 float lastHumidity = 0.0;
 bool lastDhtOk = false;
@@ -97,6 +97,13 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
                     sensorConfig.humInterval = interval * 1000;
                 }
             }
+
+            if (sensors.containsKey("voc")) {
+                unsigned long interval = sensors["voc"]["interval"];
+                if (interval >= 5) {
+                    sensorConfig.vocInterval = interval * 1000;
+                }
+            }
         }
     }
 }
@@ -113,10 +120,31 @@ void publishAllConfigs() {
 }
 
 void setup() {
-    SystemInitializer::initHardware(display, co2Serial, dht, network, ota);
-    SystemInitializer::configureSensor(display);
-    SystemInitializer::runWarmupSequence(display);
-    display.initMainScreen();
+    SystemInitializer::initHardware(co2Serial, dht, network, ota);
+    
+    // Configurer les callbacks MQTT
+    network.onMqttConnectedCallback = onMqttConnectedCallback;
+    network.setCallback(mqttCallback);
+    
+    SystemInitializer::configureSensor();
+    
+    // Initialize I2C for SGP40
+    Wire.begin(21, 22); // SDA=21, SCL=22
+    Serial.println("I2C initialized (SDA=21, SCL=22)");
+    
+    // Initialize SGP40
+    Serial.println("Initializing SGP40...");
+    if (!sensorReader.begin()) {
+        Serial.println("❌ SGP40 not found! Check wiring:");
+        Serial.println("  - SDA -> GPIO 21");
+        Serial.println("  - SCL -> GPIO 22");
+        Serial.println("  - VCC -> 3.3V");
+        Serial.println("  - GND -> GND");
+    } else {
+        Serial.println("✅ SGP40 found and initialized!");
+    }
+
+    SystemInitializer::runWarmupSequence();
     Serial.println("System ready");
     
     bootTime = millis();
@@ -124,12 +152,10 @@ void setup() {
     lastCo2ReadTime = millis() - sensorConfig.co2Interval;
     lastTempReadTime = millis() - sensorConfig.tempInterval;
     lastHumReadTime = millis() - sensorConfig.humInterval;
+    lastVocReadTime = millis() - sensorConfig.vocInterval;
     
     lastSystemInfoTime = millis() - SYSTEM_INFO_INTERVAL_MS;
-    lastConfigPublishTime = 0; 
-    
-    network.onMqttConnectedCallback = onMqttConnectedCallback;
-    network.setCallback(mqttCallback);
+    lastConfigPublishTime = 0;
 } 
 
 void loop() {
@@ -150,7 +176,6 @@ void loop() {
                 stabilizationStartTime = millis();
             }
             lastCO2Value = ppm;
-            display.updateValues(ppm);
             
             if (network.isConnected()) {
                 network.publishCO2(ppm);
@@ -189,6 +214,21 @@ void loop() {
         }
     }
     
+
+
+    // --- LECTURE VOC ---
+    if (now - lastVocReadTime >= sensorConfig.vocInterval) {
+        lastVocReadTime = now;
+        int voc = sensorReader.readVocIndex();
+        Serial.print("Read VOC: "); Serial.println(voc);
+        
+        lastVocValue = voc;
+        
+        if (network.isConnected()) {
+            network.publishVocIndex(voc);
+        }
+    }
+    
     // On MQTT connection: publish all configs immediately and reset timer
     if (mqttJustConnected && network.isConnected()) {
         mqttJustConnected = false;
@@ -201,7 +241,8 @@ void loop() {
         if (lastCO2Value > 0) {
             statusPublisher.publishSystemInfo();
             statusPublisher.publishSensorStatus(lastCO2Value, lastTemperature, 
-                                               lastHumidity, lastDhtOk);
+                                               lastHumidity, lastDhtOk, lastVocValue);
+            if (lastVocValue > 0) network.publishVocIndex(lastVocValue);
             lastSystemInfoTime = now;
         }
     }
@@ -212,7 +253,7 @@ void loop() {
             Serial.println("Publishing System Info...");
             statusPublisher.publishSystemInfo();
             statusPublisher.publishSensorStatus(lastCO2Value, lastTemperature, 
-                                              lastHumidity, lastDhtOk);
+                                              lastHumidity, lastDhtOk, lastVocValue);
         } else {
             Serial.println("⚠️  MQTT not connected, skipping System Info publish");
         }

@@ -1,5 +1,4 @@
 #include "StatusPublisher.h"
-#include "DisplayManager.h"
 #include "SystemInfoCollector.h"
 #include "esp_ota_ops.h"
 #include <WiFi.h>
@@ -95,7 +94,7 @@ void StatusPublisher::publishHardwareConfig() {
 }
 
 String StatusPublisher::buildSensorStatusJson(int lastCO2Value, float lastTemperature, 
-                                              float lastHumidity, bool lastDhtOk) {
+                                              float lastHumidity, bool lastDhtOk, int lastVocValue) {
     char sensorStatusMsg[400];
     snprintf(sensorStatusMsg, sizeof(sensorStatusMsg), 
         "{"
@@ -116,8 +115,8 @@ String StatusPublisher::buildSensorStatusJson(int lastCO2Value, float lastTemper
                 "\"value\":null"
             "},"
             "\"voc\":{"
-                "\"status\":\"missing\","
-                "\"value\":null"
+                "\"status\":\"ok\","
+                "\"value\":%d"
             "},"
             "\"pressure\":{"
                 "\"status\":\"missing\","
@@ -128,7 +127,8 @@ String StatusPublisher::buildSensorStatusJson(int lastCO2Value, float lastTemper
         lastDhtOk ? "ok" : "error",
         lastTemperature,
         lastDhtOk ? "ok" : "error",
-        lastHumidity
+        lastHumidity,
+        lastVocValue
     );
     return String(sensorStatusMsg);
 }
@@ -139,13 +139,13 @@ void StatusPublisher::publishSensorConfig() {
     }
     
     // Publier uniquement les modèles des capteurs (sans les intervalles qui sont gérés par le backend)
-    // Format: { "co2": { "model": "MH-Z14A" }, "temperature": { "model": "DHT22" }, "humidity": { "model": "DHT22" } }
     char sensorConfigMsg[256];
     snprintf(sensorConfigMsg, sizeof(sensorConfigMsg), 
         "{"
             "\"co2\":{\"model\":\"MH-Z14A\"},"
             "\"temperature\":{\"model\":\"DHT22\"},"
-            "\"humidity\":{\"model\":\"DHT22\"}"
+            "\"humidity\":{\"model\":\"DHT22\"},"
+            "\"voc\":{\"model\":\"SGP40\"}"
         "}"
     );
     
@@ -167,33 +167,14 @@ void StatusPublisher::publishSystemInfo() {
 }
 
 void StatusPublisher::publishSensorStatus(int lastCO2Value, float lastTemperature, 
-                                          float lastHumidity, bool lastDhtOk) {
+                                          float lastHumidity, bool lastDhtOk, int lastVocValue) {
     if (!network.isConnected()) {
         return;
     }
 
     String sensorStatusMsg = buildSensorStatusJson(lastCO2Value, lastTemperature, 
-                                                   lastHumidity, lastDhtOk);
+                                                   lastHumidity, lastDhtOk, lastVocValue);
     // Ne pas utiliser retained pour les données dynamiques (valeurs changent souvent)
     network.publishMessage("/sensors/status", sensorStatusMsg.c_str(), false);
-}
-
-void StatusPublisher::publishSensorData(int ppm, DisplayManager& display, 
-                                         int& lastCO2Value, float& lastTemperature, 
-                                         float& lastHumidity, bool& lastDhtOk) {
-    DhtReading reading = sensorReader.readDhtSensors();
-
-    display.updateValues(ppm);
-    lastCO2Value = ppm;
-    lastTemperature = reading.temperature;
-    lastHumidity = reading.humidity;
-    lastDhtOk = reading.valid;
-    
-    network.publishCO2(ppm);
-    
-    if (reading.valid) {
-        network.publishValue("/temperature", reading.temperature);
-        network.publishValue("/humidity", reading.humidity);
-    }
 }
 

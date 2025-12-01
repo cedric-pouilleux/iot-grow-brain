@@ -24,6 +24,7 @@ export interface SensorData {
   co2: SensorDataPoint[]
   temp: SensorDataPoint[]
   hum: SensorDataPoint[]
+  voc: SensorDataPoint[]
 }
 
 export interface SensorStatus {
@@ -111,6 +112,7 @@ export interface DashboardSensorData {
   co2?: Array<{ time: string; value: number }>
   temp?: Array<{ time: string; value: number }>
   hum?: Array<{ time: string; value: number }>
+  voc?: Array<{ time: string; value: number }>
 }
 
 export interface DashboardData {
