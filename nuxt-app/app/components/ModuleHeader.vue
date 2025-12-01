@@ -303,7 +303,12 @@
         </div>
 
         <div class="relative group/rssi cursor-help flex items-center justify-center">
-          <Icon :name="wifiIcon" class="w-6 h-6" :class="rssiClass" />
+          <!-- Conditions statiques pour forcer l'inclusion des icônes WiFi dans le bundle -->
+          <Icon v-if="!rssi" name="tabler:wifi-off" class="w-6 h-6" :class="rssiClass" />
+          <Icon v-else-if="rssi > -60" name="tabler:wifi" class="w-6 h-6" :class="rssiClass" />
+          <Icon v-else-if="rssi > -75" name="tabler:wifi-2" class="w-6 h-6" :class="rssiClass" />
+          <Icon v-else-if="rssi > -85" name="tabler:wifi-1" class="w-6 h-6" :class="rssiClass" />
+          <Icon v-else name="tabler:wifi-0" class="w-6 h-6" :class="rssiClass" />
           <div
             class="absolute top-full right-0 mt-1 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/rssi:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg"
           >
@@ -318,7 +323,7 @@
 <script setup lang="ts">
 import type { DeviceStatus } from '../types'
 import { formatSize } from '../utils/format'
-import { getHardwareModel, getWifiIcon, getWifiClass } from '../utils/hardware'
+import { getHardwareModel, getWifiClass } from '../utils/hardware'
 import { useStorageCalculations } from '../composables/useStorageCalculations'
 
 const props = defineProps<{
@@ -346,7 +351,6 @@ const hoveredRamSegment = ref<'used' | 'free' | null>(null)
 
 // Hardware & Network
 const hardwareModel = computed(() => getHardwareModel(props.deviceStatus?.hardware?.chip))
-const wifiIcon = computed(() => getWifiIcon(props.rssi))
 const rssiClass = computed(() => getWifiClass(props.rssi))
 
 // Flash storage (using shared calculations)
