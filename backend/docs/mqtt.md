@@ -236,9 +236,21 @@ try {
   await flushBuffer()
 } catch (err) {
   fastify.log.error('❌ Buffer flush failed:', err)
-  // Les mesures sont perdues, mais le système continue
+  // Les mesures sont remises dans le buffer pour réessayer plus tard
+  measurementBuffer.unshift(...batch)
 }
 ```
+
+### Normalisation des Données
+
+Toutes les données MQTT sont normalisées avant insertion dans la base :
+
+- **Chaînes vides** → `null`
+- **Nombres invalides** → `null`
+- **Types mixtes** (string/number) → conversion automatique
+- **Gestion des conflits** : `onConflictDoUpdate` pour éviter les doublons
+
+Cela garantit la cohérence des données même si l'ESP32 envoie des formats variés.
 
 ## Voir Aussi
 

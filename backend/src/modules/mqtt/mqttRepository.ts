@@ -20,18 +20,43 @@ export class MqttRepository {
   async insertMeasurementsBatch(measurements: MqttMeasurement[]): Promise<void> {
     if (measurements.length === 0) return
 
-    // Use Drizzle batch insert for better performance
-    await this.db
-      .insert(schema.measurements)
-      .values(
-        measurements.map(m => ({
-          time: m.time,
-          moduleId: m.moduleId,
-          sensorType: m.sensorType,
-          value: m.value,
-        }))
+    try {
+      // Use Drizzle batch insert for better performance
+      // Note: onConflictDoUpdate() met à jour les doublons basés sur la clé primaire composite
+      // (time, module_id, sensor_type)
+      await this.db
+        .insert(schema.measurements)
+        .values(
+          measurements.map(m => ({
+            time: m.time,
+            moduleId: m.moduleId,
+            sensorType: m.sensorType,
+            value: m.value,
+          }))
+        )
+        .onConflictDoUpdate({
+          target: [
+            schema.measurements.time,
+            schema.measurements.moduleId,
+            schema.measurements.sensorType,
+          ],
+          set: {
+            value: sql`EXCLUDED.value`,
+          },
+        })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      // Log les premières mesures pour debug
+      const sample = measurements.slice(0, 2).map(m => ({
+        time: m.time.toISOString(),
+        moduleId: m.moduleId,
+        sensorType: m.sensorType,
+        value: m.value,
+      }))
+      throw new Error(
+        `Failed to insert measurements batch: ${errorMessage}. Sample: ${JSON.stringify(sample)}`
       )
-      .onConflictDoNothing()
+    }
   }
 
   /**

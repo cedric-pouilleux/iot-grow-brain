@@ -27,23 +27,32 @@ export default fp(async (fastify: FastifyInstance) => {
   const mqttRepo = new MqttRepository(fastify.db)
 
   // --- BUFFERING SYSTEM ---
-  let measurementBuffer: MqttMeasurement[] = []
-  let statusUpdateBuffer: DeviceStatusUpdate[] = []
+  const measurementBuffer: MqttMeasurement[] = []
+  const statusUpdateBuffer: DeviceStatusUpdate[] = []
   const FLUSH_INTERVAL = 5000
 
   async function flushMeasurements() {
-    if (measurementBuffer.length === 0) return
+    if (measurementBuffer.length === 0) {
+      fastify.log.debug(`⏭️  Flush skipped: buffer is empty`)
+      return
+    }
 
     const batch = [...measurementBuffer]
+    const bufferSize = measurementBuffer.length
     measurementBuffer.length = 0
+
+    fastify.log.info(`🔄 Flushing ${batch.length} measurements from buffer...`)
 
     try {
       await mqttRepo.insertMeasurementsBatch(batch)
-      fastify.log.info(`✅ Inserted ${batch.length} measurements into measurements`)
+      fastify.log.info(`✅ Successfully inserted ${batch.length} measurements into database`)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       fastify.log.error(`❌ Batch Insert Error: ${errorMessage}`)
       fastify.log.error(`❌ Failed batch details: ${JSON.stringify(batch.slice(0, 3))}`)
+      // Remettre les mesures dans le buffer en cas d'erreur (pour réessayer plus tard)
+      measurementBuffer.unshift(...batch)
+      fastify.log.warn(`⚠️  ${bufferSize} measurements put back in buffer for retry`)
     }
   }
 
@@ -63,8 +72,24 @@ export default fp(async (fastify: FastifyInstance) => {
     }
   }
 
-  setInterval(flushMeasurements, FLUSH_INTERVAL)
-  setInterval(flushStatusUpdates, FLUSH_INTERVAL / 2)
+  // Flush périodique toutes les 5 secondes
+  setInterval(() => {
+    void flushMeasurements()
+  }, FLUSH_INTERVAL)
+
+  // Flush des status updates toutes les 2.5 secondes
+  setInterval(() => {
+    void flushStatusUpdates()
+  }, FLUSH_INTERVAL / 2)
+
+  // Log périodique de l'état du buffer (toutes les 30 secondes)
+  setInterval(() => {
+    if (measurementBuffer.length > 0) {
+      fastify.log.info(
+        `📊 Buffer status: ${measurementBuffer.length} measurements waiting to be flushed`
+      )
+    }
+  }, 30000)
 
   client.on('connect', () => {
     fastify.log.info('✅ Connected to MQTT broker')

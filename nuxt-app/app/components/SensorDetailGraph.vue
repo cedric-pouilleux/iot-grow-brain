@@ -75,11 +75,11 @@ const graphMinMax = computed(() => {
   let min = Math.min(...values)
   let max = Math.max(...values)
 
-  // Petit padding pour ne pas coller aux bords
+  // Petit padding pour ne pas coller aux bords (identique aux mini cards)
   const range = max - min || 1
   return {
-    min: Math.floor(min - range * 0.1),
-    max: Math.ceil(max + range * 0.1),
+    min: min - range * 0.1,
+    max: max + range * 0.1,
   }
 })
 

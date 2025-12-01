@@ -40,9 +40,11 @@ npm start            # Run production
 ### Drizzle ORM
 
 ```bash
-npm run db:generate  # Generate migrations
-npm run db:migrate   # Apply migrations
-npm run db:studio    # Open Drizzle Studio
+npm run db:reset     # Réinitialiser complètement la base (⚠️ supprime toutes les données)
+npm run db:generate  # Générer des migrations
+npm run db:migrate   # Appliquer les migrations
+npm run db:push      # Appliquer directement le schéma (sans migrations)
+npm run db:studio    # Ouvrir Drizzle Studio
 ```
 
 ### Frontend Type Generation
@@ -70,6 +72,14 @@ npm run gen:api      # Generate types from Swagger
 Voir [Database Documentation](./docs/database.md#conventions-de-nommage) pour plus de détails.
 
 ## 📜 Recent Changes
+
+**Dec 2025** - Data Consistency & Timezone Fixes
+
+- Fixed timezone issues: `measurements.time` now uses `TIMESTAMPTZ`
+- Improved data normalization: empty strings → null, type conversion
+- Historical data strategy: raw data for < 1 day, aggregated for longer periods
+- Better conflict handling: `onConflictDoUpdate` instead of `onConflictDoNothing`
+- Added `db:reset` script for complete database reset
 
 **Nov 2025** - Drizzle ORM Migration
 

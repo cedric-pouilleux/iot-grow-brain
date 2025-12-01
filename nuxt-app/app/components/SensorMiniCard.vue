@@ -173,12 +173,12 @@ const timeAgo = useTimeAgo(() => {
 
 const graphMinMax = computed(() => {
   if (!hasHistory.value) return { min: 0, max: 100 }
-  const values = props.history.map(d => d.value).filter(v => v !== null)
+  const values = props.history.map(d => d.value).filter(v => v !== null && v !== undefined)
   if (values.length === 0) return { min: 0, max: 100 }
   let min = Math.min(...values)
   let max = Math.max(...values)
 
-  // Petit padding pour ne pas coller aux bords
+  // Petit padding pour ne pas coller aux bords (identique au graphique détaillé)
   const range = max - min || 1
   return {
     min: min - range * 0.1,

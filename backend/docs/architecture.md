@@ -113,8 +113,10 @@ PostgreSQL (TimescaleDB)
 **Optimisations** :
 
 - Batch inserts (100 mesures max)
-- Intervalle de 10 secondes
+- Intervalle de 5 secondes
 - Réduction de 90% des écritures DB
+- Normalisation automatique des données (chaînes vides → null, types mixtes)
+- Gestion des conflits avec `onConflictDoUpdate`
 
 ### 2. Temps Réel → Frontend
 

@@ -73,7 +73,8 @@ export class DeviceRepository {
         sensorType: row.sensorType as string,
         value: Number(row.value),
       }))
-    } else {
+    } else if (days > 1) {
+      // Pour 1-7 jours : agrégation par minute (acceptable pour cette période)
       try {
         const query = sql`
                     SELECT time_bucket('1 minute', time) as time, sensor_type as "sensorType", AVG(value) as value
@@ -107,6 +108,22 @@ export class DeviceRepository {
           value: Number(row.value),
         }))
       }
+    } else {
+      // Pour < 1 jour : données brutes (pas d'agrégation) pour correspondre au temps réel
+      const query = sql`
+                SELECT time, sensor_type as "sensorType", value
+                FROM measurements
+                WHERE module_id = ${moduleId}
+                  AND time > NOW() - (${days} || ' days')::interval
+                ORDER BY time DESC
+                LIMIT ${limit}
+            `
+      const result = await this.db.execute(query)
+      return result.rows.map(row => ({
+        time: new Date(row.time as string | Date),
+        sensorType: row.sensorType as string,
+        value: Number(row.value),
+      }))
     }
   }
 

@@ -133,7 +133,15 @@ export const deviceSystemStatus = pgTable('device_system_status', {
   mac: text('mac'),
   uptimeStart: integer('uptime_start'),
   rssi: integer('rssi'),
+  updatedAt: timestamp('updated_at').defaultNow(),
   // ...
+})
+
+export const measurements = pgTable('measurements', {
+  time: timestamp('time', { withTimezone: true }).notNull(), // TIMESTAMPTZ
+  moduleId: text('module_id').notNull(),
+  sensorType: text('sensor_type').notNull(),
+  value: doublePrecision('value').notNull(),
 })
 ```
 
@@ -317,7 +325,31 @@ FROM measurements
 GROUP BY bucket, module_id, sensor_type;
 ```
 
+### Récupération des Données Historiques
+
+La stratégie d'agrégation dépend de la période demandée :
+
+- **< 1 jour** : Données brutes (pas d'agrégation) pour correspondre au temps réel
+- **1-7 jours** : Agrégation par minute (`time_bucket('1 minute')` avec `AVG(value)`)
+- **> 7 jours** : Agrégation par heure (vue matérialisée `measurements_hourly`)
+
+Cela garantit que les graphiques temps réel et historiques affichent les mêmes valeurs pour les données récentes.
+
 ## Migrations
+
+### Réinitialiser la Base de Données
+
+**⚠️ ATTENTION : Supprime toutes les données !**
+
+```bash
+npm run db:reset
+```
+
+Supprime et recrée toutes les tables avec le schéma actuel. Utilisez ce script pour :
+
+- Réinitialiser complètement la base après des changements de schéma
+- Corriger les problèmes de structure (timezone, types, etc.)
+- Partir d'une base propre
 
 ### Générer une Migration
 
@@ -344,6 +376,12 @@ npm run db:studio
 ```
 
 Ouvre `https://local.drizzle.studio`
+
+### Autres Commandes
+
+```bash
+npm run db:push    # Applique directement le schéma (sans migrations)
+```
 
 ## Résumé des Conventions
 

@@ -75,7 +75,7 @@ export const sensorConfig = pgTable(
 export const measurements = pgTable(
   'measurements',
   {
-    time: timestamp('time').notNull(),
+    time: timestamp('time', { withTimezone: true }).notNull(),
     moduleId: text('module_id').notNull(),
     sensorType: text('sensor_type').notNull(),
     value: doublePrecision('value').notNull(),

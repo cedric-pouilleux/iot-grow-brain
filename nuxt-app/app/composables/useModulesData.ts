@@ -107,26 +107,36 @@ export const useModulesData = () => {
 
   /**
    * Merge sensor data without duplicates based on timestamp
+   * Priorité aux données temps réel (existing) pour les timestamps proches
    */
   const mergeSensorData = (
     existing: SensorDataPoint[],
     incoming: SensorDataPoint[]
   ): SensorDataPoint[] => {
     const timeMap = new Map<number, SensorDataPoint>()
+    const TOLERANCE_MS = 1000 // 1 seconde de tolérance pour considérer deux points comme identiques
 
-    // Add existing data (priority to recent WebSocket data)
-    existing.forEach((point) => {
+    // Add existing data first (priority to recent WebSocket data)
+    existing.forEach(point => {
       const timeKey = point.time.getTime()
-      if (!timeMap.has(timeKey)) {
-        timeMap.set(timeKey, point)
+      // Round to nearest second for grouping (to handle timestamp differences)
+      const roundedTime = Math.round(timeKey / TOLERANCE_MS) * TOLERANCE_MS
+
+      // Keep the most recent point for this rounded timestamp
+      const existingPoint = timeMap.get(roundedTime)
+      if (!existingPoint || point.time.getTime() > existingPoint.time.getTime()) {
+        timeMap.set(roundedTime, point)
       }
     })
 
-    // Add incoming historical data (don't overwrite existing)
-    incoming.forEach((point) => {
+    // Add incoming historical data (don't overwrite existing if within tolerance)
+    incoming.forEach(point => {
       const timeKey = point.time.getTime()
-      if (!timeMap.has(timeKey)) {
-        timeMap.set(timeKey, point)
+      const roundedTime = Math.round(timeKey / TOLERANCE_MS) * TOLERANCE_MS
+
+      // Only add if no existing point is close (within tolerance)
+      if (!timeMap.has(roundedTime)) {
+        timeMap.set(roundedTime, point)
       }
     })
 
