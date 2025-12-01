@@ -1,103 +1,66 @@
 import type { DeviceStatus, MqttMessage } from '../types'
+import { useMqttMessageHandler } from './useMqttMessageHandler'
 
-const TOPIC_SYSTEM = '/system'
-const TOPIC_SYSTEM_CONFIG = '/system/config'
-const TOPIC_SENSORS_STATUS = '/sensors/status'
-const TOPIC_SENSORS_CONFIG = '/sensors/config'
-const TOPIC_HARDWARE_CONFIG = '/hardware/config'
-
-const isStatusTopic = (topic: string) =>
-  topic.endsWith(TOPIC_SYSTEM) ||
-  topic.endsWith(TOPIC_SYSTEM_CONFIG) ||
-  topic.endsWith(TOPIC_SENSORS_STATUS) ||
-  topic.endsWith(TOPIC_SENSORS_CONFIG) ||
-  topic.endsWith(TOPIC_HARDWARE_CONFIG)
-
-const mergeSystemData = (status: DeviceStatus, metadata: any) => {
-  if (!status.system) status.system = {}
-
-  status.system.rssi = metadata.rssi
-
-  if (metadata.memory) {
-    if (!status.system.memory) status.system.memory = {}
-    if (metadata.memory.heapFreeKb !== undefined) {
-      status.system.memory.heapFreeKb = metadata.memory.heapFreeKb
-    }
-    if (metadata.memory.heapMinFreeKb !== undefined) {
-      status.system.memory.heapMinFreeKb = metadata.memory.heapMinFreeKb
-    }
-    if (metadata.memory.psram) {
-      status.system.memory.psram = { ...status.system.memory.psram, ...metadata.memory.psram }
-    }
-  }
-}
-
-const mergeSystemConfig = (status: DeviceStatus, metadata: any) => {
-  if (!status.system) status.system = {}
-
-  status.system.ip = metadata.ip
-  status.system.mac = metadata.mac
-  status.system.uptimeStart = metadata.uptimeStart
-  status.system.flash = metadata.flash
-  status.system._configReceivedAt = Math.floor(Date.now() / 1000)
-  status.system._uptimeStartOffset = metadata.uptimeStart
-
-  if (metadata.memory) {
-    if (!status.system.memory) status.system.memory = {}
-    if (metadata.memory.heapTotalKb !== undefined) {
-      status.system.memory.heapTotalKb = metadata.memory.heapTotalKb
-    }
-    if (metadata.memory.psram) {
-      status.system.memory.psram = metadata.memory.psram
-    }
-  }
-}
-
-const mergeSensorsStatus = (status: DeviceStatus, metadata: any) => {
-  if (!status.sensors) status.sensors = {}
-
-  Object.keys(metadata).forEach(sensorName => {
-    if (!status.sensors![sensorName]) {
-      status.sensors![sensorName] = {}
-    }
-    status.sensors![sensorName] = {
-      ...status.sensors![sensorName],
-      status: metadata[sensorName].status,
-      value: metadata[sensorName].value,
-    }
-  })
-}
-
+/**
+ * Composable for managing device status
+ * Handles MQTT messages and provides calculated uptime
+ */
 export const useDeviceStatus = () => {
+  const {
+    MQTT_TOPICS,
+    isStatusTopic,
+    mergeSystemData,
+    mergeSystemConfig,
+    mergeSensorsStatus,
+    mergeSensorsConfig,
+    mergeHardwareConfig,
+  } = useMqttMessageHandler()
+
   const deviceStatus = ref<DeviceStatus | null>(null)
 
-  const initializeStatus = () => {
+  /**
+   * Initialize device status if it doesn't exist
+   */
+  const initializeStatus = (): void => {
     if (!deviceStatus.value) {
-      deviceStatus.value = { system: {}, sensors: {}, hardware: {}, sensorsConfig: {} }
+      deviceStatus.value = {
+        system: {},
+        sensors: {},
+        hardware: {},
+        sensorsConfig: {},
+      }
     }
   }
 
-  const handleStatusMessage = (message: MqttMessage) => {
+  /**
+   * Handle incoming MQTT status message
+   * @param message - MQTT message
+   * @returns True if message was handled, false otherwise
+   */
+  const handleStatusMessage = (message: MqttMessage): boolean => {
     if (!isStatusTopic(message.topic) || !message.metadata) return false
 
     initializeStatus()
     const status = deviceStatus.value!
 
-    if (message.topic.endsWith(TOPIC_SYSTEM)) {
-      mergeSystemData(status, message.metadata)
-    } else if (message.topic.endsWith(TOPIC_SYSTEM_CONFIG)) {
-      mergeSystemConfig(status, message.metadata)
-    } else if (message.topic.endsWith(TOPIC_SENSORS_STATUS)) {
-      mergeSensorsStatus(status, message.metadata)
-    } else if (message.topic.endsWith(TOPIC_SENSORS_CONFIG)) {
-      status.sensorsConfig = { ...status.sensorsConfig, ...message.metadata }
-    } else if (message.topic.endsWith(TOPIC_HARDWARE_CONFIG)) {
-      status.hardware = { ...status.hardware, ...message.metadata }
+    if (message.topic.endsWith(MQTT_TOPICS.SYSTEM)) {
+      mergeSystemData(status, message.metadata as any)
+    } else if (message.topic.endsWith(MQTT_TOPICS.SYSTEM_CONFIG)) {
+      mergeSystemConfig(status, message.metadata as any)
+    } else if (message.topic.endsWith(MQTT_TOPICS.SENSORS_STATUS)) {
+      mergeSensorsStatus(status, message.metadata as any)
+    } else if (message.topic.endsWith(MQTT_TOPICS.SENSORS_CONFIG)) {
+      mergeSensorsConfig(status, message.metadata as any)
+    } else if (message.topic.endsWith(MQTT_TOPICS.HARDWARE_CONFIG)) {
+      mergeHardwareConfig(status, message.metadata as any)
     }
 
     return true
   }
 
+  /**
+   * Calculate current uptime based on uptimeStart and elapsed time
+   */
   const calculatedUptime = computed(() => {
     if (!deviceStatus.value?.system?.uptimeStart) return null
 

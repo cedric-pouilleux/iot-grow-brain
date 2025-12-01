@@ -317,7 +317,9 @@
 
 <script setup lang="ts">
 import type { DeviceStatus } from '../types'
-import { formatUptime } from '../utils/time'
+import { formatSize } from '../utils/format'
+import { getHardwareModel, getWifiIcon, getWifiClass } from '../utils/hardware'
+import { useStorageCalculations } from '../composables/useStorageCalculations'
 
 const props = defineProps<{
   moduleName: string
@@ -326,6 +328,13 @@ const props = defineProps<{
   formattedUptime: string
 }>()
 
+// Computed device status ref for composable
+const deviceStatusRef = computed(() => props.deviceStatus)
+
+// Use shared storage calculations
+const { flashPercentages, ramPercentages } = useStorageCalculations(deviceStatusRef)
+
+// UI state
 const capitalizedModuleName = computed(() => {
   if (!props.moduleName) return ''
   return props.moduleName.charAt(0).toUpperCase() + props.moduleName.slice(1)
@@ -335,111 +344,25 @@ const openDropdown = ref<'hardware' | 'network' | 'storage' | null>(null)
 const hoveredSegment = ref<'sketch' | 'ota' | 'sys' | 'free' | null>(null)
 const hoveredRamSegment = ref<'used' | 'free' | null>(null)
 
-const rssiClass = computed(() => {
-  const rssi = props.rssi
-  if (!rssi) return 'text-gray-400'
-  if (rssi > -50) return 'text-green-600' // Excellent
-  if (rssi > -60) return 'text-green-500' // Très bon
-  if (rssi > -70) return 'text-yellow-500' // Bon
-  if (rssi > -80) return 'text-orange-500' // Moyen
-  return 'text-red-500' // Faible
-})
+// Hardware & Network
+const hardwareModel = computed(() => getHardwareModel(props.deviceStatus?.hardware?.chip))
+const wifiIcon = computed(() => getWifiIcon(props.rssi))
+const rssiClass = computed(() => getWifiClass(props.rssi))
 
-const wifiIcon = computed(() => {
-  const rssi = props.rssi
-  if (!rssi) return 'tabler:wifi-off'
-  if (rssi > -60) return 'tabler:wifi'
-  if (rssi > -75) return 'tabler:wifi-2'
-  if (rssi > -85) return 'tabler:wifi-1'
-  return 'tabler:wifi-0'
-})
+// Flash storage (using shared calculations)
+const flashSketchPercent = computed(() => flashPercentages.value.sketchPercent)
+const flashOtaPercent = computed(() => flashPercentages.value.otaPercent)
+const flashSystemPercent = computed(() => flashPercentages.value.systemPercent)
+const flashFreePercent = computed(() => flashPercentages.value.freePercent)
+const flashTotalUsed = computed(() => flashPercentages.value.totalUsedKb)
+const flashFreeSpace = computed(() => flashPercentages.value.freeSpaceKb)
 
-const formatSize = (kb: number | undefined | null): string => {
-  if (kb === null || kb === undefined) return '--'
-  if (kb < 1024) return kb + ' KB'
-  if (kb < 1024 * 1024) return (kb / 1024).toFixed(1) + ' MB'
-  return (kb / (1024 * 1024)).toFixed(2) + ' GB'
-}
+// RAM (using shared calculations)
+const heapUsedPercent = computed(() => ramPercentages.value.usedPercent)
+const heapFreePercent = computed(() => ramPercentages.value.freePercent)
+const usedHeap = computed(() => ramPercentages.value.usedKb)
 
-const hardwareModel = computed(() => {
-  const model = props.deviceStatus?.hardware?.chip?.model || '--'
-  const rev = props.deviceStatus?.hardware?.chip?.rev
-  if (rev) {
-    return `${model} [Rev ${rev}]`
-  }
-  return model
-})
-
-// Flash calculations
-const flashTotalUsed = computed(() => {
-  const used = props.deviceStatus?.system?.flash?.usedKb || 0
-  const sys = props.deviceStatus?.system?.flash?.systemKb || 0
-  return used + sys
-})
-
-const flashSketchPercent = computed(() => {
-  const total = props.deviceStatus?.hardware?.chip?.flashKb
-  const used = props.deviceStatus?.system?.flash?.usedKb
-  if (!total || !used) return 0
-  return (used / total) * 100
-})
-
-const flashOtaPercent = computed(() => {
-  const total = props.deviceStatus?.hardware?.chip?.flashKb
-  const free = props.deviceStatus?.system?.flash?.freeKb
-  if (!total || !free) return 0
-  return (free / total) * 100
-})
-
-const flashSystemPercent = computed(() => {
-  const total = props.deviceStatus?.hardware?.chip?.flashKb
-  const sys = props.deviceStatus?.system?.flash?.systemKb
-  if (!total || !sys) return 0
-  return (sys / total) * 100
-})
-
-const flashFreePercent = computed(() => {
-  const total = props.deviceStatus?.hardware?.chip?.flashKb
-  const used = props.deviceStatus?.system?.flash?.usedKb || 0
-  const sys = props.deviceStatus?.system?.flash?.systemKb || 0
-  const ota = props.deviceStatus?.system?.flash?.freeKb || 0
-  if (!total) return 0
-  const usedTotal = used + sys + ota
-  const free = total - usedTotal
-  if (free <= 0) return 0
-  return (free / total) * 100
-})
-
-const flashFreeSpace = computed(() => {
-  const total = props.deviceStatus?.hardware?.chip?.flashKb || 0
-  const used = props.deviceStatus?.system?.flash?.usedKb || 0
-  const sys = props.deviceStatus?.system?.flash?.systemKb || 0
-  const ota = props.deviceStatus?.system?.flash?.freeKb || 0
-  const usedTotal = used + sys + ota
-  return total - usedTotal
-})
-
-// RAM calculations
-const usedHeap = computed(() => {
-  const total = props.deviceStatus?.system?.memory?.heapTotalKb
-  const free = props.deviceStatus?.system?.memory?.heapFreeKb
-  if (!total || free === undefined) return 0
-  return total - free
-})
-
-const heapUsedPercent = computed(() => {
-  const total = props.deviceStatus?.system?.memory?.heapTotalKb
-  if (!total || !usedHeap.value) return 0
-  return (usedHeap.value / total) * 100
-})
-
-const heapFreePercent = computed(() => {
-  const total = props.deviceStatus?.system?.memory?.heapTotalKb
-  if (!total) return 0
-  return 100 - heapUsedPercent.value
-})
-
-// Fermer le dropdown si on clique en dehors
+// Click outside handler
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement
   if (!target.closest('.relative')) {

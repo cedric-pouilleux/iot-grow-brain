@@ -46,54 +46,68 @@
 </template>
 
 <script setup lang="ts">
+// Types
+import type { MqttMessage } from './types'
+
+// Components
 import ModulePanel from './components/ModulePanel.vue'
+
+// Composables
 import { useDatabase } from './composables/useDatabase'
 import { useModules } from './composables/useModules'
 import { useModulesData } from './composables/useModulesData'
 import { useDashboard } from './composables/useDashboard'
 import { useMqtt } from './composables/useMqtt'
 
-// Composables
+// Database
 const { loadDbSize } = useDatabase()
+
+// Modules
 const { modules, error: modulesError, loadModules, addModuleFromTopic } = useModules()
 
+// Module data (device status & sensor data)
 const { getModuleDeviceStatus, getModuleSensorData, handleModuleMessage, loadModuleDashboard } =
   useModulesData()
 
+// Dashboard
 const {
   isLoading: dashboardLoading,
   error: dashboardError,
   loadDashboard: fetchDashboard,
 } = useDashboard()
 
-// État local
+// Local state
 const isInitialLoading = ref(true)
 const isLoading = computed(() => isInitialLoading.value || dashboardLoading.value)
 const error = computed(() => modulesError.value || dashboardError.value)
 
-// Gestion des messages MQTT
-const handleMqttMessage = (message: any) => {
-  // Extraire le moduleId du topic
+/**
+ * Handle incoming MQTT message
+ * Extracts module ID and routes message to appropriate handler
+ */
+const handleMqttMessage = (message: MqttMessage): void => {
   const topicParts = message.topic.split('/')
   if (topicParts.length < 2) return
 
   const moduleId = topicParts[0]
 
-  // Ajouter le module s'il n'existe pas
+  // Add module if it doesn't exist
   addModuleFromTopic(message.topic)
 
-  // Traiter le message pour ce module
+  // Process message for this module
   handleModuleMessage(moduleId, message)
 }
 
-// Connexion MQTT
+// MQTT connection
 const { connect: connectMqtt, disconnect: disconnectMqtt } = useMqtt({
   onMessage: handleMqttMessage,
 })
 
-// Charger le dashboard pour tous les modules
-const loadAllDashboards = async () => {
-  const promises = modules.value.map(async module => {
+/**
+ * Load dashboard data for all modules
+ */
+const loadAllDashboards = async (): Promise<void> => {
+  const promises = modules.value.map(async (module) => {
     const result = await fetchDashboard(module.id)
     if (result) {
       loadModuleDashboard(module.id, result)
@@ -102,24 +116,26 @@ const loadAllDashboards = async () => {
   await Promise.all(promises)
 }
 
-// Recharger la page
-const reloadPage = () => {
+/**
+ * Reload the page (used for error recovery)
+ */
+const reloadPage = (): void => {
   if (typeof window !== 'undefined') {
     window.location.reload()
   }
 }
 
-// Initialisation
+// Initialization
 onMounted(async () => {
   isInitialLoading.value = true
 
-  // Charger les modules et la taille de la DB en parallèle
+  // Load modules and DB size in parallel
   await Promise.all([loadModules(), loadDbSize()])
 
-  // Connecter MQTT
+  // Connect to MQTT
   connectMqtt()
 
-  // Charger les dashboards de tous les modules
+  // Load dashboards for all modules
   await loadAllDashboards()
 
   isInitialLoading.value = false

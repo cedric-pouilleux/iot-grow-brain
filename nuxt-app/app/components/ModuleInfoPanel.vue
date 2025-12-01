@@ -1,3 +1,5 @@
+
+
 <template>
   <div v-if="isOpen" class="border-b border-gray-100 bg-gray-50 p-4 animate-fade-in">
     <div class="flex items-center justify-center gap-6">
@@ -275,6 +277,10 @@
 
 <script setup lang="ts">
 import type { DeviceStatus } from '../types'
+import { formatSize } from '../utils/format'
+import { getHardwareModel } from '../utils/hardware'
+import { calculateStoragePrediction } from '../utils/storage'
+import { useStorageCalculations } from '../composables/useStorageCalculations'
 
 const props = defineProps<{
   isOpen: boolean
@@ -283,67 +289,38 @@ const props = defineProps<{
   moduleId: string
 }>()
 
+// Computed device status ref for composable
+const deviceStatusRef = computed(() => props.deviceStatus)
+
+// Use shared storage calculations
+const { flashPercentages, ramPercentages } = useStorageCalculations(deviceStatusRef)
+
+// UI state
 const openDropdown = ref<'hardware' | 'network' | 'storage' | 'config' | null>(null)
 
+// Watch for panel close to reset dropdown
 watch(
   () => props.isOpen,
-  isOpen => {
+  (isOpen) => {
     if (!isOpen) {
       openDropdown.value = null
     }
   }
 )
 
-const formatSize = (kb: number | undefined | null): string => {
-  if (kb === null || kb === undefined) return '--'
-  if (kb < 1024) return kb + ' KB'
-  if (kb < 1024 * 1024) return (kb / 1024).toFixed(1) + ' MB'
-  return (kb / (1024 * 1024)).toFixed(2) + ' GB'
-}
+// Hardware
+const hardwareModel = computed(() => getHardwareModel(props.deviceStatus?.hardware?.chip))
 
-const hardwareModel = computed(() => {
-  const model = props.deviceStatus?.hardware?.chip?.model || '--'
-  const rev = props.deviceStatus?.hardware?.chip?.rev
-  if (rev) {
-    return `${model} [Rev ${rev}]`
-  }
-  return model
-})
+// Flash storage (using shared calculations)
+const flashSketchPercent = computed(() => flashPercentages.value.sketchPercent)
+const flashOtaPercent = computed(() => flashPercentages.value.otaPercent)
+const flashSystemPercent = computed(() => flashPercentages.value.systemPercent)
 
-const flashSketchPercent = computed(() => {
-  const total = props.deviceStatus?.hardware?.chip?.flashKb
-  const used = props.deviceStatus?.system?.flash?.usedKb
-  if (!total || !used) return 0
-  return (used / total) * 100
-})
+// RAM (using shared calculations)
+const heapUsedPercent = computed(() => ramPercentages.value.usedPercent)
+const usedHeap = computed(() => ramPercentages.value.usedKb)
 
-const flashOtaPercent = computed(() => {
-  const total = props.deviceStatus?.hardware?.chip?.flashKb
-  const free = props.deviceStatus?.system?.flash?.freeKb
-  if (!total || !free) return 0
-  return (free / total) * 100
-})
-
-const flashSystemPercent = computed(() => {
-  const total = props.deviceStatus?.hardware?.chip?.flashKb
-  const sys = props.deviceStatus?.system?.flash?.systemKb
-  if (!total || !sys) return 0
-  return (sys / total) * 100
-})
-
-const usedHeap = computed(() => {
-  const total = props.deviceStatus?.system?.memory?.heapTotalKb
-  const free = props.deviceStatus?.system?.memory?.heapFreeKb
-  if (!total || free === undefined) return 0
-  return total - free
-})
-
-const heapUsedPercent = computed(() => {
-  const total = props.deviceStatus?.system?.memory?.heapTotalKb
-  if (!total || !usedHeap.value) return 0
-  return (usedHeap.value / total) * 100
-})
-
+// Click outside handler
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement
   if (!target.closest('.relative')) {
@@ -359,6 +336,7 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 
+// Configuration
 const config = ref({
   co2: 60,
   temperature: 60,
@@ -367,9 +345,10 @@ const config = ref({
 
 const saving = ref(false)
 
+// Watch for sensor config changes
 watch(
   () => props.deviceStatus,
-  status => {
+  (status) => {
     if (status?.sensorsConfig?.sensors) {
       if (status.sensorsConfig.sensors.co2?.interval)
         config.value.co2 = status.sensorsConfig.sensors.co2.interval
@@ -382,20 +361,12 @@ watch(
   { immediate: true }
 )
 
+// Storage prediction using shared utility
 const calculateStorage = (years: number, compressed: boolean) => {
-  const secondsPerYear = 365 * 24 * 3600
-  const bytesPerRecord = 37
-
-  const recordsCo2 = secondsPerYear / config.value.co2
-  const recordsTemp = secondsPerYear / config.value.temperature
-  const recordsHum = secondsPerYear / config.value.humidity
-
-  const totalRecords = (recordsCo2 + recordsTemp + recordsHum) * years
-  const totalBytes = totalRecords * bytesPerRecord
-
-  return compressed ? totalBytes * 0.1 : totalBytes
+  return calculateStoragePrediction(config.value, years, compressed)
 }
 
+// Save configuration
 const saveConfig = async () => {
   if (!props.moduleId) return
 

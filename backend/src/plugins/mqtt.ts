@@ -35,7 +35,7 @@ export default fp(async (fastify: FastifyInstance) => {
     if (measurementBuffer.length === 0) return
 
     const batch = [...measurementBuffer]
-    measurementBuffer = []
+    measurementBuffer.length = 0
 
     try {
       await mqttRepo.insertMeasurementsBatch(batch)
@@ -51,7 +51,7 @@ export default fp(async (fastify: FastifyInstance) => {
     if (statusUpdateBuffer.length === 0) return
 
     const batch = [...statusUpdateBuffer]
-    statusUpdateBuffer = []
+    statusUpdateBuffer.length = 0
 
     for (const update of batch) {
       try {
