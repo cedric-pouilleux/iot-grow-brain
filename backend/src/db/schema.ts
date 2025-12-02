@@ -6,6 +6,7 @@ import {
   timestamp,
   boolean,
   primaryKey,
+  index,
 } from 'drizzle-orm/pg-core'
 
 // --- Devices & Status ---
@@ -83,6 +84,7 @@ export const measurements = pgTable(
   table => {
     return {
       pk: primaryKey({ columns: [table.time, table.moduleId, table.sensorType] }),
+      moduleIdTimeIdx: index('measurements_module_id_time_idx').on(table.moduleId, table.time),
     }
   }
 )
