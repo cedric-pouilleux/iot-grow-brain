@@ -12,7 +12,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:reset": "node scripts/reset-db.js",
-    "migrate": "node -r dotenv/config scripts/run-migration.js",
+    "migrate": "node dist/scripts/run-migrations.js",
     "migrate:status": "psql -h localhost -U postgres -d iot_data -c 'SELECT * FROM table_sizes;'",
     "migrate:rollback": "echo 'Restore from backup: psql -h localhost -U postgres -d iot_data < backups/backup_YYYYMMDD_HHMMSS.sql'",
     "lint": "eslint .",

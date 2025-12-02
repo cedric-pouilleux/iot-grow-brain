@@ -98,7 +98,7 @@
       </div>
 
       <!-- Logs Table -->
-      <div class="bg-white rounded-lg shadow overflow-hidden">
+      <div class="bg-white rounded-lg shadow">
         <div v-if="loading" class="p-8 text-center">
           <div
             class="animate-spin w-8 h-8 border-2 border-gray-300 border-t-emerald-500 rounded-full mx-auto mb-4"
@@ -120,74 +120,67 @@
           Aucun log trouvé
         </div>
 
-        <div v-else class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Temps
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Catégorie
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Niveau
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Message
-                </th>
-                <th
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Détails
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="log in logs" :key="log.id" class="hover:bg-gray-50 transition-colors">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {{ formatTime(log.time) }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    :class="getCategoryClass(log.category)"
-                    class="px-2 py-1 text-xs font-medium rounded-full"
+        <div v-else class="space-y-6">
+          <div
+            v-for="dayGroup in groupedLogs"
+            :key="dayGroup.date"
+            class="border border-gray-200 rounded-lg"
+          >
+            <div class="bg-gray-100 px-4 py-2 border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+              <h3 class="text-sm font-semibold text-gray-700">{{ dayGroup.title }}</h3>
+            </div>
+            <div>
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50 sticky z-20">
+                  <tr>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Heure</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Catégorie</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Niveau</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Message</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr
+                    v-for="log in dayGroup.logs"
+                    :key="log.id"
+                    class="hover:bg-gray-50 transition-colors"
                   >
-                    {{ log.category }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    :class="getLevelClass(log.level)"
-                    class="px-2 py-1 text-xs font-medium rounded-full"
-                  >
-                    {{ log.level }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-900">
-                  {{ log.msg }}
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-500">
-                  <button
-                    v-if="log.details && Object.keys(log.details).length > 0"
-                    class="text-emerald-600 hover:text-emerald-800"
-                    @click="selectedLog = log"
-                  >
-                    Voir
-                  </button>
-                  <span v-else class="text-gray-400">-</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                    <td class="px-3 py-1 whitespace-nowrap text-xs text-gray-500">
+                      {{ formatTimeOnly(log.time) }}
+                    </td>
+                    <td class="px-3 py-1 whitespace-nowrap">
+                      <span
+                        :class="getCategoryClass(log.category)"
+                        class="px-1.5 py-0.5 text-xs font-medium"
+                      >
+                        {{ formatCategory(log.category) }}
+                      </span>
+                    </td>
+                    <td class="px-3 py-1 whitespace-nowrap">
+                      <span
+                        :class="getLevelClass(log.level)"
+                        class="px-1.5 py-0.5 text-xs font-medium"
+                      >
+                        {{ log.level }}
+                      </span>
+                    </td>
+                    <td
+                      class="px-3 py-1 text-xs text-gray-900 relative group"
+                      :title="getTooltipText(log)"
+                    >
+                      <span class="cursor-help">{{ log.msg }}</span>
+                      <div
+                        v-if="log.details && Object.keys(log.details).length > 0"
+                        class="absolute left-0 top-full mt-1 hidden group-hover:block z-50 bg-gray-900 text-white text-xs rounded px-3 py-2 max-w-md shadow-lg"
+                      >
+                        <pre class="whitespace-pre-wrap">{{ formatDetails(log.details) }}</pre>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         <!-- Pagination -->
@@ -353,28 +346,113 @@ const formatTime = (time: string) => {
   return new Date(time).toLocaleString('fr-FR')
 }
 
+const formatTimeOnly = (time: string) => {
+  return new Date(time).toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
+const formatDateTitle = (date: Date) => {
+  const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+  const months = [
+    'Janvier',
+    'Février',
+    'Mars',
+    'Avril',
+    'Mai',
+    'Juin',
+    'Juillet',
+    'Août',
+    'Septembre',
+    'Octobre',
+    'Novembre',
+    'Décembre',
+  ]
+
+  const dayName = days[date.getDay()]
+  const day = date.getDate()
+  const month = months[date.getMonth()]
+
+  return `${dayName} ${day} ${month}`
+}
+
+const formatDetails = (details: Record<string, unknown>) => {
+  return JSON.stringify(details, null, 2)
+}
+
+const getTooltipText = (log: LogEntry) => {
+  if (log.details && Object.keys(log.details).length > 0) {
+    return 'Survolez pour voir les détails'
+  }
+  return ''
+}
+
+const groupedLogs = computed(() => {
+  const groups: Record<
+    string,
+    {
+      date: string
+      title: string
+      logs: LogEntry[]
+    }
+  > = {}
+
+  logs.value.forEach(log => {
+    const date = new Date(log.time)
+    const dateKey = date.toISOString().split('T')[0] // YYYY-MM-DD
+
+    if (!groups[dateKey]) {
+      groups[dateKey] = {
+        date: dateKey,
+        title: formatDateTitle(date),
+        logs: [],
+      }
+    }
+
+    groups[dateKey].logs.push(log)
+  })
+
+  // Trier par date décroissante
+  return Object.values(groups).sort((a, b) => {
+    return new Date(b.date).getTime() - new Date(a.date).getTime()
+  })
+})
+
+const formatCategory = (category: string) => {
+  // Convertir en format lisible (première lettre majuscule, reste minuscule)
+  if (category === 'ESP32') return 'ESP32'
+  if (category === 'MQTT') return 'MQTT'
+  if (category === 'DB') return 'DB'
+  if (category === 'API') return 'API'
+  if (category === 'SYSTEM') return 'System'
+  if (category === 'WEBSOCKET') return 'WebSocket'
+  return category.charAt(0) + category.slice(1).toLowerCase()
+}
+
 const getLevelClass = (level: string) => {
   const classes = {
-    trace: 'bg-gray-100 text-gray-800',
-    debug: 'bg-blue-100 text-blue-800',
-    info: 'bg-emerald-100 text-emerald-800',
-    warn: 'bg-yellow-100 text-yellow-800',
-    error: 'bg-red-100 text-red-800',
-    fatal: 'bg-purple-100 text-purple-800',
+    trace: 'text-gray-500',
+    debug: 'text-blue-500',
+    info: 'text-emerald-500',
+    warn: 'text-amber-500',
+    error: 'text-red-500',
+    fatal: 'text-purple-500',
   }
-  return classes[level as keyof typeof classes] || 'bg-gray-100 text-gray-800'
+  return classes[level as keyof typeof classes] || 'text-gray-500'
 }
 
 const getCategoryClass = (category: string) => {
   const classes = {
-    ESP32: 'bg-indigo-100 text-indigo-800',
-    MQTT: 'bg-orange-100 text-orange-800',
-    DB: 'bg-cyan-100 text-cyan-800',
-    API: 'bg-pink-100 text-pink-800',
-    SYSTEM: 'bg-slate-100 text-slate-800',
-    WEBSOCKET: 'bg-violet-100 text-violet-800',
+    ESP32: 'text-indigo-500',
+    MQTT: 'text-orange-500',
+    DB: 'text-cyan-500',
+    API: 'text-pink-500',
+    SYSTEM: 'text-slate-500',
+    WEBSOCKET: 'text-violet-500',
   }
-  return classes[category as keyof typeof classes] || 'bg-gray-100 text-gray-800'
+  return classes[category as keyof typeof classes] || 'text-gray-500'
 }
 
 const confirmDeleteAll = () => {

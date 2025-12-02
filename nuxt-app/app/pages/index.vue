@@ -107,7 +107,7 @@ const { connect: connectMqtt, disconnect: disconnectMqtt } = useMqtt({
  * Load dashboard data for all modules
  */
 const loadAllDashboards = async (): Promise<void> => {
-  const promises = modules.value.map(async (module) => {
+  const promises = modules.value.map(async module => {
     const result = await fetchDashboard(module.id)
     if (result) {
       loadModuleDashboard(module.id, result)
