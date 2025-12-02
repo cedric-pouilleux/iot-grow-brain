@@ -33,26 +33,55 @@ export default fp(async (fastify: FastifyInstance) => {
 
   async function flushMeasurements() {
     if (measurementBuffer.length === 0) {
-      fastify.log.debug(`⏭️  Flush skipped: buffer is empty`)
       return
     }
 
     const batch = [...measurementBuffer]
-    const bufferSize = measurementBuffer.length
     measurementBuffer.length = 0
 
-    fastify.log.info(`🔄 Flushing ${batch.length} measurements from buffer...`)
+    // Group by device for better logging
+    const byDevice = batch.reduce((acc, m) => {
+      if (!acc[m.moduleId]) acc[m.moduleId] = []
+      acc[m.moduleId].push(m)
+      return acc
+    }, {} as Record<string, typeof batch>)
+
+    const deviceSummaries = Object.entries(byDevice).map(([moduleId, measurements]) => {
+      const sensors = measurements.map(m => `${m.sensorType}=${m.value}`).join(', ')
+      return `${moduleId} (${measurements.length}: ${sensors})`
+    })
+
+    fastify.log.info({
+      msg: `[DB] Flushing ${batch.length} measurements: ${deviceSummaries.join(' | ')}`,
+      count: batch.length,
+      devices: Object.keys(byDevice),
+      measurements: byDevice,
+    })
 
     try {
       await mqttRepo.insertMeasurementsBatch(batch)
-      fastify.log.info(`✅ Successfully inserted ${batch.length} measurements into database`)
+      
+      const deviceList = Object.entries(byDevice)
+        .map(([id, m]) => `${id}(${m.length})`)
+        .join(', ')
+      
+      fastify.log.info({
+        msg: `[DB] Inserted ${batch.length} measurements: ${deviceList}`,
+        count: batch.length,
+        devices: Object.keys(byDevice),
+        deviceCounts: Object.fromEntries(
+          Object.entries(byDevice).map(([id, m]) => [id, m.length])
+        ),
+      })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      fastify.log.error(`❌ Batch Insert Error: ${errorMessage}`)
-      fastify.log.error(`❌ Failed batch details: ${JSON.stringify(batch.slice(0, 3))}`)
+      fastify.log.error({
+        msg: `[DB] Batch insert failed: ${errorMessage}`,
+        error: errorMessage,
+        count: batch.length,
+      })
       // Remettre les mesures dans le buffer en cas d'erreur (pour réessayer plus tard)
       measurementBuffer.unshift(...batch)
-      fastify.log.warn(`⚠️  ${bufferSize} measurements put back in buffer for retry`)
     }
   }
 
@@ -82,25 +111,29 @@ export default fp(async (fastify: FastifyInstance) => {
     void flushStatusUpdates()
   }, FLUSH_INTERVAL / 2)
 
-  // Log périodique de l'état du buffer (toutes les 30 secondes)
-  setInterval(() => {
-    if (measurementBuffer.length > 0) {
-      fastify.log.info(
-        `📊 Buffer status: ${measurementBuffer.length} measurements waiting to be flushed`
-      )
-    }
-  }, 30000)
-
   client.on('connect', () => {
-    fastify.log.info('✅ Connected to MQTT broker')
+    const subscribedTopics = ['#'] // We subscribe to all topics
     client.subscribe('#', err => {
-      if (!err) fastify.log.info('✅ Subscribed to all topics (#)')
+      if (err) {
+        fastify.log.error({ msg: '[MQTT] Subscription failed', error: err })
+      } else {
+        fastify.log.info({
+          msg: '[MQTT] Connected to broker and subscribed',
+          broker: config.mqtt.broker,
+          topics: subscribedTopics,
+          wildcardSubscription: true,
+        })
+      }
     })
     republishAllConfigs(fastify, mqttRepo)
   })
 
   client.on('error', err => {
-    fastify.log.error(`❌ MQTT connection error: ${err.message}`)
+    fastify.log.error({
+      msg: '[MQTT] Connection error',
+      error: err.message,
+      broker: config.mqtt.broker,
+    })
   })
 
   const messageHandler = new MqttMessageHandler(
@@ -121,11 +154,18 @@ export default fp(async (fastify: FastifyInstance) => {
   })
 
   fastify.decorate('mqtt', client)
-  fastify.decorate('publishConfig', (moduleId: string, config: ModuleConfig) => {
+    fastify.decorate('publishConfig', (moduleId: string, config: ModuleConfig) => {
     if (!client) return false
     const topic = `${moduleId}/sensors/config`
     const payload = JSON.stringify(config)
     client.publish(topic, payload, { retain: true, qos: 1 })
+    const sensorCount = Object.keys(config.sensors || {}).length
+    fastify.log.info({ 
+      msg: `📤 [MQTT] Published config to ${moduleId}`, 
+      moduleId, 
+      sensorCount,
+      config 
+    })
     return true
   })
 
@@ -174,9 +214,17 @@ async function republishAllConfigs(
       fastify.publishConfig(moduleId, config)
     }
 
-    fastify.log.info(`✅ Republished configs for ${Object.keys(configsByModule).length} modules`)
+    const moduleIds = Object.keys(configsByModule)
+    fastify.log.info({
+      msg: `[MQTT] Republished configs for ${moduleIds.length} modules: ${moduleIds.join(', ')}`,
+      count: moduleIds.length,
+      modules: moduleIds,
+    })
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-    fastify.log.error(`❌ Error republishing configs: ${errorMessage}`)
+    fastify.log.error({
+      msg: '[MQTT] Error republishing configs',
+      error: errorMessage,
+    })
   }
 }

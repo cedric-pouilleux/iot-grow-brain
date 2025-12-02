@@ -1,8 +1,8 @@
 import fp from 'fastify-plugin'
 import { Pool } from 'pg'
-import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres'
+import { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import * as schema from '../db/schema'
-import { config } from '../config/env'
+import { db, pool } from '../db/client'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -12,14 +12,21 @@ declare module 'fastify' {
 }
 
 export default fp(async fastify => {
-  const pool = new Pool(config.db)
-  const db = drizzle(pool, { schema })
-
   try {
-    await pool.connect()
-    fastify.log.info('✅ Database connected')
+    // Check connection
+    const result = await pool.query('SELECT version(), current_database()')
+    const version = result.rows[0]?.version || 'Unknown'
+    const database = result.rows[0]?.current_database || 'Unknown'
+    
+    fastify.log.info({
+      msg: `[DB] Connected to PostgreSQL`,
+      database,
+      host: pool.options.host,
+      port: pool.options.port,
+      version: version.split(' ')[0], // Just "PostgreSQL 14.x"
+    })
   } catch (err) {
-    fastify.log.error(err, '❌ Database connection failed')
+    fastify.log.error({ msg: '[DB] Connection failed', error: err })
     throw err
   }
 

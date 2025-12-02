@@ -122,6 +122,63 @@ export class MqttMessageHandler {
   }
 
   /**
+   * Handle device log messages
+   */
+  private handleDeviceLog(topic: string, payload: string, moduleId: string): boolean {
+    if (!topic.endsWith('/logs')) {
+      return false
+    }
+
+    try {
+      const logEntry = JSON.parse(payload)
+      const { level, msg, time } = logEntry
+
+      // Log to console to trace the flow (bypasses Pino to ensure we see it)
+      console.log(
+        `[MQTT DEBUG] Received ESP32 log: topic=${topic}, moduleId=${moduleId}, level=${level}, msg=${msg}`
+      )
+
+      const logData = {
+        msg: `[ESP32] ${msg}`,
+        moduleId,
+        deviceTime: time,
+        source: 'esp32',
+      }
+
+      // Use the appropriate Pino method based on the log level
+      const logLevel = (level || 'info').toLowerCase()
+      console.log(`[MQTT DEBUG] Calling Pino method: ${logLevel}`)
+      switch (logLevel) {
+        case 'trace':
+          this.fastify.log.trace(logData)
+          break
+        case 'debug':
+          this.fastify.log.debug(logData)
+          break
+        case 'warn':
+          this.fastify.log.warn(logData)
+          break
+        case 'error':
+          this.fastify.log.error(logData)
+          break
+        case 'fatal':
+          this.fastify.log.fatal(logData)
+          break
+        case 'info':
+        default:
+          this.fastify.log.info(logData)
+          break
+      }
+      console.log(`[MQTT DEBUG] Log sent to Pino successfully`)
+      return true
+    } catch (e) {
+      console.error(`[MQTT DEBUG] Failed to parse device log from ${topic}:`, e)
+      this.fastify.log.warn(`⚠️ [MQTT] Failed to parse device log from ${topic}: ${e}`)
+      return false
+    }
+  }
+
+  /**
    * Handle sensor measurement messages
    */
   private handleSensorMeasurement(
@@ -141,9 +198,13 @@ export class MqttMessageHandler {
       }
 
       this.measurementBuffer.push({ time: now, moduleId, sensorType, value })
-      this.fastify.log.info(
-        `📊 Measurement buffered: ${moduleId}/sensors/${sensorType} = ${value} (buffer: ${this.measurementBuffer.length})`
-      )
+      this.fastify.log.info({
+        msg: `[MQTT] Received ${sensorType}=${value} from ${moduleId}`,
+        moduleId,
+        sensorType,
+        value,
+        bufferSize: this.measurementBuffer.length,
+      })
 
       if (this.measurementBuffer.length >= 100) {
         void this.onMeasurementBufferFull()
@@ -167,9 +228,13 @@ export class MqttMessageHandler {
       }
 
       this.measurementBuffer.push({ time: now, moduleId, sensorType, value })
-      this.fastify.log.info(
-        `📊 Measurement buffered: ${moduleId}/${sensorType} = ${value} (buffer: ${this.measurementBuffer.length})`
-      )
+      this.fastify.log.info({
+        msg: `[MQTT] Received ${sensorType}=${value} from ${moduleId}`,
+        moduleId,
+        sensorType,
+        value,
+        bufferSize: this.measurementBuffer.length,
+      })
 
       if (this.measurementBuffer.length >= 100) {
         void this.onMeasurementBufferFull()
@@ -241,7 +306,17 @@ export class MqttMessageHandler {
     const now = new Date()
     const parsed = this.parseTopic(topic)
 
+    // Debug: log all /logs topics
+    if (topic.endsWith('/logs')) {
+      console.log(
+        `[MQTT DEBUG] Received message on /logs topic: ${topic}, payload: ${payload.substring(0, 200)}`
+      )
+    }
+
     if (!parsed) {
+      if (topic.endsWith('/logs')) {
+        console.log(`[MQTT DEBUG] Topic ${topic} was rejected by parseTopic`)
+      }
       return
     }
 
@@ -256,9 +331,15 @@ export class MqttMessageHandler {
       // Handled
     } else if (this.handleHardwareMessage(topic, payload, moduleId)) {
       // Handled
+    } else if (this.handleDeviceLog(topic, payload, moduleId)) {
+      // Handled
+      console.log(`[MQTT DEBUG] handleDeviceLog returned true for ${topic}`)
     } else if (this.handleSensorMeasurement(topic, payload, parsed, now)) {
       // Handled
     } else {
+      if (topic.endsWith('/logs')) {
+        console.log(`[MQTT DEBUG] Topic ${topic} was not handled by any handler`)
+      }
       this.fastify.log.info(`⚠️ Topic not processed: ${topic} (parts: ${parsed.parts.join(', ')})`)
     }
 

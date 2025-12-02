@@ -15,13 +15,19 @@ import dbPlugin from './plugins/db'
 import socketPlugin from './plugins/socket'
 import mqttPlugin from './plugins/mqtt'
 
+import { dbLoggerStream } from './lib/logger'
+
 // Routes
 import devicesRoutes from './modules/devices/routes'
 import systemRoutes from './modules/system/routes'
 
 export async function buildApp() {
   const app = fastify({
-    logger: true,
+    logger: {
+      stream: dbLoggerStream,
+      level: 'trace', // Capture all log levels including trace and debug
+    },
+    disableRequestLogging: true, // Disable automatic request logging (too verbose)
   }).withTypeProvider<ZodTypeProvider>()
 
   // Validation
@@ -59,9 +65,17 @@ export async function buildApp() {
   await app.register(socketPlugin)
   await app.register(mqttPlugin)
 
+  // Import log retention plugin dynamically
+  const logRetentionPlugin = await import('./plugins/log-retention')
+  await app.register(logRetentionPlugin.default)
+
   // Routes
   await app.register(devicesRoutes, { prefix: '/api' })
   await app.register(systemRoutes, { prefix: '/api' })
+
+  // Import logs routes dynamically
+  const logsRoutes = await import('./modules/system/logs-routes')
+  await app.register(logsRoutes.default, { prefix: '/api' })
 
   app.get('/health', async () => {
     return { status: 'ok' }

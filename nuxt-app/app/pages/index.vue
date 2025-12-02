@@ -1,0 +1,147 @@
+<template>
+  <div class="min-h-screen bg-gray-100 text-gray-800 p-4 sm:p-8">
+    <div class="max-w-7xl mx-auto">
+      <main>
+        <ClientOnly>
+          <div v-if="isLoading" class="text-center py-8">
+            <div
+              class="animate-spin w-8 h-8 border-2 border-gray-300 border-t-emerald-500 rounded-full mx-auto mb-4"
+            ></div>
+            <div class="text-gray-400">Chargement des modules...</div>
+          </div>
+
+          <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 m-4">
+            <div class="text-lg font-semibold mb-2 text-red-700">Erreur</div>
+            <div class="text-sm text-red-600">{{ error }}</div>
+            <button
+              class="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              @click="reloadPage"
+            >
+              Réessayer
+            </button>
+          </div>
+
+          <div v-else-if="modules.length === 0" class="text-center py-8 text-gray-500">
+            Aucun module trouvé
+          </div>
+
+          <div v-else class="space-y-6">
+            <ModulePanel
+              v-for="module in modules"
+              :key="module.id"
+              :module-id="module.id"
+              :module-name="module.name"
+              :device-status="getModuleDeviceStatus(module.id)"
+              :sensor-data="getModuleSensorData(module.id)"
+            />
+          </div>
+
+          <template #fallback>
+            <div class="p-8 text-center text-gray-500">Chargement...</div>
+          </template>
+        </ClientOnly>
+      </main>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+// Types
+import type { MqttMessage } from '../types'
+
+// Components
+import ModulePanel from '../components/ModulePanel.vue'
+
+// Composables
+import { useDatabase } from '../composables/useDatabase'
+import { useModules } from '../composables/useModules'
+import { useModulesData } from '../composables/useModulesData'
+import { useDashboard } from '../composables/useDashboard'
+import { useMqtt } from '../composables/useMqtt'
+
+// Database
+const { loadDbSize } = useDatabase()
+
+// Modules
+const { modules, error: modulesError, loadModules, addModuleFromTopic } = useModules()
+
+// Module data (device status & sensor data)
+const { getModuleDeviceStatus, getModuleSensorData, handleModuleMessage, loadModuleDashboard } =
+  useModulesData()
+
+// Dashboard
+const {
+  isLoading: dashboardLoading,
+  error: dashboardError,
+  loadDashboard: fetchDashboard,
+} = useDashboard()
+
+// Local state
+const isInitialLoading = ref(true)
+const isLoading = computed(() => isInitialLoading.value || dashboardLoading.value)
+const error = computed(() => modulesError.value || dashboardError.value)
+
+/**
+ * Handle incoming MQTT message
+ * Extracts module ID and routes message to appropriate handler
+ */
+const handleMqttMessage = (message: MqttMessage): void => {
+  const topicParts = message.topic.split('/')
+  if (topicParts.length < 2) return
+
+  const moduleId = topicParts[0]
+
+  // Add module if it doesn't exist
+  addModuleFromTopic(message.topic)
+
+  // Process message for this module
+  handleModuleMessage(moduleId, message)
+}
+
+// MQTT connection
+const { connect: connectMqtt, disconnect: disconnectMqtt } = useMqtt({
+  onMessage: handleMqttMessage,
+})
+
+/**
+ * Load dashboard data for all modules
+ */
+const loadAllDashboards = async (): Promise<void> => {
+  const promises = modules.value.map(async (module) => {
+    const result = await fetchDashboard(module.id)
+    if (result) {
+      loadModuleDashboard(module.id, result)
+    }
+  })
+  await Promise.all(promises)
+}
+
+/**
+ * Reload the page (used for error recovery)
+ */
+const reloadPage = (): void => {
+  if (typeof window !== 'undefined') {
+    window.location.reload()
+  }
+}
+
+// Initialization
+onMounted(async () => {
+  isInitialLoading.value = true
+
+  // Load modules and DB size in parallel
+  await Promise.all([loadModules(), loadDbSize()])
+
+  // Connect to MQTT
+  connectMqtt()
+
+  // Load dashboards for all modules
+  await loadAllDashboards()
+
+  isInitialLoading.value = false
+})
+
+onUnmounted(() => {
+  disconnectMqtt()
+})
+</script>
