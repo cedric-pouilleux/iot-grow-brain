@@ -346,7 +346,33 @@ export class MqttMessageHandler {
     // Broadcast via WebSocket
     const wsData = this.prepareWebSocketData(topic, payload, parsed, now)
     if (wsData && this.fastify.io) {
-      this.fastify.io.emit('mqtt:data', wsData)
+      const clientCount = this.fastify.io.sockets.sockets.size
+      if (clientCount > 0) {
+        this.fastify.io.emit('mqtt:data', wsData)
+
+        this.fastify.log.info({
+          msg: `[WEBSOCKET] Message sent to frontend - ${parsed.moduleId} - ${topic}`,
+          moduleId: parsed.moduleId,
+          topic,
+          value: wsData.value,
+        })
+      } else {
+        this.fastify.log.debug({
+          msg: '[WEBSOCKET] Message skipped (no clients connected)',
+          topic,
+          moduleId: parsed.moduleId,
+          category: parsed.category,
+          sensorType: parsed.sensorType,
+          payloadLength: payload.length,
+          payloadPreview: payload.length > 100 ? payload.substring(0, 100) + '...' : payload,
+          data: {
+            topic: wsData.topic,
+            value: wsData.value,
+            hasMetadata: !!wsData.metadata,
+            time: wsData.time,
+          },
+        })
+      }
     }
   }
 }

@@ -5,7 +5,7 @@ import { desc, and, gte, lte, like, or, eq } from 'drizzle-orm'
 import { systemLogs } from '../../db/schema'
 
 const LogsQuerySchema = z.object({
-  category: z.enum(['ESP32', 'MQTT', 'DB', 'API', 'SYSTEM']).optional(),
+  category: z.enum(['ESP32', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']).optional(),
   level: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).optional(),
   search: z.string().optional(),
   startDate: z.string().datetime().optional(),

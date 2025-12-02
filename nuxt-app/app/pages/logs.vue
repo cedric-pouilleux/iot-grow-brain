@@ -7,8 +7,8 @@
           <p class="text-gray-600 mt-2">Historique complet des événements système</p>
         </div>
         <button
-          @click="confirmDeleteAll"
           class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+          @click="confirmDeleteAll"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -43,6 +43,7 @@
               <option value="DB">DB</option>
               <option value="API">API</option>
               <option value="SYSTEM">System</option>
+              <option value="WEBSOCKET">WebSocket</option>
             </select>
           </div>
 
@@ -87,8 +88,8 @@
 
           <div class="flex items-end">
             <button
-              @click="loadLogs"
               class="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+              @click="loadLogs"
             >
               Rechercher
             </button>
@@ -108,8 +109,8 @@
         <div v-else-if="error" class="p-8 text-center text-red-600">
           <p>{{ error }}</p>
           <button
-            @click="loadLogs"
             class="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+            @click="loadLogs"
           >
             Réessayer
           </button>
@@ -177,8 +178,8 @@
                 <td class="px-6 py-4 text-sm text-gray-500">
                   <button
                     v-if="log.details && Object.keys(log.details).length > 0"
-                    @click="selectedLog = log"
                     class="text-emerald-600 hover:text-emerald-800"
+                    @click="selectedLog = log"
                   >
                     Voir
                   </button>
@@ -200,18 +201,18 @@
           </div>
           <div class="flex gap-2">
             <button
-              @click="previousPage"
               :disabled="offset === 0"
               :class="{ 'opacity-50 cursor-not-allowed': offset === 0 }"
               class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              @click="previousPage"
             >
               Précédent
             </button>
             <button
-              @click="nextPage"
               :disabled="offset + logs.length >= total"
               :class="{ 'opacity-50 cursor-not-allowed': offset + logs.length >= total }"
               class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              @click="nextPage"
             >
               Suivant
             </button>
@@ -234,8 +235,8 @@
             JSON.stringify(selectedLog.details, null, 2)
           }}</pre>
           <button
-            @click="selectedLog = null"
             class="mt-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+            @click="selectedLog = null"
           >
             Fermer
           </button>
@@ -256,15 +257,15 @@
           </p>
           <div class="flex gap-3 justify-end">
             <button
-              @click="showDeleteConfirm = false"
               class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+              @click="showDeleteConfirm = false"
             >
               Annuler
             </button>
             <button
-              @click="deleteAllLogs"
               :disabled="deleting"
               class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="deleteAllLogs"
             >
               {{ deleting ? 'Suppression...' : 'Supprimer' }}
             </button>
@@ -371,6 +372,7 @@ const getCategoryClass = (category: string) => {
     DB: 'bg-cyan-100 text-cyan-800',
     API: 'bg-pink-100 text-pink-800',
     SYSTEM: 'bg-slate-100 text-slate-800',
+    WEBSOCKET: 'bg-violet-100 text-violet-800',
   }
   return classes[category as keyof typeof classes] || 'bg-gray-100 text-gray-800'
 }
