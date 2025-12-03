@@ -25,6 +25,8 @@ export interface SensorData {
   temp: SensorDataPoint[]
   hum: SensorDataPoint[]
   voc: SensorDataPoint[]
+  pressure: SensorDataPoint[]
+  temperature_bmp: SensorDataPoint[]
 }
 
 export interface SensorStatus {
@@ -34,6 +36,7 @@ export interface SensorStatus {
 
 export interface SensorIntervalConfig {
   interval?: number
+  model?: string
 }
 
 export interface SensorsConfigData {
@@ -113,6 +116,8 @@ export interface DashboardSensorData {
   temp?: Array<{ time: string; value: number }>
   hum?: Array<{ time: string; value: number }>
   voc?: Array<{ time: string; value: number }>
+  pressure?: Array<{ time: string; value: number }>
+  temperature_bmp?: Array<{ time: string; value: number }>
 }
 
 export interface DashboardData {

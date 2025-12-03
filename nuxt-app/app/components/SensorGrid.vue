@@ -25,7 +25,7 @@ const props = defineProps({
   sensors: { type: Array, required: true },
   selectedGraphSensor: { type: String, default: null },
   deviceStatus: { type: Object, default: null },
-  sensorData: { type: Object, default: () => ({ co2: [], temp: [], hum: [] }) },
+  sensorData: { type: Object, default: () => ({ co2: [], temp: [], hum: [], voc: [], pressure: [], temperature_bmp: [] }) },
   moduleId: { type: String, default: null },
 })
 
@@ -59,6 +59,9 @@ const getHistory = type => {
     humidity: 'hum',
     temp: 'temp',
     hum: 'hum',
+    voc: 'voc',
+    pressure: 'pressure',
+    temperature_bmp: 'temperature_bmp',
   }
   const dataKey = typeMap[type] || type
   return props.sensorData?.[dataKey] || []

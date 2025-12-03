@@ -23,6 +23,7 @@ struct SensorConfig {
     unsigned long tempInterval = 60000;
     unsigned long humInterval = 60000;
     unsigned long vocInterval = 60000;
+    unsigned long pressureInterval = 60000;
 } sensorConfig;
 
 HardwareSerial co2Serial(2);
@@ -38,6 +39,7 @@ unsigned long lastCo2ReadTime = 0;
 unsigned long lastTempReadTime = 0;
 unsigned long lastHumReadTime = 0;
 unsigned long lastVocReadTime = 0;
+unsigned long lastPressureReadTime = 0;
 
 unsigned long lastSystemInfoTime = 0;
 unsigned long stabilizationStartTime = 0;
@@ -49,6 +51,8 @@ int lastCO2Value = 0;
 int lastVocValue = 0;
 float lastTemperature = 0.0;
 float lastHumidity = 0.0;
+float lastPressure = 0.0;
+float lastTempBmp = 0.0;
 bool lastDhtOk = false;
 static unsigned int lastDisconnectReason = 0;
 static bool disconnectLogged = false;
@@ -156,6 +160,18 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
                     }
                 }
             }
+
+            if (sensors.containsKey("pressure")) {
+                unsigned long interval = sensors["pressure"]["interval"];
+                if (interval >= 5) {
+                    sensorConfig.pressureInterval = interval * 1000;
+                    if (logger) {
+                        char msg[64];
+                        snprintf(msg, sizeof(msg), "Pressure interval: %lus", interval);
+                        logger->info(msg);
+                    }
+                }
+            }
         }
     }
 }
@@ -223,11 +239,11 @@ void setup() {
     Wire.begin(21, 22); // SDA=21, SCL=22
     if (logger) logger->debug("I2C initialized (SDA=21, SCL=22)");
     
-    // Initialize SGP40
+    // Initialize SGP40 & BMP280
     if (!sensorReader.begin()) {
-        if (logger) logger->error("SGP40 not found! Check wiring");
+        if (logger) logger->error("SGP40/BMP280 init failed! Check wiring");
     } else {
-        if (logger) logger->info("SGP40 VOC sensor initialized successfully");
+        if (logger) logger->info("SGP40 & BMP280 initialized successfully");
     }
     
     // Initialisation CO2 sensor
@@ -242,9 +258,9 @@ void setup() {
     // Configuration des intervalles par défaut
     if (logger) {
         char configInfo[128];
-        snprintf(configInfo, sizeof(configInfo), "Sensor intervals - CO2: %lus, Temp: %lus, Hum: %lus, VOC: %lus",
+        snprintf(configInfo, sizeof(configInfo), "Sensor intervals - CO2: %lus, Temp: %lus, Hum: %lus, VOC: %lus, Pres: %lus",
                  sensorConfig.co2Interval / 1000, sensorConfig.tempInterval / 1000,
-                 sensorConfig.humInterval / 1000, sensorConfig.vocInterval / 1000);
+                 sensorConfig.humInterval / 1000, sensorConfig.vocInterval / 1000, sensorConfig.pressureInterval / 1000);
         logger->debug(configInfo);
     }
     
@@ -255,6 +271,7 @@ void setup() {
     lastTempReadTime = millis() - sensorConfig.tempInterval;
     lastHumReadTime = millis() - sensorConfig.humInterval;
     lastVocReadTime = millis() - sensorConfig.vocInterval;
+    lastPressureReadTime = millis() - sensorConfig.pressureInterval;
     
     lastSystemInfoTime = millis() - SYSTEM_INFO_INTERVAL_MS;
 } 
@@ -342,6 +359,29 @@ void loop() {
             logger->debug(msg);
         }
     }
+
+    // --- LECTURE PRESSION & TEMP BMP ---
+    if (now - lastPressureReadTime >= sensorConfig.pressureInterval) {
+        Serial.println("[DEBUG] Entering BMP280 read block");
+        lastPressureReadTime = now;
+        float pressure = sensorReader.readPressure();
+        float tempBmp = sensorReader.readBMPTemperature();
+        
+        Serial.printf("[DEBUG] BMP280 values: P=%.1f, T=%.1f\n", pressure, tempBmp);
+        
+        lastPressure = pressure;
+        lastTempBmp = tempBmp;
+        
+        network.publishValue("/pressure", pressure);
+        // On publie aussi la température du BMP sur un topic dédié
+        network.publishValue("/temperature_bmp", tempBmp);
+        
+        if (logger) {
+            char msg[64];
+            snprintf(msg, sizeof(msg), "Published Pressure: %.1fhPa, TempBMP: %.1f°C", pressure, tempBmp);
+            logger->debug(msg);
+        }
+    }
     
     // On MQTT connection: publish all configs immediately and reset timer
     if (mqttJustConnected) {
@@ -356,7 +396,8 @@ void loop() {
         if (lastCO2Value > 0) {
             statusPublisher.publishSystemInfo();
             statusPublisher.publishSensorStatus(lastCO2Value, lastTemperature, 
-                                               lastHumidity, lastDhtOk, lastVocValue);
+                                               lastHumidity, lastDhtOk, lastVocValue,
+                                               lastPressure, lastTempBmp);
             if (lastVocValue > 0) network.publishVocIndex(lastVocValue);
             lastSystemInfoTime = now;
             if (logger) {
@@ -371,16 +412,17 @@ void loop() {
         lastSystemInfoTime = now;
         statusPublisher.publishSystemInfo();
         statusPublisher.publishSensorStatus(lastCO2Value, lastTemperature, 
-                                          lastHumidity, lastDhtOk, lastVocValue);
+                                          lastHumidity, lastDhtOk, lastVocValue,
+                                          lastPressure, lastTempBmp);
         if (logger) {
             char msg[128];
             if (lastDhtOk) {
-                snprintf(msg, sizeof(msg), "System status: RSSI=%lddBm, Mem=%dKB, CO2=%dppm, T=%.1f°C, H=%.1f%%, VOC=%d",
+                snprintf(msg, sizeof(msg), "System status: RSSI=%lddBm, Mem=%dKB, CO2=%dppm, T=%.1f°C, H=%.1f%%, VOC=%d, P=%.1fhPa, TBMP=%.1f°C",
                          network.getRSSI(), ESP.getFreeHeap() / 1024, lastCO2Value, 
-                         lastTemperature, lastHumidity, lastVocValue);
+                         lastTemperature, lastHumidity, lastVocValue, lastPressure, lastTempBmp);
             } else {
-                snprintf(msg, sizeof(msg), "System status: RSSI=%lddBm, Mem=%dKB, CO2=%dppm, DHT22=error, VOC=%d",
-                         network.getRSSI(), ESP.getFreeHeap() / 1024, lastCO2Value, lastVocValue);
+                snprintf(msg, sizeof(msg), "System status: RSSI=%lddBm, Mem=%dKB, CO2=%dppm, DHT22=error, VOC=%d, P=%.1fhPa, TBMP=%.1f°C",
+                         network.getRSSI(), ESP.getFreeHeap() / 1024, lastCO2Value, lastVocValue, lastPressure, lastTempBmp);
             }
             logger->debug(msg);
         }

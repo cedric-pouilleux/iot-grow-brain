@@ -15,7 +15,8 @@ public:
     void publishSystemInfo();
     void publishSystemConfig();
     void publishSensorStatus(int lastCO2Value, float lastTemperature, 
-                            float lastHumidity, bool lastDhtOk, int lastVocValue);
+                            float lastHumidity, bool lastDhtOk, int lastVocValue,
+                            float lastPressure, float lastTempBmp);
     void publishSensorConfig();
     void publishHardwareConfig();
     
@@ -26,7 +27,8 @@ private:
     
     String buildSystemJson(const SystemInfo& sysInfo, const String& psramStr);
     String buildSensorStatusJson(int lastCO2Value, float lastTemperature, 
-                                float lastHumidity, bool lastDhtOk, int lastVocValue);
+                                float lastHumidity, bool lastDhtOk, int lastVocValue,
+                                float lastPressure, float lastTempBmp);
 };
 
 #endif

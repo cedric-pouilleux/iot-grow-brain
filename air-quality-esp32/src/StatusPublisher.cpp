@@ -94,7 +94,8 @@ void StatusPublisher::publishHardwareConfig() {
 }
 
 String StatusPublisher::buildSensorStatusJson(int lastCO2Value, float lastTemperature, 
-                                              float lastHumidity, bool lastDhtOk, int lastVocValue) {
+                                              float lastHumidity, bool lastDhtOk, int lastVocValue,
+                                              float lastPressure, float lastTempBmp) {
     char sensorStatusMsg[400];
     snprintf(sensorStatusMsg, sizeof(sensorStatusMsg), 
         "{"
@@ -119,8 +120,12 @@ String StatusPublisher::buildSensorStatusJson(int lastCO2Value, float lastTemper
                 "\"value\":%d"
             "},"
             "\"pressure\":{"
-                "\"status\":\"missing\","
-                "\"value\":null"
+                "\"status\":\"ok\","
+                "\"value\":%.1f"
+            "},"
+            "\"temperature_bmp\":{"
+                "\"status\":\"ok\","
+                "\"value\":%.1f"
             "}"
         "}",
         lastCO2Value,
@@ -128,7 +133,9 @@ String StatusPublisher::buildSensorStatusJson(int lastCO2Value, float lastTemper
         lastTemperature,
         lastDhtOk ? "ok" : "error",
         lastHumidity,
-        lastVocValue
+        lastVocValue,
+        lastPressure,
+        lastTempBmp
     );
     return String(sensorStatusMsg);
 }
@@ -145,7 +152,9 @@ void StatusPublisher::publishSensorConfig() {
             "\"co2\":{\"model\":\"MH-Z14A\"},"
             "\"temperature\":{\"model\":\"DHT22\"},"
             "\"humidity\":{\"model\":\"DHT22\"},"
-            "\"voc\":{\"model\":\"SGP40\"}"
+            "\"voc\":{\"model\":\"SGP40\"},"
+            "\"pressure\":{\"model\":\"BMP280\"},"
+            "\"temperature_bmp\":{\"model\":\"BMP280\"}"
         "}"
     );
     
@@ -167,13 +176,15 @@ void StatusPublisher::publishSystemInfo() {
 }
 
 void StatusPublisher::publishSensorStatus(int lastCO2Value, float lastTemperature, 
-                                          float lastHumidity, bool lastDhtOk, int lastVocValue) {
+                                          float lastHumidity, bool lastDhtOk, int lastVocValue,
+                                          float lastPressure, float lastTempBmp) {
     if (!network.isConnected()) {
         return;
     }
 
     String sensorStatusMsg = buildSensorStatusJson(lastCO2Value, lastTemperature, 
-                                                   lastHumidity, lastDhtOk, lastVocValue);
+                                                   lastHumidity, lastDhtOk, lastVocValue,
+                                                   lastPressure, lastTempBmp);
     // Ne pas utiliser retained pour les données dynamiques (valeurs changent souvent)
     network.publishMessage("/sensors/status", sensorStatusMsg.c_str(), false);
 }

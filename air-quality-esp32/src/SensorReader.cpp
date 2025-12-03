@@ -7,7 +7,14 @@ SensorReader::SensorReader(HardwareSerial& co2Serial, DHT_Unified& dht)
 }
 
 bool SensorReader::begin() {
-    return sgp.begin();
+    bool sgpSuccess = sgp.begin();
+    bool bmpSuccess = bmp.begin(0x76); // Adresse I2C par défaut du BMP280 (parfois 0x77)
+    
+    if (!bmpSuccess) {
+        Serial.println("Could not find a valid BMP280 sensor, check wiring!");
+    }
+    
+    return sgpSuccess; // On retourne le statut SGP pour compatibilité, mais on loggue BMP
 }
 
 int SensorReader::readVocIndex() {
@@ -33,6 +40,14 @@ int SensorReader::readVocIndex() {
     }
     
     return voc;
+}
+
+float SensorReader::readPressure() {
+    return bmp.readPressure() / 100.0F; // Conversion Pa -> hPa
+}
+
+float SensorReader::readBMPTemperature() {
+    return bmp.readTemperature();
 }
 
 int SensorReader::readCO2() {

@@ -10,6 +10,7 @@ export type SensorType =
   | 'pm25'
   | 'voc'
   | 'pressure'
+  | 'temperature_bmp'
 
 /**
  * Obtient le label affiché pour un type de capteur
@@ -20,6 +21,7 @@ export function getSensorLabel(type: string): string {
   const map: Record<string, string> = {
     co2: 'CO2',
     temperature: 'Température',
+    temperature_bmp: 'Temp BMP',
     temp: 'Température',
     humidity: 'Humidité',
     hum: 'Humidité',
@@ -39,6 +41,7 @@ export function getSensorColor(type: string): string {
   const map: Record<string, string> = {
     co2: '#10b981',
     temperature: '#f97316',
+    temperature_bmp: '#ea580c', // Darker orange
     temp: '#f97316',
     humidity: '#3b82f6',
     hum: '#3b82f6',
@@ -58,6 +61,7 @@ export function getSensorUnit(type: string): string {
   const unitMap: Record<string, string> = {
     co2: 'ppm',
     temperature: '°C',
+    temperature_bmp: '°C',
     temp: '°C',
     humidity: '%',
     hum: '%',

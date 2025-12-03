@@ -5,12 +5,22 @@ const SENSOR_TOPICS = {
   '/co2': 'co2',
   '/temperature': 'temp',
   '/humidity': 'hum',
+  '/voc': 'voc',
+  '/pressure': 'pressure',
+  '/temperature_bmp': 'temperature_bmp',
 } as const
 
 const MAX_DATA_POINTS = 100
 
 export const useSensorData = () => {
-  const sensorData = ref<SensorData>({ co2: [], temp: [], hum: [] })
+  const sensorData = ref<SensorData>({
+    co2: [],
+    temp: [],
+    hum: [],
+    voc: [],
+    pressure: [],
+    temperature_bmp: [],
+  })
 
   const addDataPoint = (topic: string, value: number, time: string) => {
     const sensorKey = Object.entries(SENSOR_TOPICS).find(([suffix]) =>
@@ -35,11 +45,14 @@ export const useSensorData = () => {
     return false
   }
 
-  const loadFromDashboard = (dashboardSensors: any) => {
+  const loadFromDashboard = (dashboardSensors: Partial<SensorData> | undefined) => {
     sensorData.value = {
       co2: processSensorData(dashboardSensors?.co2 || []),
       temp: processSensorData(dashboardSensors?.temp || []),
       hum: processSensorData(dashboardSensors?.hum || []),
+      voc: processSensorData(dashboardSensors?.voc || []),
+      pressure: processSensorData(dashboardSensors?.pressure || []),
+      temperature_bmp: processSensorData(dashboardSensors?.temperature_bmp || []),
     }
   }
 
@@ -50,6 +63,9 @@ export const useSensorData = () => {
       humidity: 'hum',
       temp: 'temp',
       hum: 'hum',
+      voc: 'voc',
+      pressure: 'pressure',
+      temperature_bmp: 'temperature_bmp',
     }
     const dataKey = typeMap[type] || type
     return sensorData.value[dataKey as keyof SensorData] || []

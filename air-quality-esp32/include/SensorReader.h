@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <DHT_U.h>
 #include <Adafruit_SGP40.h>
+#include <Adafruit_BMP280.h>
 #include "SensorData.h"
 
 class SensorReader {
@@ -13,12 +14,15 @@ public:
     bool begin();
     int readCO2();
     int readVocIndex();
+    float readPressure();
+    float readBMPTemperature();
     DhtReading readDhtSensors();
     
 private:
     HardwareSerial& co2Serial;
     DHT_Unified& dht;
     Adafruit_SGP40 sgp;
+    Adafruit_BMP280 bmp;
     static const uint8_t CO2_READ_CMD[9];
 };
 

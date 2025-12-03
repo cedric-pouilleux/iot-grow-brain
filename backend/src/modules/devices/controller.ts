@@ -156,6 +156,8 @@ export class DeviceController {
         temp: [],
         hum: [],
         voc: [],
+        pressure: [],
+        temperature_bmp: [],
       }
 
       historyRows.forEach(row => {
@@ -176,7 +178,7 @@ export class DeviceController {
       })
 
       this.fastify.log.info(
-        `📊 Processed historical data: co2=${sensorsData.co2.length}, temp=${sensorsData.temp.length}, hum=${sensorsData.hum.length}, voc=${sensorsData.voc.length}`
+        `📊 Processed historical data: co2=${sensorsData.co2.length}, temp=${sensorsData.temp.length}, hum=${sensorsData.hum.length}, voc=${sensorsData.voc.length}, pressure=${sensorsData.pressure.length}, temperature_bmp=${sensorsData.temperature_bmp.length}`
       )
 
       const response: ModuleDataResponse = {
@@ -185,7 +187,9 @@ export class DeviceController {
             co2: sensorsData.co2,
             temp: sensorsData.temp,
             hum: sensorsData.hum,
-            voc: sensorsData.voc
+            voc: sensorsData.voc,
+            pressure: sensorsData.pressure,
+            temperature_bmp: sensorsData.temperature_bmp,
         },
       }
       return response

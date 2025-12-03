@@ -62,7 +62,7 @@ export interface DeviceStatus {
   hardware?: HardwareInfo
   sensors?: Record<string, SensorStatusInfo>
   sensorsConfig?: {
-    sensors: Record<string, SensorConfigInfo>
+    sensors: Record<string, SensorConfigInfo> 
   }
 }
 
@@ -77,8 +77,10 @@ export interface ModuleDataResponse {
     co2: SensorDataPoint[]
     temp: SensorDataPoint[]
     hum: SensorDataPoint[]
-    voc: SensorDataPoint[]
-  }
+    voc: SensorDataPoint[] 
+    pressure: SensorDataPoint[]
+    temperature_bmp: SensorDataPoint[]
+  }  
 }
 
 export interface ModuleListItem {

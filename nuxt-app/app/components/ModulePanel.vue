@@ -68,7 +68,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  sensorData: () => ({ co2: [], temp: [], hum: [], voc: [] }),
+  sensorData: () => ({ co2: [], temp: [], hum: [], voc: [], pressure: [], temperature_bmp: [] }),
 })
 
 const getSensorData = (sensorName: string) => {
@@ -103,6 +103,7 @@ const toggleGraph = (sensorType: string) => {
 const sensorTypes = [
   { key: 'co2', label: 'CO2', color: 'emerald' },
   { key: 'temperature', label: 'Température', color: 'orange' },
+  { key: 'temperature_bmp', label: 'Temp BMP', color: 'orange' },
   { key: 'humidity', label: 'Humidité', color: 'blue' },
   { key: 'pm25', label: 'PM2.5', color: 'violet' },
   { key: 'voc', label: 'COV', color: 'pink' },
@@ -130,6 +131,8 @@ const getSensorHistory = (type: string) => {
   if (normalizedType === 'temp') return props.sensorData.temp
   if (normalizedType === 'hum') return props.sensorData.hum
   if (normalizedType === 'voc') return props.sensorData.voc
+  if (normalizedType === 'pressure') return props.sensorData.pressure
+  if (normalizedType === 'temperature_bmp') return props.sensorData.temperature_bmp
   return []
 }
 </script>

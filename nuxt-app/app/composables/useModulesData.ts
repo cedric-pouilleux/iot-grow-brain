@@ -34,7 +34,7 @@ export const useModulesData = () => {
    * Get sensor data for a specific module
    */
   const getModuleSensorData = (moduleId: string): SensorData => {
-    return modulesSensorData.value.get(moduleId) || { co2: [], temp: [], hum: [], voc: [] }
+    return modulesSensorData.value.get(moduleId) || { co2: [], temp: [], hum: [], voc: [], pressure: [], temperature_bmp: [] }
   }
 
   /**
@@ -50,7 +50,7 @@ export const useModulesData = () => {
       })
     }
     if (!modulesSensorData.value.has(moduleId)) {
-      modulesSensorData.value.set(moduleId, { co2: [], temp: [], hum: [], voc: [] })
+      modulesSensorData.value.set(moduleId, { co2: [], temp: [], hum: [], voc: [], pressure: [], temperature_bmp: [] })
     }
   }
 
@@ -177,6 +177,8 @@ export const useModulesData = () => {
         temp: processSensorData(dashboardData.sensors?.temp || []) as SensorDataPoint[],
         hum: processSensorData(dashboardData.sensors?.hum || []) as SensorDataPoint[],
         voc: processSensorData(dashboardData.sensors?.voc || []) as SensorDataPoint[],
+        pressure: processSensorData(dashboardData.sensors?.pressure || []) as SensorDataPoint[],
+        temperature_bmp: processSensorData(dashboardData.sensors?.temperature_bmp || []) as SensorDataPoint[],
       }
 
       modulesSensorData.value.set(moduleId, {
@@ -184,6 +186,8 @@ export const useModulesData = () => {
         temp: mergeSensorData(existingData.temp, newData.temp),
         hum: mergeSensorData(existingData.hum, newData.hum),
         voc: mergeSensorData(existingData.voc, newData.voc),
+        pressure: mergeSensorData(existingData.pressure, newData.pressure),
+        temperature_bmp: mergeSensorData(existingData.temperature_bmp, newData.temperature_bmp),
       })
     }
   }

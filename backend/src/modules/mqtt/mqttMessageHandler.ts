@@ -215,7 +215,14 @@ export class MqttMessageHandler {
     // Format: module_id/sensor_type (ESP32 format)
     if (parts.length === 2) {
       const sensorType = parts[1]
-      const validTypes = ['co2', 'temperature', 'humidity', 'voc']
+      const validTypes = ['co2', 'temperature', 'humidity', 'voc', 'pressure', 'temperature_bmp']
+
+      // Debug log for pressure and temperature_bmp
+      if (sensorType === 'pressure' || sensorType === 'temperature_bmp') {
+        console.log(
+          `[MQTT DEBUG] Checking ${sensorType} topic: ${topic}, payload: ${payload}, valid: ${validTypes.includes(sensorType)}`
+        )
+      }
 
       if (!validTypes.includes(sensorType)) {
         this.fastify.log.debug(`⚠️ Topic not a sensor measurement: ${topic} (value: ${payload})`)
@@ -224,6 +231,9 @@ export class MqttMessageHandler {
 
       const value = parseFloat(payload)
       if (isNaN(value)) {
+        if (sensorType === 'pressure' || sensorType === 'temperature_bmp') {
+          console.log(`[MQTT DEBUG] Invalid value for ${sensorType}: ${payload}`)
+        }
         return false
       }
 
@@ -235,6 +245,13 @@ export class MqttMessageHandler {
         value,
         bufferSize: this.measurementBuffer.length,
       })
+      
+      // Extra debug for pressure and temperature_bmp
+      if (sensorType === 'pressure' || sensorType === 'temperature_bmp') {
+        console.log(
+          `[MQTT DEBUG] ✅ Successfully processed ${sensorType}=${value} from ${moduleId}, buffer size: ${this.measurementBuffer.length}`
+        )
+      }
 
       if (this.measurementBuffer.length >= 100) {
         void this.onMeasurementBufferFull()
@@ -310,6 +327,13 @@ export class MqttMessageHandler {
     if (topic.endsWith('/logs')) {
       console.log(
         `[MQTT DEBUG] Received message on /logs topic: ${topic}, payload: ${payload.substring(0, 200)}`
+      )
+    }
+
+    // Debug: log pressure and temperature_bmp topics
+    if (topic.includes('/pressure') || topic.includes('/temperature_bmp')) {
+      console.log(
+        `[MQTT DEBUG] Received message on sensor topic: ${topic}, payload: ${payload}, parsed: ${parsed ? 'OK' : 'FAILED'}`
       )
     }
 

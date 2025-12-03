@@ -8,9 +8,15 @@
 import type { GetApiModulesIdData200SensorsCo2Item } from './getApiModulesIdData200SensorsCo2Item';
 import type { GetApiModulesIdData200SensorsTempItem } from './getApiModulesIdData200SensorsTempItem';
 import type { GetApiModulesIdData200SensorsHumItem } from './getApiModulesIdData200SensorsHumItem';
+import type { GetApiModulesIdData200SensorsVocItem } from './getApiModulesIdData200SensorsVocItem';
+import type { GetApiModulesIdData200SensorsPressureItem } from './getApiModulesIdData200SensorsPressureItem';
+import type { GetApiModulesIdData200SensorsTemperatureBmpItem } from './getApiModulesIdData200SensorsTemperatureBmpItem';
 
 export type GetApiModulesIdData200Sensors = {
   co2: GetApiModulesIdData200SensorsCo2Item[];
   temp: GetApiModulesIdData200SensorsTempItem[];
   hum: GetApiModulesIdData200SensorsHumItem[];
+  voc: GetApiModulesIdData200SensorsVocItem[];
+  pressure: GetApiModulesIdData200SensorsPressureItem[];
+  temperature_bmp: GetApiModulesIdData200SensorsTemperatureBmpItem[];
 };

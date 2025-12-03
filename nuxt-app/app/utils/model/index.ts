@@ -6,11 +6,18 @@
  * OpenAPI spec version: 1.0.0
  */
 
+export * from './deleteApiLogs200';
 export * from './getApiDashboard200';
 export * from './getApiDashboard200Sensors';
 export * from './getApiDashboard200Status';
 export * from './getApiDashboardParams';
 export * from './getApiDbSize200';
+export * from './getApiLogs200';
+export * from './getApiLogs200LogsItem';
+export * from './getApiLogs200LogsItemDetails';
+export * from './getApiLogsCategory';
+export * from './getApiLogsLevel';
+export * from './getApiLogsParams';
 export * from './getApiMetricsHistory200';
 export * from './getApiMetricsHistory200HistoryItem';
 export * from './getApiMetricsHistory200HistoryItemDbSizeBytes';
@@ -24,8 +31,14 @@ export * from './getApiModulesIdData200SensorsCo2Item';
 export * from './getApiModulesIdData200SensorsCo2ItemTime';
 export * from './getApiModulesIdData200SensorsHumItem';
 export * from './getApiModulesIdData200SensorsHumItemTime';
+export * from './getApiModulesIdData200SensorsPressureItem';
+export * from './getApiModulesIdData200SensorsPressureItemTime';
 export * from './getApiModulesIdData200SensorsTempItem';
 export * from './getApiModulesIdData200SensorsTempItemTime';
+export * from './getApiModulesIdData200SensorsTemperatureBmpItem';
+export * from './getApiModulesIdData200SensorsTemperatureBmpItemTime';
+export * from './getApiModulesIdData200SensorsVocItem';
+export * from './getApiModulesIdData200SensorsVocItemTime';
 export * from './getApiModulesIdData200Status';
 export * from './getApiModulesIdData200StatusHardware';
 export * from './getApiModulesIdData200StatusHardwareChip';

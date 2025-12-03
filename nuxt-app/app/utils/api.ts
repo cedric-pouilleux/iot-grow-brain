@@ -6,7 +6,10 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  DeleteApiLogs200,
   GetApiDbSize200,
+  GetApiLogs200,
+  GetApiLogsParams,
   GetApiMetricsHistory200,
   GetApiMetricsHistoryParams,
   GetApiModules200Item,
@@ -14,23 +17,9 @@ import type {
   GetApiModulesIdDataParams,
   GetApiStorage200,
   PostApiModulesIdConfig200,
-  PostApiModulesIdConfigBody,
-} from './model'
+  PostApiModulesIdConfigBody
+} from './model';
 
-/**
- * Get the base URL for API calls
- * In production, use relative URLs to go through Nginx proxy
- * In development, use localhost
- */
-const getApiBaseUrl = (): string => {
-  // Check if we're in a browser environment
-  if (typeof window !== 'undefined') {
-    // In browser, use relative URLs (will go through Nginx proxy in production)
-    return ''
-  }
-  // Server-side: use environment variable or fallback to localhost
-  return process.env.API_URL || 'http://localhost:3001'
-}
 
 /**
  * @summary List all modules
@@ -39,27 +28,40 @@ export type getApiModulesResponse200 = {
   data: GetApiModules200Item[]
   status: 200
 }
+    
+export type getApiModulesResponseSuccess = (getApiModulesResponse200) & {
+  headers: Headers;
+};
+;
 
-export type getApiModulesResponseSuccess = getApiModulesResponse200 & {
-  headers: Headers
-}
-export type getApiModulesResponse = getApiModulesResponseSuccess
+export type getApiModulesResponse = (getApiModulesResponseSuccess)
 
 export const getGetApiModulesUrl = () => {
-  return `${getApiBaseUrl()}/api/modules`
+
+
+  
+
+  return `http://localhost:3001/api/modules`
 }
 
-export const getApiModules = async (options?: RequestInit): Promise<getApiModulesResponse> => {
-  const res = await fetch(getGetApiModulesUrl(), {
+export const getApiModules = async ( options?: RequestInit): Promise<getApiModulesResponse> => {
+  
+  const res = await fetch(getGetApiModulesUrl(),
+  {      
     ...options,
-    method: 'GET',
-  })
+    method: 'GET'
+    
+    
+  }
+)
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text()
-
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
   const data: getApiModulesResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as getApiModulesResponse
 }
+
+
 
 /**
  * @summary Update module sensor configuration
@@ -68,33 +70,42 @@ export type postApiModulesIdConfigResponse200 = {
   data: PostApiModulesIdConfig200
   status: 200
 }
+    
+export type postApiModulesIdConfigResponseSuccess = (postApiModulesIdConfigResponse200) & {
+  headers: Headers;
+};
+;
 
-export type postApiModulesIdConfigResponseSuccess = postApiModulesIdConfigResponse200 & {
-  headers: Headers
+export type postApiModulesIdConfigResponse = (postApiModulesIdConfigResponseSuccess)
+
+export const getPostApiModulesIdConfigUrl = (id: string,) => {
+
+
+  
+
+  return `http://localhost:3001/api/modules/${id}/config`
 }
-export type postApiModulesIdConfigResponse = postApiModulesIdConfigResponseSuccess
 
-export const getPostApiModulesIdConfigUrl = (id: string) => {
-  return `${getApiBaseUrl()}/api/modules/${id}/config`
-}
-
-export const postApiModulesIdConfig = async (
-  id: string,
-  postApiModulesIdConfigBody: PostApiModulesIdConfigBody,
-  options?: RequestInit
-): Promise<postApiModulesIdConfigResponse> => {
-  const res = await fetch(getPostApiModulesIdConfigUrl(id), {
+export const postApiModulesIdConfig = async (id: string,
+    postApiModulesIdConfigBody: PostApiModulesIdConfigBody, options?: RequestInit): Promise<postApiModulesIdConfigResponse> => {
+  
+  const res = await fetch(getPostApiModulesIdConfigUrl(id),
+  {      
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(postApiModulesIdConfigBody),
-  })
+    body: JSON.stringify(
+      postApiModulesIdConfigBody,)
+  }
+)
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text()
-
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
   const data: postApiModulesIdConfigResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as postApiModulesIdConfigResponse
 }
+
+
 
 /**
  * @summary Get module status and time series measurements
@@ -103,43 +114,49 @@ export type getApiModulesIdDataResponse200 = {
   data: GetApiModulesIdData200
   status: 200
 }
+    
+export type getApiModulesIdDataResponseSuccess = (getApiModulesIdDataResponse200) & {
+  headers: Headers;
+};
+;
 
-export type getApiModulesIdDataResponseSuccess = getApiModulesIdDataResponse200 & {
-  headers: Headers
-}
-export type getApiModulesIdDataResponse = getApiModulesIdDataResponseSuccess
+export type getApiModulesIdDataResponse = (getApiModulesIdDataResponseSuccess)
 
-export const getGetApiModulesIdDataUrl = (id: string, params?: GetApiModulesIdDataParams) => {
-  const normalizedParams = new URLSearchParams()
+export const getGetApiModulesIdDataUrl = (id: string,
+    params?: GetApiModulesIdDataParams,) => {
+  const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : value.toString())
     }
-  })
+  });
 
-  const stringifiedParams = normalizedParams.toString()
+  const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0
-    ? `${getApiBaseUrl()}/api/modules/${id}/data?${stringifiedParams}`
-    : `${getApiBaseUrl()}/api/modules/${id}/data`
+  return stringifiedParams.length > 0 ? `http://localhost:3001/api/modules/${id}/data?${stringifiedParams}` : `http://localhost:3001/api/modules/${id}/data`
 }
 
-export const getApiModulesIdData = async (
-  id: string,
-  params?: GetApiModulesIdDataParams,
-  options?: RequestInit
-): Promise<getApiModulesIdDataResponse> => {
-  const res = await fetch(getGetApiModulesIdDataUrl(id, params), {
+export const getApiModulesIdData = async (id: string,
+    params?: GetApiModulesIdDataParams, options?: RequestInit): Promise<getApiModulesIdDataResponse> => {
+  
+  const res = await fetch(getGetApiModulesIdDataUrl(id,params),
+  {      
     ...options,
-    method: 'GET',
-  })
+    method: 'GET'
+    
+    
+  }
+)
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text()
-
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
   const data: getApiModulesIdDataResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as getApiModulesIdDataResponse
 }
+
+
 
 /**
  * @summary Get database size
@@ -148,27 +165,40 @@ export type getApiDbSizeResponse200 = {
   data: GetApiDbSize200
   status: 200
 }
+    
+export type getApiDbSizeResponseSuccess = (getApiDbSizeResponse200) & {
+  headers: Headers;
+};
+;
 
-export type getApiDbSizeResponseSuccess = getApiDbSizeResponse200 & {
-  headers: Headers
-}
-export type getApiDbSizeResponse = getApiDbSizeResponseSuccess
+export type getApiDbSizeResponse = (getApiDbSizeResponseSuccess)
 
 export const getGetApiDbSizeUrl = () => {
-  return `${getApiBaseUrl()}/api/db-size`
+
+
+  
+
+  return `http://localhost:3001/api/db-size`
 }
 
-export const getApiDbSize = async (options?: RequestInit): Promise<getApiDbSizeResponse> => {
-  const res = await fetch(getGetApiDbSizeUrl(), {
+export const getApiDbSize = async ( options?: RequestInit): Promise<getApiDbSizeResponse> => {
+  
+  const res = await fetch(getGetApiDbSizeUrl(),
+  {      
     ...options,
-    method: 'GET',
-  })
+    method: 'GET'
+    
+    
+  }
+)
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text()
-
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
   const data: getApiDbSizeResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as getApiDbSizeResponse
 }
+
+
 
 /**
  * @summary Get system metrics history
@@ -177,42 +207,47 @@ export type getApiMetricsHistoryResponse200 = {
   data: GetApiMetricsHistory200
   status: 200
 }
+    
+export type getApiMetricsHistoryResponseSuccess = (getApiMetricsHistoryResponse200) & {
+  headers: Headers;
+};
+;
 
-export type getApiMetricsHistoryResponseSuccess = getApiMetricsHistoryResponse200 & {
-  headers: Headers
-}
-export type getApiMetricsHistoryResponse = getApiMetricsHistoryResponseSuccess
+export type getApiMetricsHistoryResponse = (getApiMetricsHistoryResponseSuccess)
 
-export const getGetApiMetricsHistoryUrl = (params?: GetApiMetricsHistoryParams) => {
-  const normalizedParams = new URLSearchParams()
+export const getGetApiMetricsHistoryUrl = (params?: GetApiMetricsHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : value.toString())
     }
-  })
+  });
 
-  const stringifiedParams = normalizedParams.toString()
+  const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0
-    ? `${getApiBaseUrl()}/api/metrics-history?${stringifiedParams}`
-    : `${getApiBaseUrl()}/api/metrics-history`
+  return stringifiedParams.length > 0 ? `http://localhost:3001/api/metrics-history?${stringifiedParams}` : `http://localhost:3001/api/metrics-history`
 }
 
-export const getApiMetricsHistory = async (
-  params?: GetApiMetricsHistoryParams,
-  options?: RequestInit
-): Promise<getApiMetricsHistoryResponse> => {
-  const res = await fetch(getGetApiMetricsHistoryUrl(params), {
+export const getApiMetricsHistory = async (params?: GetApiMetricsHistoryParams, options?: RequestInit): Promise<getApiMetricsHistoryResponse> => {
+  
+  const res = await fetch(getGetApiMetricsHistoryUrl(params),
+  {      
     ...options,
-    method: 'GET',
-  })
+    method: 'GET'
+    
+    
+  }
+)
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text()
-
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
   const data: getApiMetricsHistoryResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as getApiMetricsHistoryResponse
 }
+
+
 
 /**
  * @summary Get detailed storage information
@@ -221,50 +256,168 @@ export type getApiStorageResponse200 = {
   data: GetApiStorage200
   status: 200
 }
+    
+export type getApiStorageResponseSuccess = (getApiStorageResponse200) & {
+  headers: Headers;
+};
+;
 
-export type getApiStorageResponseSuccess = getApiStorageResponse200 & {
-  headers: Headers
-}
-export type getApiStorageResponse = getApiStorageResponseSuccess
+export type getApiStorageResponse = (getApiStorageResponseSuccess)
 
 export const getGetApiStorageUrl = () => {
-  return `${getApiBaseUrl()}/api/storage`
+
+
+  
+
+  return `http://localhost:3001/api/storage`
 }
 
-export const getApiStorage = async (options?: RequestInit): Promise<getApiStorageResponse> => {
-  const res = await fetch(getGetApiStorageUrl(), {
+export const getApiStorage = async ( options?: RequestInit): Promise<getApiStorageResponse> => {
+  
+  const res = await fetch(getGetApiStorageUrl(),
+  {      
     ...options,
-    method: 'GET',
-  })
+    method: 'GET'
+    
+    
+  }
+)
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text()
-
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
   const data: getApiStorageResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as getApiStorageResponse
 }
+
+
+
+/**
+ * @summary Get system logs with filtering
+ */
+export type getApiLogsResponse200 = {
+  data: GetApiLogs200
+  status: 200
+}
+    
+export type getApiLogsResponseSuccess = (getApiLogsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getApiLogsResponse = (getApiLogsResponseSuccess)
+
+export const getGetApiLogsUrl = (params?: GetApiLogsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `http://localhost:3001/api/logs?${stringifiedParams}` : `http://localhost:3001/api/logs`
+}
+
+export const getApiLogs = async (params?: GetApiLogsParams, options?: RequestInit): Promise<getApiLogsResponse> => {
+  
+  const res = await fetch(getGetApiLogsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getApiLogsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getApiLogsResponse
+}
+
+
+
+/**
+ * @summary Delete all system logs
+ */
+export type deleteApiLogsResponse200 = {
+  data: DeleteApiLogs200
+  status: 200
+}
+    
+export type deleteApiLogsResponseSuccess = (deleteApiLogsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type deleteApiLogsResponse = (deleteApiLogsResponseSuccess)
+
+export const getDeleteApiLogsUrl = () => {
+
+
+  
+
+  return `http://localhost:3001/api/logs`
+}
+
+export const deleteApiLogs = async ( options?: RequestInit): Promise<deleteApiLogsResponse> => {
+  
+  const res = await fetch(getDeleteApiLogsUrl(),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: deleteApiLogsResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as deleteApiLogsResponse
+}
+
+
 
 export type getHealthResponse200 = {
   data: void
   status: 200
 }
+    
+export type getHealthResponseSuccess = (getHealthResponse200) & {
+  headers: Headers;
+};
+;
 
-export type getHealthResponseSuccess = getHealthResponse200 & {
-  headers: Headers
-}
-export type getHealthResponse = getHealthResponseSuccess
+export type getHealthResponse = (getHealthResponseSuccess)
 
 export const getGetHealthUrl = () => {
-  return `${getApiBaseUrl()}/health`
+
+
+  
+
+  return `http://localhost:3001/health`
 }
 
-export const getHealth = async (options?: RequestInit): Promise<getHealthResponse> => {
-  const res = await fetch(getGetHealthUrl(), {
+export const getHealth = async ( options?: RequestInit): Promise<getHealthResponse> => {
+  
+  const res = await fetch(getGetHealthUrl(),
+  {      
     ...options,
-    method: 'GET',
-  })
+    method: 'GET'
+    
+    
+  }
+)
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text()
-
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
   const data: getHealthResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as getHealthResponse
 }
+
+
+

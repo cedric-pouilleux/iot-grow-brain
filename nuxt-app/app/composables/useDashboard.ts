@@ -1,5 +1,4 @@
-import type { GetApiModulesIdData200 } from '../utils/model'
-import type { DeviceStatus, SensorDataPoint } from '../types'
+import type { DeviceStatus, SensorDataPoint, DashboardSensorData } from '../types'
 import { getApiModulesIdData } from '../utils/api'
 import { processSensorData } from '../utils/data-processing'
 
@@ -26,6 +25,8 @@ export const useDashboard = () => {
       temp: SensorDataPoint[]
       hum: SensorDataPoint[]
       voc: SensorDataPoint[]
+      pressure: SensorDataPoint[]
+      temperature_bmp: SensorDataPoint[]
     }
   } | null> => {
     if (!moduleId) return null
@@ -39,11 +40,15 @@ export const useDashboard = () => {
 
       if (!dashboardData) return null
 
-      const sensors = dashboardData.sensors as any
+      const sensors = (dashboardData.sensors as DashboardSensorData) || {}
       const co2Data = isSensorDataArray(sensors?.co2) ? sensors.co2 : []
       const tempData = isSensorDataArray(sensors?.temp) ? sensors.temp : []
       const humData = isSensorDataArray(sensors?.hum) ? sensors.hum : []
       const vocData = isSensorDataArray(sensors?.voc) ? sensors.voc : []
+      const pressureData = isSensorDataArray(sensors?.pressure) ? sensors.pressure : []
+      const temperatureBmpData = isSensorDataArray(sensors?.temperature_bmp)
+        ? sensors.temperature_bmp
+        : []
 
       return {
         status: dashboardData.status as DeviceStatus | null,
@@ -52,6 +57,8 @@ export const useDashboard = () => {
           temp: processSensorData(tempData),
           hum: processSensorData(humData),
           voc: processSensorData(vocData),
+          pressure: processSensorData(pressureData),
+          temperature_bmp: processSensorData(temperatureBmpData),
         },
       }
     } catch (e) {
