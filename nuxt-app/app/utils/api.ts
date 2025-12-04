@@ -9,6 +9,8 @@ import type {
   DeleteApiLogs200,
   GetApiDbSize200,
   GetApiLogs200,
+  GetApiLogsHistogram200Item,
+  GetApiLogsHistogramParams,
   GetApiLogsParams,
   GetApiMetricsHistory200,
   GetApiMetricsHistoryParams,
@@ -378,6 +380,55 @@ export const deleteApiLogs = async ( options?: RequestInit): Promise<deleteApiLo
   
   const data: deleteApiLogsResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as deleteApiLogsResponse
+}
+
+
+
+/**
+ * @summary Get system logs histogram data
+ */
+export type getApiLogsHistogramResponse200 = {
+  data: GetApiLogsHistogram200Item[]
+  status: 200
+}
+    
+export type getApiLogsHistogramResponseSuccess = (getApiLogsHistogramResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getApiLogsHistogramResponse = (getApiLogsHistogramResponseSuccess)
+
+export const getGetApiLogsHistogramUrl = (params: GetApiLogsHistogramParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `http://localhost:3001/api/logs/histogram?${stringifiedParams}` : `http://localhost:3001/api/logs/histogram`
+}
+
+export const getApiLogsHistogram = async (params: GetApiLogsHistogramParams, options?: RequestInit): Promise<getApiLogsHistogramResponse> => {
+  
+  const res = await fetch(getGetApiLogsHistogramUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getApiLogsHistogramResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getApiLogsHistogramResponse
 }
 
 

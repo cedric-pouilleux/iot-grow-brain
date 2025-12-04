@@ -26,6 +26,9 @@ export async function buildApp() {
     logger: {
       stream: dbLoggerStream,
       level: 'trace', // Capture all log levels including trace and debug
+      customLevels: {
+        success: 25,
+      },
     },
     disableRequestLogging: true, // Disable automatic request logging (too verbose)
   }).withTypeProvider<ZodTypeProvider>()

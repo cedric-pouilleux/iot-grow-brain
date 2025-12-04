@@ -96,7 +96,24 @@ void StatusPublisher::publishHardwareConfig() {
 String StatusPublisher::buildSensorStatusJson(int lastCO2Value, float lastTemperature, 
                                               float lastHumidity, bool lastDhtOk, int lastVocValue,
                                               float lastPressure, float lastTempBmp) {
-    char sensorStatusMsg[400];
+    
+    char tempStr[16];
+    if (isnan(lastTemperature)) strcpy(tempStr, "null");
+    else snprintf(tempStr, sizeof(tempStr), "%.1f", lastTemperature);
+
+    char humStr[16];
+    if (isnan(lastHumidity)) strcpy(humStr, "null");
+    else snprintf(humStr, sizeof(humStr), "%.1f", lastHumidity);
+
+    char pressStr[16];
+    if (isnan(lastPressure)) strcpy(pressStr, "null");
+    else snprintf(pressStr, sizeof(pressStr), "%.1f", lastPressure);
+
+    char tempBmpStr[16];
+    if (isnan(lastTempBmp)) strcpy(tempBmpStr, "null");
+    else snprintf(tempBmpStr, sizeof(tempBmpStr), "%.1f", lastTempBmp);
+
+    char sensorStatusMsg[512]; // Increased buffer size to be safe
     snprintf(sensorStatusMsg, sizeof(sensorStatusMsg), 
         "{"
             "\"co2\":{"
@@ -105,11 +122,11 @@ String StatusPublisher::buildSensorStatusJson(int lastCO2Value, float lastTemper
             "},"
             "\"temperature\":{"
                 "\"status\":\"%s\","
-                "\"value\":%.1f"
+                "\"value\":%s"
             "},"
             "\"humidity\":{"
                 "\"status\":\"%s\","
-                "\"value\":%.1f"
+                "\"value\":%s"
             "},"
             "\"pm25\":{"
                 "\"status\":\"missing\","
@@ -120,22 +137,24 @@ String StatusPublisher::buildSensorStatusJson(int lastCO2Value, float lastTemper
                 "\"value\":%d"
             "},"
             "\"pressure\":{"
-                "\"status\":\"ok\","
-                "\"value\":%.1f"
+                "\"status\":\"%s\","
+                "\"value\":%s"
             "},"
             "\"temperature_bmp\":{"
-                "\"status\":\"ok\","
-                "\"value\":%.1f"
+                "\"status\":\"%s\","
+                "\"value\":%s"
             "}"
         "}",
         lastCO2Value,
         lastDhtOk ? "ok" : "error",
-        lastTemperature,
+        tempStr,
         lastDhtOk ? "ok" : "error",
-        lastHumidity,
+        humStr,
         lastVocValue,
-        lastPressure,
-        lastTempBmp
+        isnan(lastPressure) ? "error" : "ok",
+        pressStr,
+        isnan(lastTempBmp) ? "error" : "ok",
+        tempBmpStr
     );
     return String(sensorStatusMsg);
 }

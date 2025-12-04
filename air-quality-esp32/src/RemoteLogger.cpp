@@ -1,5 +1,18 @@
 #include "RemoteLogger.h"
 #include <ArduinoJson.h>
+#include <sys/time.h>
+
+// Helper pour obtenir le timestamp (NTP si dispo, sinon millis)
+static uint64_t getCurrentTimestamp() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    
+    // Si l'heure est valide (> 2020, soit > 1600000000 sec)
+    if (tv.tv_sec > 1600000000) {
+        return (uint64_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    }
+    return millis();
+}
 
 RemoteLogger::RemoteLogger(NetworkManager& network, const String& moduleId)
     : _network(network), _moduleId(moduleId), _bufferedLogCount(0) {
@@ -8,6 +21,10 @@ RemoteLogger::RemoteLogger(NetworkManager& network, const String& moduleId)
 
 void RemoteLogger::info(const String& message) {
     publishLog("info", message);
+}
+
+void RemoteLogger::success(const String& message) {
+    publishLog("success", message);
 }
 
 void RemoteLogger::warn(const String& message) {
@@ -35,7 +52,7 @@ void RemoteLogger::publishLog(const String& level, const String& message) {
     StaticJsonDocument<256> doc;
     doc["level"] = level;
     doc["msg"] = message;
-    doc["time"] = millis();
+    doc["time"] = getCurrentTimestamp();
     
     String payload;
     serializeJson(doc, payload);
@@ -54,7 +71,7 @@ void RemoteLogger::bufferLog(const String& level, const String& message) {
     
     _bufferedLogs[_bufferedLogCount].level = level;
     _bufferedLogs[_bufferedLogCount].message = message;
-    _bufferedLogs[_bufferedLogCount].timestamp = millis();
+    _bufferedLogs[_bufferedLogCount].timestamp = getCurrentTimestamp();
     _bufferedLogCount++;
 }
 

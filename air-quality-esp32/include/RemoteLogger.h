@@ -9,7 +9,7 @@
 struct BufferedLog {
     String level;
     String message;
-    unsigned long timestamp;
+    uint64_t timestamp;
 };
 
 class RemoteLogger {
@@ -17,6 +17,7 @@ public:
     RemoteLogger(NetworkManager& network, const String& moduleId);
     
     void info(const String& message);
+    void success(const String& message);
     void warn(const String& message);
     void error(const String& message);
     void debug(const String& message);

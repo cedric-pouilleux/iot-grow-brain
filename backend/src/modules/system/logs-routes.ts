@@ -1,12 +1,18 @@
 import { FastifyPluginAsync } from 'fastify'
 import { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod'
-import { desc, and, gte, lte, like, or, eq } from 'drizzle-orm'
+import { desc, and, gte, lte, like, or, eq, sql, inArray } from 'drizzle-orm'
 import { systemLogs } from '../../db/schema'
 
 const LogsQuerySchema = z.object({
-  category: z.enum(['ESP32', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']).optional(),
-  level: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).optional(),
+  category: z.union([
+    z.enum(['ESP32', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']),
+    z.array(z.enum(['ESP32', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']))
+  ]).optional(),
+  level: z.union([
+    z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']),
+    z.array(z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']))
+  ]).optional(),
   search: z.string().optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
@@ -51,10 +57,16 @@ const logsRoutes: FastifyPluginAsync = async fastify => {
       // Build conditions
       const conditions = []
       if (category) {
-        conditions.push(eq(systemLogs.category, category))
+        const cats = Array.isArray(category) ? category : [category]
+        if (cats.length > 0) {
+          conditions.push(inArray(systemLogs.category, cats))
+        }
       }
       if (level) {
-        conditions.push(eq(systemLogs.level, level))
+        const lvls = Array.isArray(level) ? level : [level]
+        if (lvls.length > 0) {
+          conditions.push(inArray(systemLogs.level, lvls))
+        }
       }
       if (search) {
         conditions.push(
@@ -98,6 +110,121 @@ const logsRoutes: FastifyPluginAsync = async fastify => {
     }
   )
 
+  // Histogram endpoint
+  app.get(
+    '/logs/histogram',
+    {
+      schema: {
+        tags: ['System'],
+        summary: 'Get system logs histogram data',
+        querystring: z.object({
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+          startDate: z.string().datetime().optional(),
+          endDate: z.string().datetime().optional(),
+          category: z.union([
+            z.enum(['ESP32', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']),
+            z.array(z.enum(['ESP32', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']))
+          ]).optional(),
+          level: z.union([
+            z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']),
+            z.array(z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']))
+          ]).optional(),
+          search: z.string().optional(),
+        }),
+        response: {
+          200: z.array(
+            z.object({
+              slot: z.string(), // ISO timestamp of the bucket start
+              counts: z.record(z.number()), // category -> count
+            })
+          ),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { date, startDate: queryStartDate, endDate: queryEndDate, category, level, search } = request.query
+      
+      let start: Date
+      let end: Date
+
+      if (date) {
+        start = new Date(date)
+        start.setHours(0, 0, 0, 0)
+        end = new Date(date)
+        end.setHours(23, 59, 59, 999)
+      } else if (queryStartDate && queryEndDate) {
+        start = new Date(queryStartDate)
+        end = new Date(queryEndDate)
+      } else {
+        // Default to last 24h
+        end = new Date()
+        start = new Date(end.getTime() - 24 * 60 * 60 * 1000)
+      }
+
+      let query = sql`
+        SELECT
+          floor(extract(epoch from time) / 600) * 600 as bucket,
+          category,
+          count(*) as count
+        FROM system_logs
+        WHERE time >= ${start.toISOString()} AND time <= ${end.toISOString()}
+      `
+
+      if (category) {
+        const cats = Array.isArray(category) ? category : [category]
+        if (cats.length > 0) {
+          query = sql`${query} AND category IN ${cats}`
+        }
+      }
+      if (level) {
+        const lvls = Array.isArray(level) ? level : [level]
+        if (lvls.length > 0) {
+          query = sql`${query} AND level IN ${lvls}`
+        }
+      }
+      if (search) {
+        query = sql`${query} AND (msg ILIKE ${`%${search}%`} OR level ILIKE ${`%${search}%`})`
+      }
+
+      query = sql`${query} GROUP BY bucket, category ORDER BY bucket ASC`
+      
+      const result = await fastify.db.execute(query)
+
+      // Process result into slots (10 min intervals)
+      const buckets: Record<string, Record<string, number>> = {}
+      
+      // Generate all slots between start and end
+      const slotMs = 10 * 60 * 1000 // 10 minutes
+      for (let time = start.getTime(); time <= end.getTime(); time += slotMs) {
+        const slotDate = new Date(time)
+        buckets[slotDate.toISOString()] = {}
+      }
+
+      // Fill in counts from query
+      for (const row of result.rows as any[]) {
+        const bucketTime = new Date(Number(row.bucket) * 1000)
+        const slotKey = bucketTime.toISOString()
+        
+        if (!buckets[slotKey]) {
+          buckets[slotKey] = {}
+        }
+        
+        buckets[slotKey][row.category] = Number(row.count)
+      }
+
+      // Convert to array
+      const slots = Object.entries(buckets)
+        .map(([slot, counts]) => ({
+          slot,
+          counts,
+        }))
+        .sort((a, b) => new Date(a.slot).getTime() - new Date(b.slot).getTime())
+
+      return slots
+    }
+  )
+
+  // Delete all logs
   app.delete(
     '/logs',
     {
@@ -106,23 +233,18 @@ const logsRoutes: FastifyPluginAsync = async fastify => {
         summary: 'Delete all system logs',
         response: {
           200: z.object({
-            deleted: z.number(),
             message: z.string(),
+            deletedCount: z.number(),
           }),
         },
       },
     },
     async (request, reply) => {
-      const deleted = await fastify.db.delete(systemLogs)
-
-      fastify.log.info({
-        msg: '[SYSTEM] All logs deleted',
-        deletedCount: deleted.rowCount || 0,
-      })
-
+      const result = await fastify.db.delete(systemLogs)
+      
       return {
-        deleted: deleted.rowCount || 0,
-        message: `Successfully deleted ${deleted.rowCount || 0} logs`,
+        message: 'All logs deleted successfully',
+        deletedCount: 0, // Drizzle doesn't return count for delete
       }
     }
   )

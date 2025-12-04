@@ -18,8 +18,8 @@ export default fp(async fastify => {
     const version = result.rows[0]?.version || 'Unknown'
     const database = result.rows[0]?.current_database || 'Unknown'
     
-    fastify.log.info({
-      msg: `[DB] Connected to PostgreSQL`,
+    fastify.log.success({
+      msg: `✓ [DB] Connected to PostgreSQL`,
       database,
       host: pool.options.host,
       port: pool.options.port,

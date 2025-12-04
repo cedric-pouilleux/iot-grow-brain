@@ -1,18 +1,138 @@
 <template>
-  <div class="min-h-screen bg-gray-100 p-4 sm:p-8">
-    <div class="max-w-7xl mx-auto">
-      <div class="mb-6 flex items-center justify-between">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-800">System Logs</h1>
-          <p class="text-gray-600 mt-2">Historique complet des événements système</p>
+  <div class="h-screen flex bg-gray-100">
+    <!-- Filters Sidebar (Left) -->
+    <div class="w-80 bg-white border-r border-gray-200 p-4 overflow-y-auto flex-shrink-0 flex flex-col">
+      <!-- Period -->
+      <div class="mb-4">
+        <label class="block text-sm text-gray-700 mb-2">Période</label>
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            v-for="period in periods"
+            :key="period.value"
+            @click="timeRange = period.value"
+            :class="[
+              'px-2.5 py-1 rounded text-xs transition-all',
+              timeRange === period.value
+                ? 'bg-gray-700 text-white shadow'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ]"
+          >
+            {{ period.label }}
+          </button>
         </div>
+      </div>
+
+      <!-- Category -->
+      <div class="mb-4">
+        <label class="block text-sm text-gray-700 mb-2">Catégorie</label>
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            @click="toggleCategory('')"
+            :class="[
+              'px-2.5 py-1 rounded text-xs transition-all',
+              filters.categories.length === 0
+                ? 'bg-gray-700 text-white shadow'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ]"
+          >
+            Toutes
+          </button>
+          <button
+            v-for="cat in categories"
+            :key="cat.value"
+            @click="toggleCategory(cat.value)"
+            :class="[
+              'px-2.5 py-1 rounded text-xs transition-all flex items-center gap-1.5',
+              filters.categories.includes(cat.value)
+                ? 'text-white shadow'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ]"
+            :style="filters.categories.includes(cat.value) ? { backgroundColor: cat.color } : {}"
+          >
+            <div 
+              class="w-2 h-2 rounded-full" 
+              :style="{ backgroundColor: filters.categories.includes(cat.value) ? 'white' : cat.color }"
+            ></div>
+            {{ cat.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Level -->
+      <div class="mb-4">
+        <label class="block text-sm text-gray-700 mb-2">Niveau</label>
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            @click="toggleLevel('')"
+            :class="[
+              'px-2.5 py-1 rounded text-xs transition-all',
+              filters.levels.length === 0
+                ? 'bg-gray-700 text-white shadow'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ]"
+          >
+            Tous
+          </button>
+          <button
+            v-for="lvl in levels"
+            :key="lvl.value"
+            @click="toggleLevel(lvl.value)"
+            :class="[
+              'px-2.5 py-1 rounded text-xs transition-all',
+              filters.levels.includes(lvl.value)
+                ? 'text-white shadow'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ]"
+            :style="filters.levels.includes(lvl.value) ? { backgroundColor: lvl.color } : {}"
+          >
+            {{ lvl.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div class="mb-4">
+        <label class="block text-sm text-gray-700 mb-2">Recherche</label>
+        <input
+          v-model="filters.search"
+          type="text"
+          placeholder="Mots-clés..."
+          class="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
+        />
+      </div>
+
+      <!-- Limit -->
+      <div class="mb-4">
+        <label class="block text-sm text-gray-700 mb-2">Limite</label>
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            v-for="lim in limits"
+            :key="lim"
+            @click="filters.limit = String(lim)"
+            :class="[
+              'px-2.5 py-1 rounded text-xs transition-all',
+              filters.limit === String(lim)
+                ? 'bg-gray-700 text-white shadow'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ]"
+          >
+            {{ lim }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Spacer to push delete button to bottom -->
+      <div class="flex-1"></div>
+
+      <!-- Delete Button -->
+      <div class="flex justify-end pt-4 border-t border-gray-200">
         <button
-          class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+          class="px-2 py-1 text-xs text-red-600 border border-red-300 rounded hover:border-red-400 hover:bg-red-50 transition-colors flex items-center gap-1"
           @click="confirmDeleteAll"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5"
+            class="h-3 w-3"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -27,78 +147,26 @@
           Vider les logs
         </button>
       </div>
+    </div>
 
-      <!-- Filters -->
-      <div class="bg-white rounded-lg shadow p-4 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Catégorie</label>
-            <select
-              v-model="filters.category"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            >
-              <option value="">Toutes</option>
-              <option value="ESP32">ESP32</option>
-              <option value="MQTT">MQTT</option>
-              <option value="DB">DB</option>
-              <option value="API">API</option>
-              <option value="SYSTEM">System</option>
-              <option value="WEBSOCKET">WebSocket</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Niveau</label>
-            <select
-              v-model="filters.level"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            >
-              <option value="">Tous</option>
-              <option value="trace">Trace</option>
-              <option value="debug">Debug</option>
-              <option value="info">Info</option>
-              <option value="warn">Warn</option>
-              <option value="error">Error</option>
-              <option value="fatal">Fatal</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Recherche</label>
-            <input
-              v-model="filters.search"
-              type="text"
-              placeholder="Mots-clés..."
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Limite</label>
-            <select
-              v-model="filters.limit"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            >
-              <option value="50">50</option>
-              <option value="100">100</option>
-              <option value="200">200</option>
-              <option value="500">500</option>
-            </select>
-          </div>
-
-          <div class="flex items-end">
-            <button
-              class="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
-              @click="loadLogs"
-            >
-              Rechercher
-            </button>
-          </div>
-        </div>
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <!-- Histogram -->
+      <div class="flex-shrink-0">
+        <LogHistogram
+          :range="currentRange"
+          :filters="{
+            category: filters.categories.join(','),
+            level: filters.levels.join(','),
+            search: filters.search
+          }"
+          :selection="timeSelection"
+          @update:selection="handleSelectionUpdate"
+        />
       </div>
 
       <!-- Logs Table -->
-      <div class="bg-white rounded-lg shadow">
+      <div class="flex-1 overflow-auto bg-white">
         <div v-if="loading" class="p-8 text-center">
           <div
             class="animate-spin w-8 h-8 border-2 border-gray-300 border-t-emerald-500 rounded-full mx-auto mb-4"
@@ -120,149 +188,114 @@
           Aucun log trouvé
         </div>
 
-        <div v-else class="space-y-6">
-          <div
-            v-for="dayGroup in groupedLogs"
-            :key="dayGroup.date"
-            class="border border-gray-200 rounded-lg"
-          >
-            <div class="bg-gray-100 px-4 py-2 border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-              <h3 class="text-sm font-semibold text-gray-700">{{ dayGroup.title }}</h3>
-            </div>
-            <div>
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50 sticky z-20">
-                  <tr>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Heure</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Catégorie</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Niveau</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Message</th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                  <tr
-                    v-for="log in dayGroup.logs"
-                    :key="log.id"
-                    class="hover:bg-gray-50 transition-colors"
-                  >
-                    <td class="px-3 py-1 whitespace-nowrap text-xs text-gray-500">
-                      {{ formatTimeOnly(log.time) }}
-                    </td>
-                    <td class="px-3 py-1 whitespace-nowrap">
-                      <span
-                        :class="getCategoryClass(log.category)"
-                        class="px-1.5 py-0.5 text-xs font-medium"
-                      >
-                        {{ formatCategory(log.category) }}
-                      </span>
-                    </td>
-                    <td class="px-3 py-1 whitespace-nowrap">
-                      <span
-                        :class="getLevelClass(log.level)"
-                        class="px-1.5 py-0.5 text-xs font-medium"
-                      >
-                        {{ log.level }}
-                      </span>
-                    </td>
-                    <td
-                      class="px-3 py-1 text-xs text-gray-900 relative group"
-                      :title="getTooltipText(log)"
+        <div v-else class="h-full flex flex-col">
+          <div class="flex-1 overflow-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50 sticky top-0 z-20">
+                <tr>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Heure</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Catégorie</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Niveau</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Message</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr
+                  v-for="log in logs"
+                  :key="log.id"
+                  class="hover:bg-gray-50 transition-colors"
+                >
+                  <td class="px-3 py-1 whitespace-nowrap text-xs text-gray-500">
+                    {{ formatTime(log.time) }}
+                  </td>
+                  <td class="px-3 py-1 whitespace-nowrap">
+                    <span
+                      :class="getCategoryClass(log.category)"
+                      class="px-1.5 py-0.5 text-xs font-medium"
                     >
-                      <span class="cursor-help">{{ log.msg }}</span>
-                      <div
-                        v-if="log.details && Object.keys(log.details).length > 0"
-                        class="absolute left-0 top-full mt-1 hidden group-hover:block z-50 bg-gray-900 text-white text-xs rounded px-3 py-2 max-w-md shadow-lg"
-                      >
-                        <pre class="whitespace-pre-wrap">{{ formatDetails(log.details) }}</pre>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                      {{ formatCategory(log.category) }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-1 whitespace-nowrap">
+                    <span
+                      :class="getLevelClass(log.level)"
+                      class="px-1.5 py-0.5 text-xs font-medium"
+                    >
+                      {{ log.level }}
+                    </span>
+                  </td>
+                  <td
+                    class="px-3 py-1 text-xs text-gray-900 relative group"
+                    :title="getTooltipText(log)"
+                  >
+                    <span class="cursor-help">{{ log.msg }}</span>
+                    <div
+                      v-if="log.details && Object.keys(log.details).length > 0"
+                      class="absolute left-0 top-full mt-1 hidden group-hover:block z-50 bg-gray-900 text-white text-xs rounded px-3 py-2 max-w-md shadow-lg"
+                    >
+                      <pre class="whitespace-pre-wrap">{{ formatDetails(log.details) }}</pre>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="flex-shrink-0 bg-gray-50 px-3 py-1.5 flex items-center justify-between border-t border-gray-200 sticky bottom-0 z-20">
+            <div class="text-xs text-gray-700">
+              {{ offset + 1 }}-{{ Math.min(offset + logs.length, total) }} / {{ total }}
+            </div>
+            <div class="flex gap-2">
+              <button
+                :disabled="offset === 0"
+                :class="{ 'opacity-50 cursor-not-allowed': offset === 0 }"
+                class="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-50"
+                @click="previousPage"
+              >
+                ←
+              </button>
+              <button
+                :disabled="offset + logs.length >= total"
+                :class="{ 'opacity-50 cursor-not-allowed': offset + logs.length >= total }"
+                class="px-2 py-1 text-xs bg-white border border-gray-300 rounded hover:bg-gray-50"
+                @click="nextPage"
+              >
+                →
+              </button>
             </div>
           </div>
         </div>
-
-        <!-- Pagination -->
-        <div
-          v-if="!loading && logs.length > 0"
-          class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200"
-        >
-          <div class="text-sm text-gray-700">
-            Affichage de {{ offset + 1 }} à {{ Math.min(offset + logs.length, total) }} sur
-            {{ total }} logs
-          </div>
-          <div class="flex gap-2">
-            <button
-              :disabled="offset === 0"
-              :class="{ 'opacity-50 cursor-not-allowed': offset === 0 }"
-              class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-              @click="previousPage"
-            >
-              Précédent
-            </button>
-            <button
-              :disabled="offset + logs.length >= total"
-              :class="{ 'opacity-50 cursor-not-allowed': offset + logs.length >= total }"
-              class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-              @click="nextPage"
-            >
-              Suivant
-            </button>
-          </div>
-        </div>
       </div>
+    </div>
 
-      <!-- Details Modal -->
-      <div
-        v-if="selectedLog"
-        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-        @click="selectedLog = null"
-      >
-        <div
-          class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-auto"
-          @click.stop
-        >
-          <h3 class="text-lg font-semibold mb-4">Détails du log</h3>
-          <pre class="bg-gray-50 p-4 rounded-lg overflow-x-auto text-sm">{{
-            JSON.stringify(selectedLog.details, null, 2)
-          }}</pre>
+
+    <!-- Delete Confirmation Modal -->
+    <div
+      v-if="showDeleteConfirm"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      @click="showDeleteConfirm = false"
+    >
+      <div class="bg-white rounded-lg p-6 max-w-md w-full" @click.stop>
+        <h3 class="text-lg font-semibold mb-4 text-red-600">Confirmer la suppression</h3>
+        <p class="text-gray-700 mb-6">
+          Êtes-vous sûr de vouloir supprimer tous les logs ? Cette action est irréversible.
+          <span class="font-semibold"> {{ total }} logs</span> seront supprimés.
+        </p>
+        <div class="flex gap-3 justify-end">
           <button
-            class="mt-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-            @click="selectedLog = null"
+            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+            @click="showDeleteConfirm = false"
           >
-            Fermer
+            Annuler
           </button>
-        </div>
-      </div>
-
-      <!-- Delete Confirmation Modal -->
-      <div
-        v-if="showDeleteConfirm"
-        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-        @click="showDeleteConfirm = false"
-      >
-        <div class="bg-white rounded-lg p-6 max-w-md w-full" @click.stop>
-          <h3 class="text-lg font-semibold mb-4 text-red-600">Confirmer la suppression</h3>
-          <p class="text-gray-700 mb-6">
-            Êtes-vous sûr de vouloir supprimer tous les logs ? Cette action est irréversible.
-            <span class="font-semibold"> {{ total }} logs</span> seront supprimés.
-          </p>
-          <div class="flex gap-3 justify-end">
-            <button
-              class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
-              @click="showDeleteConfirm = false"
-            >
-              Annuler
-            </button>
-            <button
-              :disabled="deleting"
-              class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              @click="deleteAllLogs"
-            >
-              {{ deleting ? 'Suppression...' : 'Supprimer' }}
-            </button>
-          </div>
+          <button
+            :disabled="deleting"
+            class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="deleteAllLogs"
+          >
+            {{ deleting ? 'Suppression...' : 'Supprimer' }}
+          </button>
         </div>
       </div>
     </div>
@@ -291,15 +324,84 @@ const total = ref(0)
 const offset = ref(0)
 const loading = ref(false)
 const error = ref<string | null>(null)
-const selectedLog = ref<LogEntry | null>(null)
 const showDeleteConfirm = ref(false)
 const deleting = ref(false)
+const timeRange = ref('24h')
+const timeSelection = ref<{ start: string; end: string } | null>(null)
 
 const filters = ref({
-  category: '',
-  level: '',
+  categories: [] as string[],
+  levels: [] as string[],
   search: '',
   limit: '100',
+})
+
+const toggleCategory = (value: string) => {
+  if (value === '') {
+    filters.value.categories = []
+  } else {
+    const index = filters.value.categories.indexOf(value)
+    if (index > -1) {
+      filters.value.categories.splice(index, 1)
+    } else {
+      filters.value.categories.push(value)
+    }
+  }
+}
+
+const toggleLevel = (value: string) => {
+  if (value === '') {
+    filters.value.levels = []
+  } else {
+    const index = filters.value.levels.indexOf(value)
+    if (index > -1) {
+      filters.value.levels.splice(index, 1)
+    } else {
+      filters.value.levels.push(value)
+    }
+  }
+}
+
+const categories = [
+  { value: 'ESP32', label: 'ESP32', color: '#4f46e5' },
+  { value: 'MQTT', label: 'MQTT', color: '#ea580c' },
+  { value: 'DB', label: 'DB', color: '#0891b2' },
+  { value: 'API', label: 'API', color: '#db2777' },
+  { value: 'SYSTEM', label: 'System', color: '#475569' },
+  { value: 'WEBSOCKET', label: 'WebSocket', color: '#fb923c' },
+]
+
+const periods = [
+  { value: '24h', label: '24h' },
+  { value: '7d', label: '7 jours' },
+]
+
+const levels = [
+  { value: 'trace', label: 'Trace', color: '#6b7280' },
+  { value: 'debug', label: 'Debug', color: '#3b82f6' },
+  { value: 'success', label: 'Success', color: '#22c55e' },
+  { value: 'info', label: 'Info', color: '#10b981' },
+  { value: 'warn', label: 'Warn', color: '#f59e0b' },
+  { value: 'error', label: 'Error', color: '#ef4444' },
+  { value: 'fatal', label: 'Fatal', color: '#a855f7' },
+]
+
+const limits = [50, 100, 200, 500]
+
+const currentRange = computed(() => {
+  const end = new Date()
+  const start = new Date()
+  
+  if (timeRange.value === '24h') {
+    start.setHours(start.getHours() - 24)
+  } else if (timeRange.value === '7d') {
+    start.setDate(start.getDate() - 7)
+  }
+  
+  return {
+    start: start.toISOString(),
+    end: end.toISOString()
+  }
 })
 
 const loadLogs = async () => {
@@ -312,11 +414,28 @@ const loadLogs = async () => {
       offset: String(offset.value),
     })
 
-    if (filters.value.category) params.append('category', filters.value.category)
-    if (filters.value.level) params.append('level', filters.value.level)
+    // Add multiple categories
+    filters.value.categories.forEach(cat => {
+      params.append('category', cat)
+    })
+    
+    // Add multiple levels
+    filters.value.levels.forEach(lvl => {
+      params.append('level', lvl)
+    })
+    
     if (filters.value.search) params.append('search', filters.value.search)
+    
+    // Apply time selection if exists
+    if (timeSelection.value) {
+      params.append('startDate', timeSelection.value.start)
+      params.append('endDate', timeSelection.value.end)
+    } else {
+      // Otherwise use the time range
+      params.append('startDate', currentRange.value.start)
+      params.append('endDate', currentRange.value.end)
+    }
 
-    // Use relative URL to leverage Nuxt proxy
     const response = await fetch(`/api/logs?${params}`)
     if (!response.ok) {
       throw new Error('Failed to load logs')
@@ -343,39 +462,15 @@ const previousPage = () => {
 }
 
 const formatTime = (time: string) => {
-  return new Date(time).toLocaleString('fr-FR')
-}
-
-const formatTimeOnly = (time: string) => {
-  return new Date(time).toLocaleTimeString('fr-FR', {
+  const date = new Date(time)
+  return date.toLocaleString('fr-FR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
-  })
-}
-
-const formatDateTitle = (date: Date) => {
-  const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
-  const months = [
-    'Janvier',
-    'Février',
-    'Mars',
-    'Avril',
-    'Mai',
-    'Juin',
-    'Juillet',
-    'Août',
-    'Septembre',
-    'Octobre',
-    'Novembre',
-    'Décembre',
-  ]
-
-  const dayName = days[date.getDay()]
-  const day = date.getDate()
-  const month = months[date.getMonth()]
-
-  return `${dayName} ${day} ${month}`
+    second: '2-digit'
+  }) + '.' + date.getMilliseconds().toString().padStart(3, '0')
 }
 
 const formatDetails = (details: Record<string, unknown>) => {
@@ -389,39 +484,7 @@ const getTooltipText = (log: LogEntry) => {
   return ''
 }
 
-const groupedLogs = computed(() => {
-  const groups: Record<
-    string,
-    {
-      date: string
-      title: string
-      logs: LogEntry[]
-    }
-  > = {}
-
-  logs.value.forEach(log => {
-    const date = new Date(log.time)
-    const dateKey = date.toISOString().split('T')[0] // YYYY-MM-DD
-
-    if (!groups[dateKey]) {
-      groups[dateKey] = {
-        date: dateKey,
-        title: formatDateTitle(date),
-        logs: [],
-      }
-    }
-
-    groups[dateKey].logs.push(log)
-  })
-
-  // Trier par date décroissante
-  return Object.values(groups).sort((a, b) => {
-    return new Date(b.date).getTime() - new Date(a.date).getTime()
-  })
-})
-
 const formatCategory = (category: string) => {
-  // Convertir en format lisible (première lettre majuscule, reste minuscule)
   if (category === 'ESP32') return 'ESP32'
   if (category === 'MQTT') return 'MQTT'
   if (category === 'DB') return 'DB'
@@ -435,6 +498,7 @@ const getLevelClass = (level: string) => {
   const classes = {
     trace: 'text-gray-500',
     debug: 'text-blue-500',
+    success: 'text-green-500 font-semibold',
     info: 'text-emerald-500',
     warn: 'text-amber-500',
     error: 'text-red-500',
@@ -445,12 +509,12 @@ const getLevelClass = (level: string) => {
 
 const getCategoryClass = (category: string) => {
   const classes = {
-    ESP32: 'text-indigo-500',
-    MQTT: 'text-orange-500',
-    DB: 'text-cyan-500',
-    API: 'text-pink-500',
-    SYSTEM: 'text-slate-500',
-    WEBSOCKET: 'text-violet-500',
+    ESP32: 'text-indigo-600',
+    MQTT: 'text-orange-600',
+    DB: 'text-cyan-600',
+    API: 'text-pink-600',
+    SYSTEM: 'text-slate-600',
+    WEBSOCKET: 'text-orange-400',
   }
   return classes[category as keyof typeof classes] || 'text-gray-500'
 }
@@ -479,7 +543,6 @@ const deleteAllLogs = async () => {
     const data = await response.json()
     showDeleteConfirm.value = false
 
-    // Reset pagination and reload logs
     offset.value = 0
     await loadLogs()
 
@@ -491,6 +554,33 @@ const deleteAllLogs = async () => {
     deleting.value = false
   }
 }
+
+const handleSelectionUpdate = (selection: { start: string; end: string } | null) => {
+  timeSelection.value = selection
+  offset.value = 0
+  loadLogs()
+}
+
+watch(timeRange, () => {
+  timeSelection.value = null
+  offset.value = 0
+  loadLogs()
+})
+
+watch(() => [filters.value.categories, filters.value.levels, filters.value.limit], () => {
+  offset.value = 0
+  loadLogs()
+}, { deep: true })
+
+// Debounce search
+let searchDebounce: NodeJS.Timeout | null = null
+watch(() => filters.value.search, () => {
+  if (searchDebounce) clearTimeout(searchDebounce)
+  searchDebounce = setTimeout(() => {
+    offset.value = 0
+    loadLogs()
+  }, 300)
+})
 
 onMounted(() => {
   loadLogs()

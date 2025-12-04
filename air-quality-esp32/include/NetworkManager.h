@@ -7,6 +7,7 @@
 #include <ESPmDNS.h>
 #include <WiFiManager.h>
 #include <Preferences.h>
+#include <time.h>
 
 /**
  * @brief Gère la connexion WiFi et MQTT pour l'ESP32
@@ -248,6 +249,9 @@ private:
             }
             
             // Pas de reboot ici, on laisse le loop() gérer
+            
+            // Configurer NTP
+            configTime(0, 0, "pool.ntp.org", "time.nist.gov");
         #else
             // Portail WiFi avec configuration du nom du module
             WiFiManagerParameter customModuleName("module_name", "Nom du Module", moduleName, 32);
@@ -262,6 +266,9 @@ private:
                 delay(3000);
                 ESP.restart(); // Pour le portail, le reboot est plus logique car on attend une interaction utilisateur
             }
+            
+            // Configurer NTP
+            configTime(0, 0, "pool.ntp.org", "time.nist.gov");
             
             // Sauvegarder le nom du module si modifié
             if (shouldSaveConfig) {

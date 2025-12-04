@@ -55,38 +55,33 @@ float lastPressure = 0.0;
 float lastTempBmp = 0.0;
 bool lastDhtOk = false;
 static unsigned int lastDisconnectReason = 0;
-static bool disconnectLogged = false;
+static unsigned int reconnectAttempts = 0;
 
 void onMqttConnectedCallback() {
     mqttJustConnected = true;
-    disconnectLogged = false; // Reset le flag de déconnexion
     // Envoyer tous les logs en attente
     if (logger) {
         logger->flushBufferedLogs();
-        logger->info("MQTT connected - logging system operational");
+        if (reconnectAttempts > 0) {
+            char msg[96];
+            snprintf(msg, sizeof(msg), "✓ MQTT reconnected after %u attempts (last disconnect reason: %u)", 
+                     reconnectAttempts, lastDisconnectReason);
+            logger->success(msg);
+        } else {
+            logger->success("✓ MQTT connected - logging system operational");
+        }
     }
+    reconnectAttempts = 0; // Reset counter after successful connection
 }
 
 void onMqttReconnectAttemptCallback(unsigned int attempt) {
-    if (logger) {
-        char msg[96];
-        if (disconnectLogged) {
-            // Message combiné avec déconnexion et tentative
-            snprintf(msg, sizeof(msg), "MQTT disconnected (reason: %u) - reconnection attempt #%u", 
-                     lastDisconnectReason, attempt);
-            disconnectLogged = false; // Reset pour éviter de répéter
-        } else {
-            // Seulement la tentative de reconnexion
-            snprintf(msg, sizeof(msg), "MQTT reconnection attempt #%u", attempt);
-        }
-        logger->warn(msg);
-    }
+    reconnectAttempts = attempt;
+    // Don't log each attempt - we'll log a summary when connected
 }
 
 void onMqttDisconnectedCallback(int reason) {
     lastDisconnectReason = reason;
-    disconnectLogged = true;
-    // Le message sera combiné avec la tentative de reconnexion dans onMqttReconnectAttemptCallback
+    // Don't log here - we'll log when reconnected with the summary
 }
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
@@ -206,62 +201,76 @@ void setup() {
     
     // Logs de démarrage (seront envoyés une fois MQTT connecté)
     if (logger) {
-        logger->info("=== ESP32 Air Quality Sensor Starting ===");
-        logger->debug("Hardware initialization complete");
-        
         // Informations WiFi
         if (WiFi.status() == WL_CONNECTED) {
             char wifiInfo[128];
-            snprintf(wifiInfo, sizeof(wifiInfo), "WiFi connected - IP: %s, MAC: %s, RSSI: %d dBm", 
+            snprintf(wifiInfo, sizeof(wifiInfo), "✓ WiFi connected - IP: %s, MAC: %s, RSSI: %d dBm", 
                      WiFi.localIP().toString().c_str(), WiFi.macAddress().c_str(), WiFi.RSSI());
-            logger->info(wifiInfo);
+            logger->success(wifiInfo);
         } else {
-            logger->warn("WiFi not connected at startup");
+            logger->warn("⚠ WiFi not connected at startup");
         }
         
         // Informations module
         char moduleInfo[64];
-        snprintf(moduleInfo, sizeof(moduleInfo), "Module: %s, Topic: %s", 
+        snprintf(moduleInfo, sizeof(moduleInfo), "Module: %s, Topic prefix: %s", 
                  network.getTopicPrefix(), network.getTopicPrefix());
-        logger->debug(moduleInfo);
+        logger->info(moduleInfo);
         
         // Informations mémoire
         char memInfo[64];
-        snprintf(memInfo, sizeof(memInfo), "Free heap: %d KB, Total heap: %d KB", 
+        snprintf(memInfo, sizeof(memInfo), "Memory: %d KB free / %d KB total", 
                  ESP.getFreeHeap() / 1024, ESP.getHeapSize() / 1024);
-        logger->debug(memInfo);
+        logger->info(memInfo);
     }
     
     SystemInitializer::configureSensor();
-    if (logger) logger->debug("Sensor configuration initialized");
     
-    // Initialize I2C for SGP40
+    // Initialize I2C bus
     Wire.begin(21, 22); // SDA=21, SCL=22
-    if (logger) logger->debug("I2C initialized (SDA=21, SCL=22)");
     
-    // Initialize SGP40 & BMP280
-    if (!sensorReader.begin()) {
-        if (logger) logger->error("SGP40/BMP280 init failed! Check wiring");
-    } else {
-        if (logger) logger->info("SGP40 & BMP280 initialized successfully");
+    // Initialize sensors individually with detailed hardware info
+    bool sgpOk = false;
+    bool bmpOk = false;
+    
+    // Try to initialize SGP40 and BMP280
+    if (sensorReader.begin()) {
+        sgpOk = true;
+        bmpOk = true;
     }
     
-    // Initialisation CO2 sensor
-    if (logger) logger->debug("CO2 sensor (MH-Z19) initialized on Serial2");
-    
-    // Initialisation DHT22
-    if (logger) logger->debug("DHT22 sensor initialized on pin 4");
+    // Log each sensor status
+    if (logger) {
+        // SGP40 (VOC sensor)
+        if (sgpOk) {
+            logger->success("✓ SGP40 (VOC) initialized - I2C addr: 0x59, protocol: I2C");
+        } else {
+            logger->error("✗ SGP40 (VOC) init failed - I2C addr: 0x59, check wiring");
+        }
+        
+        // BMP280 (Pressure/Temp sensor)
+        if (bmpOk) {
+            logger->success("✓ BMP280 (Pressure/Temp) initialized - I2C addr: 0x76, protocol: I2C");
+        } else {
+            logger->error("✗ BMP280 (Pressure/Temp) init failed - I2C addr: 0x76, check wiring");
+        }
+        
+        // MH-Z14A CO2 sensor
+        logger->success("✓ MH-Z14A (CO2) initialized - UART2, RX=GPIO16, TX=GPIO17, 9600 baud");
+        
+        // DHT22 sensor
+        logger->success("✓ DHT22 (Temp/Humidity) initialized - GPIO4, 1-Wire protocol");
+    }
 
     SystemInitializer::runWarmupSequence();
-    if (logger) logger->info("Warmup sequence completed");
     
     // Configuration des intervalles par défaut
     if (logger) {
         char configInfo[128];
-        snprintf(configInfo, sizeof(configInfo), "Sensor intervals - CO2: %lus, Temp: %lus, Hum: %lus, VOC: %lus, Pres: %lus",
+        snprintf(configInfo, sizeof(configInfo), "Sensor intervals: CO2=%lus, Temp=%lus, Hum=%lus, VOC=%lus, Pressure=%lus",
                  sensorConfig.co2Interval / 1000, sensorConfig.tempInterval / 1000,
                  sensorConfig.humInterval / 1000, sensorConfig.vocInterval / 1000, sensorConfig.pressureInterval / 1000);
-        logger->debug(configInfo);
+        logger->info(configInfo);
     }
     
     if (logger) logger->info("System ready - waiting for MQTT connection");
@@ -301,11 +310,11 @@ void loop() {
             network.publishCO2(ppm);
             if (logger) {
                 char msg[48];
-                snprintf(msg, sizeof(msg), "Published CO2: %d ppm", ppm);
-                logger->debug(msg);
+                snprintf(msg, sizeof(msg), "📤 CO2: %d ppm", ppm);
+                logger->info(msg);
             }
         } else { 
-            if (logger) logger->error("CO2 sensor read error");
+            if (logger) logger->error("✗ CO2 sensor read error");
         }
     }
 
@@ -327,8 +336,8 @@ void loop() {
                 network.publishValue("/temperature", reading.temperature);
                 if (logger) {
                     char msg[48];
-                    snprintf(msg, sizeof(msg), "Published temp: %.1f°C", reading.temperature);
-                    logger->debug(msg);
+                    snprintf(msg, sizeof(msg), "📤 Temperature: %.1f°C", reading.temperature);
+                    logger->info(msg);
                 }
             }
             if (readHum) {
@@ -336,8 +345,8 @@ void loop() {
                 network.publishValue("/humidity", reading.humidity);
                 if (logger) {
                     char msg[48];
-                    snprintf(msg, sizeof(msg), "Published humidity: %.1f%%", reading.humidity);
-                    logger->debug(msg);
+                    snprintf(msg, sizeof(msg), "📤 Humidity: %.1f%%", reading.humidity);
+                    logger->info(msg);
                 }
             }
         }
@@ -355,31 +364,35 @@ void loop() {
         network.publishVocIndex(voc);
         if (logger) {
             char msg[32];
-            snprintf(msg, sizeof(msg), "Published VOC: %d", voc);
-            logger->debug(msg);
+            snprintf(msg, sizeof(msg), "📤 VOC: %d", voc);
+            logger->info(msg);
         }
     }
 
     // --- LECTURE PRESSION & TEMP BMP ---
     if (now - lastPressureReadTime >= sensorConfig.pressureInterval) {
-        Serial.println("[DEBUG] Entering BMP280 read block");
         lastPressureReadTime = now;
         float pressure = sensorReader.readPressure();
         float tempBmp = sensorReader.readBMPTemperature();
-        
-        Serial.printf("[DEBUG] BMP280 values: P=%.1f, T=%.1f\n", pressure, tempBmp);
         
         lastPressure = pressure;
         lastTempBmp = tempBmp;
         
         network.publishValue("/pressure", pressure);
-        // On publie aussi la température du BMP sur un topic dédié
         network.publishValue("/temperature_bmp", tempBmp);
         
         if (logger) {
-            char msg[64];
-            snprintf(msg, sizeof(msg), "Published Pressure: %.1fhPa, TempBMP: %.1f°C", pressure, tempBmp);
-            logger->debug(msg);
+            char msg[96];
+            char pStr[16], tStr[16];
+            
+            if (isnan(pressure)) strcpy(pStr, "error");
+            else snprintf(pStr, sizeof(pStr), "%.1f", pressure);
+            
+            if (isnan(tempBmp)) strcpy(tStr, "error");
+            else snprintf(tStr, sizeof(tStr), "%.1f", tempBmp);
+            
+            snprintf(msg, sizeof(msg), "📤 Pressure: %s hPa, TempBMP: %s°C", pStr, tStr);
+            logger->info(msg);
         }
     }
     
@@ -389,7 +402,7 @@ void loop() {
         publishAllConfigs();
         
         if (logger) {
-            logger->info("MQTT connected - device registered");
+            logger->info("📤 Device configs published (hardware, system, sensors)");
         }
         
         // Publish current status if we have sensor data
@@ -402,7 +415,7 @@ void loop() {
             lastSystemInfoTime = now;
             if (logger) {
                 char msg[48];
-                snprintf(msg, sizeof(msg), "Published initial status: CO2=%dppm", lastCO2Value);
+                snprintf(msg, sizeof(msg), "📤 Initial status: CO2=%d ppm", lastCO2Value);
                 logger->info(msg);
             }
         }
@@ -414,17 +427,5 @@ void loop() {
         statusPublisher.publishSensorStatus(lastCO2Value, lastTemperature, 
                                           lastHumidity, lastDhtOk, lastVocValue,
                                           lastPressure, lastTempBmp);
-        if (logger) {
-            char msg[128];
-            if (lastDhtOk) {
-                snprintf(msg, sizeof(msg), "System status: RSSI=%lddBm, Mem=%dKB, CO2=%dppm, T=%.1f°C, H=%.1f%%, VOC=%d, P=%.1fhPa, TBMP=%.1f°C",
-                         network.getRSSI(), ESP.getFreeHeap() / 1024, lastCO2Value, 
-                         lastTemperature, lastHumidity, lastVocValue, lastPressure, lastTempBmp);
-            } else {
-                snprintf(msg, sizeof(msg), "System status: RSSI=%lddBm, Mem=%dKB, CO2=%dppm, DHT22=error, VOC=%d, P=%.1fhPa, TBMP=%.1f°C",
-                         network.getRSSI(), ESP.getFreeHeap() / 1024, lastCO2Value, lastVocValue, lastPressure, lastTempBmp);
-            }
-            logger->debug(msg);
-        }
     }
 }

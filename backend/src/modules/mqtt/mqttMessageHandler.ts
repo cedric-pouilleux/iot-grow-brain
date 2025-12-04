@@ -10,6 +10,9 @@ type TopicParts = {
 }
 
 export class MqttMessageHandler {
+  // Cache for delta updates - only broadcast if data changed
+  private lastBroadcastedPayload: Map<string, string> = new Map()
+
   constructor(
     private fastify: FastifyInstance,
     private mqttRepo: MqttRepository,
@@ -158,6 +161,9 @@ export class MqttMessageHandler {
         case 'warn':
           this.fastify.log.warn(logData)
           break
+        case 'success':
+          this.fastify.log.success(logData)
+          break
         case 'error':
           this.fastify.log.error(logData)
           break
@@ -199,7 +205,7 @@ export class MqttMessageHandler {
 
       this.measurementBuffer.push({ time: now, moduleId, sensorType, value })
       this.fastify.log.info({
-        msg: `[MQTT] Received ${sensorType}=${value} from ${moduleId}`,
+        msg: `[MQTT] 📥 ${sensorType}=${value} from ${moduleId}`,
         moduleId,
         sensorType,
         value,
@@ -239,7 +245,7 @@ export class MqttMessageHandler {
 
       this.measurementBuffer.push({ time: now, moduleId, sensorType, value })
       this.fastify.log.info({
-        msg: `[MQTT] Received ${sensorType}=${value} from ${moduleId}`,
+        msg: `[MQTT] 📥 ${sensorType}=${value} from ${moduleId}`,
         moduleId,
         sensorType,
         value,
@@ -367,36 +373,26 @@ export class MqttMessageHandler {
       this.fastify.log.info(`⚠️ Topic not processed: ${topic} (parts: ${parsed.parts.join(', ')})`)
     }
 
-    // Broadcast via WebSocket
+    // Broadcast via WebSocket (with delta check)
     const wsData = this.prepareWebSocketData(topic, payload, parsed, now)
     if (wsData && this.fastify.io) {
-      const clientCount = this.fastify.io.sockets.sockets.size
+      const clientCount = this.fastify.io.sockets.sockets.size 
       if (clientCount > 0) {
-        this.fastify.io.emit('mqtt:data', wsData)
+        // Check if data has changed before broadcasting
+        const lastPayload = this.lastBroadcastedPayload.get(topic)
+        if (lastPayload !== payload) {
+          this.lastBroadcastedPayload.set(topic, payload)
+          this.fastify.io.emit('mqtt:data', wsData)
 
-        this.fastify.log.info({
-          msg: `[WEBSOCKET] Message sent to frontend - ${parsed.moduleId} - ${topic}`,
-          moduleId: parsed.moduleId,
-          topic,
-          value: wsData.value,
-        })
-      } else {
-        this.fastify.log.debug({
-          msg: '[WEBSOCKET] Message skipped (no clients connected)',
-          topic,
-          moduleId: parsed.moduleId,
-          category: parsed.category,
-          sensorType: parsed.sensorType,
-          payloadLength: payload.length,
-          payloadPreview: payload.length > 100 ? payload.substring(0, 100) + '...' : payload,
-          data: {
-            topic: wsData.topic,
-            value: wsData.value,
-            hasMetadata: !!wsData.metadata,
-            time: wsData.time,
-          },
-        })
+          this.fastify.log.info({
+            msg: `[WEBSOCKET] Data changed, sent to frontend - ${parsed.moduleId} - ${topic}`,
+            moduleId: parsed.moduleId,
+            topic,
+          })
+        }
+        // If data is the same, don't broadcast (delta update optimization)
       }
+      // No logging when no clients connected - it's expected behavior
     }
   }
 }

@@ -5,6 +5,7 @@ import { systemLogs } from '../db/schema'
 const levelMap: Record<number, string> = {
   10: 'trace',
   20: 'debug',
+  25: 'success',
   30: 'info',
   40: 'warn',
   50: 'error',
@@ -27,8 +28,12 @@ export const dbLoggerStream = new Writable({
       let category = 'SYSTEM'
       let cleanMsg = msg || ''
 
-      // Filter out generic Fastify request logs (they're not useful)
-      if (cleanMsg === 'incoming request' || cleanMsg === 'request completed') {
+      // Filter out generic Fastify logs (not useful, we have our own)
+      if (
+        cleanMsg === 'incoming request' ||
+        cleanMsg === 'request completed' ||
+        cleanMsg.startsWith('Server listening at')
+      ) {
         callback()
         return
       }

@@ -117,8 +117,8 @@ export default fp(async (fastify: FastifyInstance) => {
       if (err) {
         fastify.log.error({ msg: '[MQTT] Subscription failed', error: err })
       } else {
-        fastify.log.info({
-          msg: '[MQTT] Connected to broker and subscribed',
+        fastify.log.success({
+          msg: '✓ [MQTT] Connected to broker and subscribed',
           broker: config.mqtt.broker,
           topics: subscribedTopics,
           wildcardSubscription: true,
