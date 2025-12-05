@@ -56,75 +56,36 @@ export class DeviceRepository {
       .where(eq(schema.sensorConfig.moduleId, moduleId))
   }
 
-  async getHistoryData(moduleId: string, days: number, limit: number) {
-    if (days > 7) {
-      // Using raw SQL for TimescaleDB specific queries but mapping to camelCase
-      const query = sql`
-                SELECT bucket as time, sensor_type as "sensorType", avg_value as value
-                FROM measurements_hourly
-                WHERE module_id = ${moduleId}
-                  AND bucket > NOW() - (${days} || ' days')::interval
-                ORDER BY bucket DESC
-                LIMIT ${limit}
-            `
-      const result = await this.db.execute(query)
-      return result.rows.map(row => ({
-        time: new Date(row.time as string | Date),
-        sensorType: row.sensorType as string,
-        value: Number(row.value),
-      }))
-    } else if (days > 1) {
-      // Pour 1-7 jours : agrégation par minute (acceptable pour cette période)
-      try {
-        const query = sql`
-                    SELECT time_bucket('1 minute', time) as time, sensor_type as "sensorType", AVG(value) as value
-                    FROM measurements
-                    WHERE module_id = ${moduleId}
-                      AND time > NOW() - (${days} || ' days')::interval
-                    GROUP BY time, sensor_type
-                    ORDER BY time DESC
-                    LIMIT ${limit}
-                `
-        const result = await this.db.execute(query)
-        return result.rows.map(row => ({
-          time: new Date(row.time as string | Date),
-          sensorType: row.sensorType as string,
-          value: Number(row.value),
-        }))
-      } catch {
-        // Fallback without time_bucket
-        const query = sql`
-                    SELECT time, sensor_type as "sensorType", value
-                    FROM measurements
-                    WHERE module_id = ${moduleId}
-                      AND time > NOW() - (${days} || ' days')::interval
-                    ORDER BY time DESC
-                    LIMIT ${limit}
-                `
-        const result = await this.db.execute(query)
-        return result.rows.map(row => ({
-          time: new Date(row.time as string | Date),
-          sensorType: row.sensorType as string,
-          value: Number(row.value),
-        }))
-      }
+  async getHistoryData(moduleId: string, days: number) {
+    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+
+    // Déterminer le niveau d'agrégation selon la période
+    const aggregation = days >= 7 ? '1 hour' : days > 1 ? '1 minute' : null
+
+    let query
+    if (aggregation) {
+      query = sql`
+        SELECT time_bucket(${aggregation}, time) as time, sensor_type as "sensorType", AVG(value) as value
+        FROM measurements
+        WHERE module_id = ${moduleId} AND time > ${cutoffDate}
+        GROUP BY 1, sensor_type
+        ORDER BY time DESC
+      `
     } else {
-      // Pour < 1 jour : données brutes (pas d'agrégation) pour correspondre au temps réel
-      const query = sql`
-                SELECT time, sensor_type as "sensorType", value
-                FROM measurements
-                WHERE module_id = ${moduleId}
-                  AND time > NOW() - (${days} || ' days')::interval
-                ORDER BY time DESC
-                LIMIT ${limit}
-            `
-      const result = await this.db.execute(query)
-      return result.rows.map(row => ({
-        time: new Date(row.time as string | Date),
-        sensorType: row.sensorType as string,
-        value: Number(row.value),
-      }))
+      query = sql`
+        SELECT time, sensor_type as "sensorType", value
+        FROM measurements
+        WHERE module_id = ${moduleId} AND time > ${cutoffDate}
+        ORDER BY time DESC
+      `
     }
+
+    const result = await this.db.execute(query)
+    return result.rows.map(row => ({
+      time: new Date(row.time as string | Date),
+      sensorType: row.sensorType as string,
+      value: Number(row.value),
+    }))
   }
 
   async updateSensorConfig(moduleId: string, sensorType: string, interval: number) {

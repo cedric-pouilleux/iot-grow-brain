@@ -1,6 +1,11 @@
 <template>
   <div class="min-h-screen bg-gray-100 text-gray-800 p-4 sm:p-8">
     <div class="max-w-7xl mx-auto">
+      <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+        <h1 class="text-3xl font-bold text-gray-900">Tableau de bord</h1>
+        <TimeRangeSelector v-model="selectedRange" @update:modelValue="handleRangeChange" />
+      </header>
+
       <main>
         <ClientOnly>
           <div v-if="isLoading" class="text-center py-8">
@@ -33,6 +38,7 @@
               :module-name="module.name"
               :device-status="getModuleDeviceStatus(module.id)"
               :sensor-data="getModuleSensorData(module.id)"
+              :is-history-loading="isHistoryLoading"
             />
           </div>
 
@@ -51,6 +57,7 @@ import type { MqttMessage } from '../types'
 
 // Components
 import ModulePanel from '../components/ModulePanel.vue'
+import TimeRangeSelector from '../components/TimeRangeSelector.vue'
 
 // Composables
 import { useDatabase } from '../composables/useDatabase'
@@ -66,7 +73,7 @@ const { loadDbSize } = useDatabase()
 const { modules, error: modulesError, loadModules, addModuleFromTopic } = useModules()
 
 // Module data (device status & sensor data)
-const { getModuleDeviceStatus, getModuleSensorData, handleModuleMessage, loadModuleDashboard } =
+const { getModuleDeviceStatus, getModuleSensorData, handleModuleMessage, loadModuleDashboard, updateModuleSensorData } =
   useModulesData()
 
 // Dashboard
@@ -74,12 +81,15 @@ const {
   isLoading: dashboardLoading,
   error: dashboardError,
   loadDashboard: fetchDashboard,
+  loadHistory: fetchHistory,
 } = useDashboard()
 
 // Local state
 const isInitialLoading = ref(true)
+const isHistoryLoading = ref(false)
 const isLoading = computed(() => isInitialLoading.value || dashboardLoading.value)
 const error = computed(() => modulesError.value || dashboardError.value)
+const selectedRange = ref(1) // Défaut: 24h
 
 /**
  * Handle incoming MQTT message
@@ -104,16 +114,36 @@ const { connect: connectMqtt, disconnect: disconnectMqtt } = useMqtt({
 })
 
 /**
- * Load dashboard data for all modules
+ * Load dashboard data for all modules (status + history)
  */
 const loadAllDashboards = async (): Promise<void> => {
   const promises = modules.value.map(async module => {
-    const result = await fetchDashboard(module.id)
+    const result = await fetchDashboard(module.id, selectedRange.value)
     if (result) {
       loadModuleDashboard(module.id, result)
     }
   })
   await Promise.all(promises)
+}
+
+/**
+ * Handle time range change - only reload history, not status
+ */
+const handleRangeChange = async () => {
+  console.log('handleRangeChange: setting isHistoryLoading = true')
+  isHistoryLoading.value = true
+  try {
+    const promises = modules.value.map(async module => {
+      const sensors = await fetchHistory(module.id, selectedRange.value)
+      if (sensors) {
+        updateModuleSensorData(module.id, sensors)
+      }
+    })
+    await Promise.all(promises)
+  } finally {
+    console.log('handleRangeChange: setting isHistoryLoading = false')
+    isHistoryLoading.value = false
+  }
 }
 
 /**

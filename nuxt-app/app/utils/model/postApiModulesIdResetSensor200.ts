@@ -6,7 +6,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type DeleteApiLogs200 = {
+export type PostApiModulesIdResetSensor200 = {
+  success: boolean;
   message: string;
-  deletedCount: number;
 };

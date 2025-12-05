@@ -125,6 +125,7 @@ const chartData = computed<ChartData<'line'> | null>(() => {
 const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
+  animation: false,
   interaction: {
     intersect: false,
     mode: 'index' as const,
@@ -134,7 +135,12 @@ const chartOptions = computed(() => ({
       type: 'time' as const,
       display: true,
       time: {
-        unit: 'minute' as const,
+        displayFormats: {
+          minute: 'HH:mm',
+          hour: 'HH:mm',
+          day: 'dd/MM',
+          month: 'MM/yyyy'
+        }
       },
       border: { display: false },
       grid: { color: '#f3f4f6', drawBorder: false },

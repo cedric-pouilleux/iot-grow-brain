@@ -17,9 +17,14 @@ import type {
   GetApiModules200Item,
   GetApiModulesIdData200,
   GetApiModulesIdDataParams,
+  GetApiModulesIdHistory200,
+  GetApiModulesIdHistoryParams,
+  GetApiModulesIdStatus200,
   GetApiStorage200,
   PostApiModulesIdConfig200,
-  PostApiModulesIdConfigBody
+  PostApiModulesIdConfigBody,
+  PostApiModulesIdResetSensor200,
+  PostApiModulesIdResetSensorBody
 } from './model';
 
 
@@ -110,7 +115,144 @@ export const postApiModulesIdConfig = async (id: string,
 
 
 /**
- * @summary Get module status and time series measurements
+ * @summary Reset a specific sensor
+ */
+export type postApiModulesIdResetSensorResponse200 = {
+  data: PostApiModulesIdResetSensor200
+  status: 200
+}
+    
+export type postApiModulesIdResetSensorResponseSuccess = (postApiModulesIdResetSensorResponse200) & {
+  headers: Headers;
+};
+;
+
+export type postApiModulesIdResetSensorResponse = (postApiModulesIdResetSensorResponseSuccess)
+
+export const getPostApiModulesIdResetSensorUrl = (id: string,) => {
+
+
+  
+
+  return `http://localhost:3001/api/modules/${id}/reset-sensor`
+}
+
+export const postApiModulesIdResetSensor = async (id: string,
+    postApiModulesIdResetSensorBody: PostApiModulesIdResetSensorBody, options?: RequestInit): Promise<postApiModulesIdResetSensorResponse> => {
+  
+  const res = await fetch(getPostApiModulesIdResetSensorUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      postApiModulesIdResetSensorBody,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: postApiModulesIdResetSensorResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as postApiModulesIdResetSensorResponse
+}
+
+
+
+/**
+ * @summary Get module status (system, hardware, sensors config)
+ */
+export type getApiModulesIdStatusResponse200 = {
+  data: GetApiModulesIdStatus200
+  status: 200
+}
+    
+export type getApiModulesIdStatusResponseSuccess = (getApiModulesIdStatusResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getApiModulesIdStatusResponse = (getApiModulesIdStatusResponseSuccess)
+
+export const getGetApiModulesIdStatusUrl = (id: string,) => {
+
+
+  
+
+  return `http://localhost:3001/api/modules/${id}/status`
+}
+
+export const getApiModulesIdStatus = async (id: string, options?: RequestInit): Promise<getApiModulesIdStatusResponse> => {
+  
+  const res = await fetch(getGetApiModulesIdStatusUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getApiModulesIdStatusResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getApiModulesIdStatusResponse
+}
+
+
+
+/**
+ * @summary Get historical sensor data
+ */
+export type getApiModulesIdHistoryResponse200 = {
+  data: GetApiModulesIdHistory200
+  status: 200
+}
+    
+export type getApiModulesIdHistoryResponseSuccess = (getApiModulesIdHistoryResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getApiModulesIdHistoryResponse = (getApiModulesIdHistoryResponseSuccess)
+
+export const getGetApiModulesIdHistoryUrl = (id: string,
+    params?: GetApiModulesIdHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `http://localhost:3001/api/modules/${id}/history?${stringifiedParams}` : `http://localhost:3001/api/modules/${id}/history`
+}
+
+export const getApiModulesIdHistory = async (id: string,
+    params?: GetApiModulesIdHistoryParams, options?: RequestInit): Promise<getApiModulesIdHistoryResponse> => {
+  
+  const res = await fetch(getGetApiModulesIdHistoryUrl(id,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getApiModulesIdHistoryResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getApiModulesIdHistoryResponse
+}
+
+
+
+/**
+ * @summary [Legacy] Get module status and time series measurements
  */
 export type getApiModulesIdDataResponse200 = {
   data: GetApiModulesIdData200
@@ -399,7 +541,7 @@ export type getApiLogsHistogramResponseSuccess = (getApiLogsHistogramResponse200
 
 export type getApiLogsHistogramResponse = (getApiLogsHistogramResponseSuccess)
 
-export const getGetApiLogsHistogramUrl = (params: GetApiLogsHistogramParams,) => {
+export const getGetApiLogsHistogramUrl = (params?: GetApiLogsHistogramParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -414,7 +556,7 @@ export const getGetApiLogsHistogramUrl = (params: GetApiLogsHistogramParams,) =>
   return stringifiedParams.length > 0 ? `http://localhost:3001/api/logs/histogram?${stringifiedParams}` : `http://localhost:3001/api/logs/histogram`
 }
 
-export const getApiLogsHistogram = async (params: GetApiLogsHistogramParams, options?: RequestInit): Promise<getApiLogsHistogramResponse> => {
+export const getApiLogsHistogram = async (params?: GetApiLogsHistogramParams, options?: RequestInit): Promise<getApiLogsHistogramResponse> => {
   
   const res = await fetch(getGetApiLogsHistogramUrl(params),
   {      

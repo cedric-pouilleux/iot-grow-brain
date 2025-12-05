@@ -9,6 +9,9 @@ import {
   ModuleDataResponseSchema,
   ConfigUpdateResponseSchema,
   SensorResetSchema,
+  ModuleStatusResponseSchema,
+  ModuleHistoryQuerySchema,
+  ModuleHistoryResponseSchema,
 } from './schema'
 
 const devicesRoutes: FastifyPluginAsync = async fastify => {
@@ -57,20 +60,53 @@ const devicesRoutes: FastifyPluginAsync = async fastify => {
         params: ModuleParamsSchema,
         body: SensorResetSchema,
         response: {
-          200: ConfigUpdateResponseSchema, // Reusing simple success response
+          200: ConfigUpdateResponseSchema,
         },
       },
     },
     controller.resetSensor
   )
 
-  // GET /modules/:id/data - Get module status and time series measurements
+  // GET /modules/:id/status - Get module status only
+  app.get(
+    '/modules/:id/status',
+    {
+      schema: {
+        tags: ['Devices'],
+        summary: 'Get module status (system, hardware, sensors config)',
+        params: ModuleParamsSchema,
+        response: {
+          200: ModuleStatusResponseSchema,
+        },
+      },
+    },
+    controller.getModuleStatus
+  )
+
+  // GET /modules/:id/history - Get historical sensor data only
+  app.get(
+    '/modules/:id/history',
+    {
+      schema: {
+        tags: ['Devices'],
+        summary: 'Get historical sensor data',
+        params: ModuleParamsSchema,
+        querystring: ModuleHistoryQuerySchema,
+        response: {
+          200: ModuleHistoryResponseSchema,
+        },
+      },
+    },
+    controller.getModuleHistory
+  )
+
+  // GET /modules/:id/data - Legacy: Get module status and time series (kept for compatibility)
   app.get(
     '/modules/:id/data',
     {
       schema: {
         tags: ['Devices'],
-        summary: 'Get module status and time series measurements',
+        summary: '[Legacy] Get module status and time series measurements',
         params: ModuleParamsSchema,
         querystring: ModuleDataQuerySchema,
         response: {

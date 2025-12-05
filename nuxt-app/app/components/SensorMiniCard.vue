@@ -36,6 +36,10 @@
 
     <!-- Mini Graphique avec Chart.js -->
     <div v-if="hasHistory" class="h-24 w-full relative p-0.5 rounded-lg">
+      <!-- Loading overlay -->
+      <div v-if="isLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-lg">
+        <div class="animate-spin w-5 h-5 border-2 border-gray-300 border-t-emerald-500 rounded-full"></div>
+      </div>
       <ClientOnly>
         <Line v-if="chartData" :data="chartData" :options="chartOptions" class="rounded-lg" />
         <template #fallback>
@@ -93,6 +97,7 @@ interface Props {
   moduleId?: string | null
   sensorKey?: string | null
   initialInterval?: number
+  isLoading?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -102,6 +107,7 @@ const props = withDefaults(defineProps<Props>(), {
   moduleId: null,
   sensorKey: null,
   initialInterval: 60,
+  isLoading: false,
 })
 
 const emit = defineEmits<{
@@ -276,13 +282,19 @@ const chartData = computed<ChartData<'line'> | null>(() => {
 const chartOptions = computed<ChartOptions<'line'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
+  animation: false,
   interaction: { intersect: false },
   scales: {
     x: {
       type: 'time' as const,
       display: false,
       time: {
-        unit: 'minute' as const,
+        displayFormats: {
+          minute: 'HH:mm',
+          hour: 'HH:mm',
+          day: 'dd/MM',
+          month: 'MM/yyyy'
+        }
       },
     },
     y: {

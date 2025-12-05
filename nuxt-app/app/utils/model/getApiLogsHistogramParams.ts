@@ -5,15 +5,17 @@
  * API for IoT Dashboard
  * OpenAPI spec version: 1.0.0
  */
-import type { GetApiLogsHistogramCategory } from './getApiLogsHistogramCategory';
-import type { GetApiLogsHistogramLevel } from './getApiLogsHistogramLevel';
+import type { GetApiLogsHistogramCategoryAnyOfItem } from './getApiLogsHistogramCategoryAnyOfItem';
+import type { GetApiLogsHistogramLevelAnyOfItem } from './getApiLogsHistogramLevelAnyOfItem';
 
 export type GetApiLogsHistogramParams = {
 /**
  * @pattern ^\d{4}-\d{2}-\d{2}$
  */
-date: string;
-category?: GetApiLogsHistogramCategory;
-level?: GetApiLogsHistogramLevel;
+date?: string;
+startDate?: string;
+endDate?: string;
+category?: 'ESP32' | 'MQTT' | 'DB' | 'API' | 'SYSTEM' | 'WEBSOCKET' | GetApiLogsHistogramCategoryAnyOfItem[];
+level?: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | GetApiLogsHistogramLevelAnyOfItem[];
 search?: string;
 };

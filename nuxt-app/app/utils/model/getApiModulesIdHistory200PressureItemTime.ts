@@ -6,7 +6,4 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type DeleteApiLogs200 = {
-  message: string;
-  deletedCount: number;
-};
+export type GetApiModulesIdHistory200PressureItemTime = string | string;

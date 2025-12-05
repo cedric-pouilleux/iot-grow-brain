@@ -30,6 +30,7 @@
           :module-id="moduleId"
           :sensor-key="type.key"
           :initial-interval="deviceStatus?.sensorsConfig?.sensors?.[type.key]?.interval || 60"
+          :is-loading="props.isHistoryLoading"
           @toggle-graph="toggleGraph(type.key)"
         />
       </div>
@@ -65,10 +66,12 @@ interface Props {
   moduleName: string
   deviceStatus: DeviceStatus | null
   sensorData: SensorData
+  isHistoryLoading?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   sensorData: () => ({ co2: [], temp: [], hum: [], voc: [], pressure: [], temperature_bmp: [] }),
+  isHistoryLoading: false,
 })
 
 const getSensorData = (sensorName: string) => {

@@ -2,7 +2,7 @@ import type { DeviceStatus, SensorData, SensorDataPoint, MqttMessage } from '../
 import { processSensorData } from '../utils/data-processing'
 import { useMqttMessageHandler } from './useMqttMessageHandler'
 
-const MAX_DATA_POINTS = 100
+const MAX_DATA_POINTS = 5000
 
 /**
  * Composable for managing module data (device status and sensor data)
@@ -143,7 +143,7 @@ export const useModulesData = () => {
     // Convert to array, sort by time, limit size
     return Array.from(timeMap.values())
       .sort((a, b) => a.time.getTime() - b.time.getTime())
-      .slice(-MAX_DATA_POINTS * 2)
+      .slice(-MAX_DATA_POINTS)
   }
 
   /**
@@ -192,6 +192,25 @@ export const useModulesData = () => {
     }
   }
 
+  /**
+   * Update only sensor data for a module (replaces existing data)
+   * Used when changing time range without reloading status
+   */
+  const updateModuleSensorData = (
+    moduleId: string,
+    sensors: {
+      co2: SensorDataPoint[]
+      temp: SensorDataPoint[]
+      hum: SensorDataPoint[]
+      voc: SensorDataPoint[]
+      pressure: SensorDataPoint[]
+      temperature_bmp: SensorDataPoint[]
+    }
+  ): void => {
+    initializeModule(moduleId)
+    modulesSensorData.value.set(moduleId, { ...sensors })
+  }
+
   return {
     modulesDeviceStatus: readonly(modulesDeviceStatus),
     modulesSensorData: readonly(modulesSensorData),
@@ -199,5 +218,6 @@ export const useModulesData = () => {
     getModuleSensorData,
     handleModuleMessage,
     loadModuleDashboard,
+    updateModuleSensorData,
   }
 }

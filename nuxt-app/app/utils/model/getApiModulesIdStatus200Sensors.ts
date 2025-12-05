@@ -6,7 +6,8 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type DeleteApiLogs200 = {
-  message: string;
-  deletedCount: number;
-};
+export type GetApiModulesIdStatus200Sensors = {[key: string]: {
+  status: string;
+  /** @nullable */
+  value: number | null;
+}};

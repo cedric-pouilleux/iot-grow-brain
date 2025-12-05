@@ -5,12 +5,12 @@
  * API for IoT Dashboard
  * OpenAPI spec version: 1.0.0
  */
-import type { GetApiLogsCategory } from './getApiLogsCategory';
-import type { GetApiLogsLevel } from './getApiLogsLevel';
+import type { GetApiLogsCategoryAnyOfItem } from './getApiLogsCategoryAnyOfItem';
+import type { GetApiLogsLevelAnyOfItem } from './getApiLogsLevelAnyOfItem';
 
 export type GetApiLogsParams = {
-category?: GetApiLogsCategory;
-level?: GetApiLogsLevel;
+category?: 'ESP32' | 'MQTT' | 'DB' | 'API' | 'SYSTEM' | 'WEBSOCKET' | GetApiLogsCategoryAnyOfItem[];
+level?: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | GetApiLogsLevelAnyOfItem[];
 search?: string;
 startDate?: string;
 endDate?: string;

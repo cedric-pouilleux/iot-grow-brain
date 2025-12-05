@@ -106,6 +106,23 @@ export const ModuleDataResponseSchema = z.object({
   }),
 })
 
+// Separate status endpoint schema
+export const ModuleStatusResponseSchema = DeviceStatusSchema
+
+// Separate history endpoint schema
+export const ModuleHistoryQuerySchema = z.object({
+  days: z.string().default('1').transform(Number),
+})
+
+export const ModuleHistoryResponseSchema = z.object({
+  co2: z.array(SensorDataPointSchema),
+  temp: z.array(SensorDataPointSchema),
+  hum: z.array(SensorDataPointSchema),
+  voc: z.array(SensorDataPointSchema),
+  pressure: z.array(SensorDataPointSchema),
+  temperature_bmp: z.array(SensorDataPointSchema),
+})
+
 export const ConfigUpdateResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
