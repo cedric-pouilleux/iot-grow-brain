@@ -11,11 +11,16 @@ class SensorReader {
 public:
     SensorReader(HardwareSerial& co2Serial, DHT_Unified& dht);
     
-    bool begin();
+    bool initBMP(int maxAttempts = 3, int delayBetweenMs = 100);
+    bool initSGP(int maxAttempts = 3, int delayBetweenMs = 100);
     int readCO2();
     int readVocIndex();
     float readPressure();
     float readBMPTemperature();
+    bool resetBMP();
+    bool resetSGP();
+    void resetDHT();
+    void resetCO2();
     DhtReading readDhtSensors();
     
 private:

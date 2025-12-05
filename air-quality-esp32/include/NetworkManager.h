@@ -384,6 +384,9 @@ private:
             String configTopic = String(fullTopic) + "/sensors/config";
             mqttClient.subscribe(configTopic.c_str(), 1);
 
+            String resetTopic = String(fullTopic) + "/sensors/reset";
+            mqttClient.subscribe(resetTopic.c_str(), 1);
+
             if (onMqttConnectedCallback) {
                 onMqttConnectedCallback();
             }

@@ -17,6 +17,10 @@ export const ModuleParamsSchema = z.object({
   id: z.string(),
 })
 
+export const SensorResetSchema = z.object({
+  sensor: z.enum(['co2', 'temp', 'humidity', 'voc', 'pressure', 'all']),
+})
+
 // --- Modules ---
 export const ModuleListResponseSchema = z.array(
   z.object({

@@ -5,9 +5,10 @@
     @click="$emit('toggle-graph')"
   >
     <!-- Header avec Label, Status et Valeur -->
-    <SensorCardHeader :label="label" :sensor="sensor" :is-active="isActive" :color="color" />
+    <SensorCardHeader :label="label" :sensor="sensor" :is-active="isActive" :color="color" :is-incoherent="isIncoherent" />
 
     <!-- Dernier rafraîchissement avec dropdown stockage -->
+
     <div v-if="isActive" class="relative flex items-center gap-1 text-[10px]">
       <SensorIntervalDropdown
         :time-ago="timeAgo"
@@ -17,6 +18,20 @@
         :card-width="cardWidth"
         @save="handleIntervalSave"
       />
+      
+      <!-- Reset Button -->
+      <button 
+        v-if="props.moduleId && props.sensorKey"
+        @click.stop="handleReset"
+        class="p-1 rounded-full hover:bg-gray-100 transition-colors"
+        :class="isIncoherent ? 'text-yellow-500 bg-yellow-50 hover:bg-yellow-100 animate-pulse' : 'text-gray-400 hover:text-blue-500'"
+        :title="isIncoherent ? 'Valeur incohérente détectée - Cliquer pour redémarrer' : 'Redémarrer la sonde'"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+      </button>
     </div>
 
     <!-- Mini Graphique avec Chart.js -->
@@ -98,6 +113,27 @@ const cardWidth = ref(0)
 
 const handleIntervalSave = (_newInterval: number) => {
   // Handled by SensorIntervalDropdown
+
+}
+
+const handleReset = async () => {
+  if (!props.moduleId || !props.sensorKey) return
+  
+  // Map sensorKey to backend sensor types if needed
+  let sensorType = props.sensorKey
+  if (sensorType === 'temperature') sensorType = 'temp'
+  if (sensorType === 'humidity') sensorType = 'humidity' // Backend expects 'humidity' or 'temp' or 'co2' etc.
+  // Actually schema says: 'co2', 'temp', 'humidity', 'voc', 'pressure', 'all'
+  
+  try {
+    await $fetch(`/api/modules/${props.moduleId}/reset-sensor`, {
+      method: 'POST',
+      body: { sensor: sensorType }
+    })
+    // Optional: Show toast notification
+  } catch (err) {
+    console.error('Failed to reset sensor', err)
+  }
 }
 
 let resizeObserver: ResizeObserver | null = null
@@ -151,9 +187,25 @@ const isActive = computed(() => {
   return props.sensor?.value !== null && props.sensor?.value !== undefined
 })
 
+const isIncoherent = computed(() => {
+  if (!props.sensor?.value || !props.sensorKey) return false
+  const val = props.sensor.value
+  
+  // Seuils de cohérence
+  if (props.sensorKey === 'pressure') return val < 800 || val > 1200
+  if (props.sensorKey === 'temperature' || props.sensorKey === 'temperature_bmp') return val < -20 || val > 80
+  if (props.sensorKey === 'humidity') return val < 0 || val > 100
+  if (props.sensorKey === 'co2') return val < 300 || val > 5000
+  
+  return false
+})
+
 const hasHistory = computed(() => props.history && props.history.length >= 2)
 
-const strokeColor = computed(() => (isActive.value ? colors.value.stroke : '#d1d5db'))
+const strokeColor = computed(() => {
+  if (isIncoherent.value) return '#eab308' // Yellow-500
+  return isActive.value ? colors.value.stroke : '#d1d5db'
+})
 
 const timeAgo = useTimeAgo(() => {
   if (!props.history || props.history.length === 0) return null

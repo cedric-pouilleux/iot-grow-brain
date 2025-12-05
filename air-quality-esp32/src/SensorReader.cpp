@@ -6,15 +6,67 @@ SensorReader::SensorReader(HardwareSerial& co2Serial, DHT_Unified& dht)
     : co2Serial(co2Serial), dht(dht) {
 }
 
-bool SensorReader::begin() {
-    bool sgpSuccess = sgp.begin();
-    bool bmpSuccess = bmp.begin(0x76); // Adresse I2C par défaut du BMP280 (parfois 0x77)
-    
-    if (!bmpSuccess) {
-        Serial.println("Could not find a valid BMP280 sensor, check wiring!");
+bool SensorReader::initBMP(int maxAttempts, int delayBetweenMs) {
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (bmp.begin(0x76)) {
+            if (attempt > 1) {
+                Serial.printf("BMP280 initialized after %d attempts\n", attempt);
+            }
+            return true;
+        }
+        if (attempt < maxAttempts) {
+            delay(delayBetweenMs);
+        }
     }
-    
-    return sgpSuccess; // On retourne le statut SGP pour compatibilité, mais on loggue BMP
+    Serial.println("Could not find a valid BMP280 sensor after retries, check wiring!");
+    return false;
+}
+
+bool SensorReader::initSGP(int maxAttempts, int delayBetweenMs) {
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (sgp.begin()) {
+            if (attempt > 1) {
+                Serial.printf("SGP40 initialized after %d attempts\n", attempt);
+            }
+            return true;
+        }
+        if (attempt < maxAttempts) {
+            delay(delayBetweenMs);
+        }
+    }
+    Serial.println("Sensor SGP40 not found after retries :(");
+    return false;
+}
+
+bool SensorReader::resetBMP() {
+    bool success = bmp.begin(0x76);
+    if (!success) {
+        Serial.println("Failed to reset BMP280 sensor!");
+    } else {
+        Serial.println("BMP280 sensor reset successful");
+    }
+    return success;
+}
+
+bool SensorReader::resetSGP() {
+    bool success = sgp.begin();
+    if (!success) {
+        Serial.println("Failed to reset SGP40 sensor!");
+    } else {
+        Serial.println("SGP40 sensor reset successful");
+    }
+    return success;
+}
+
+void SensorReader::resetDHT() {
+    dht.begin();
+    Serial.println("DHT sensor reset (re-initialized)");
+}
+
+void SensorReader::resetCO2() {
+    // For MH-Z14A via Serial, we can't hard reset, but we can clear buffers
+    while (co2Serial.available()) co2Serial.read();
+    Serial.println("CO2 sensor serial buffer cleared");
 }
 
 int SensorReader::readVocIndex() {
@@ -26,18 +78,6 @@ int SensorReader::readVocIndex() {
     float h = isnan(humidity.relative_humidity) ? 50.0 : humidity.relative_humidity;
     
     int32_t voc = sgp.measureVocIndex(t, h);
-    
-    // Debug: print detailed info
-    static int readCount = 0;
-    readCount++;
-    
-    if (readCount <= 5 || readCount % 10 == 0) {
-        Serial.printf("VOC Reading #%d: value=%d, T=%.1f°C, H=%.1f%%\n", 
-                      readCount, voc, t, h);
-        if (readCount <= 5) {
-            Serial.println("  Note: SGP40 needs 10-15 min warm-up for accurate readings");
-        }
-    }
     
     return voc;
 }

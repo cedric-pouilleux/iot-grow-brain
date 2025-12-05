@@ -8,12 +8,13 @@ import type {
   ConfigUpdateResponse,
 } from '../../types/api'
 import type { ModuleConfig } from '../../types/mqtt'
-import { ModuleParamsSchema, ModuleConfigSchema, ModuleDataQuerySchema } from './schema'
+import { ModuleParamsSchema, ModuleConfigSchema, ModuleDataQuerySchema, SensorResetSchema } from './schema'
 import { z } from 'zod'
 
 type ModuleParams = z.infer<typeof ModuleParamsSchema>
 type ModuleConfigBody = z.infer<typeof ModuleConfigSchema>
 type ModuleDataQuery = z.infer<typeof ModuleDataQuerySchema>
+type SensorResetBody = z.infer<typeof SensorResetSchema>
 
 export class DeviceController {
   private deviceRepo: DeviceRepository
@@ -72,6 +73,31 @@ export class DeviceController {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       this.fastify.log.error(`Error updating config: ${errorMessage}`)
+      throw this.fastify.httpErrors.internalServerError(errorMessage)
+    }
+  }
+
+  resetSensor = async (
+    req: FastifyRequest<{ Params: ModuleParams; Body: SensorResetBody }>,
+    reply: FastifyReply
+  ) => {
+    const { id } = req.params
+    const { sensor } = req.body
+
+    try {
+      const published = this.fastify.publishReset(id, sensor)
+
+      if (published) {
+        return {
+          success: true,
+          message: `Reset command sent for sensor ${sensor}`,
+        }
+      } else {
+        throw this.fastify.httpErrors.internalServerError('Failed to publish reset command')
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      this.fastify.log.error(`Error resetting sensor: ${errorMessage}`)
       throw this.fastify.httpErrors.internalServerError(errorMessage)
     }
   }

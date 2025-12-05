@@ -402,7 +402,7 @@ watch(() => [props.range, props.filters], fetchHistogram, { deep: true, immediat
 </script>
 
 <style scoped>
-.histogram-wrapper {
+.histogram-wrapper { 
   background: white;
   border-bottom: 1px solid #e5e7eb;
 }

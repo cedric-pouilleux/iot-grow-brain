@@ -8,6 +8,7 @@ import {
   ModuleListResponseSchema,
   ModuleDataResponseSchema,
   ConfigUpdateResponseSchema,
+  SensorResetSchema,
 } from './schema'
 
 const devicesRoutes: FastifyPluginAsync = async fastify => {
@@ -44,6 +45,23 @@ const devicesRoutes: FastifyPluginAsync = async fastify => {
       },
     },
     controller.updateConfig
+  )
+
+  // POST /modules/:id/reset-sensor - Reset a specific sensor
+  app.post(
+    '/modules/:id/reset-sensor',
+    {
+      schema: {
+        tags: ['Devices'],
+        summary: 'Reset a specific sensor',
+        params: ModuleParamsSchema,
+        body: SensorResetSchema,
+        response: {
+          200: ConfigUpdateResponseSchema, // Reusing simple success response
+        },
+      },
+    },
+    controller.resetSensor
   )
 
   // GET /modules/:id/data - Get module status and time series measurements

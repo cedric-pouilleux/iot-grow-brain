@@ -169,6 +169,35 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
             }
         }
     }
+
+    
+    // Vérifier si c'est une commande de reset
+    if (String(topic).endsWith("/sensors/reset")) {
+        StaticJsonDocument<256> doc;
+        DeserializationError error = deserializeJson(doc, msg);
+        
+        if (!error && doc.containsKey("sensor")) {
+            String sensor = doc["sensor"].as<String>();
+            if (logger) {
+                char logMsg[64];
+                snprintf(logMsg, sizeof(logMsg), "🔄 Received reset command for sensor: %s", sensor.c_str());
+                logger->warn(logMsg);
+            }
+            
+            if (sensor == "bmp" || sensor == "pressure" || sensor == "all") {
+                sensorReader.resetBMP();
+            }
+            if (sensor == "sgp" || sensor == "voc" || sensor == "all") {
+                sensorReader.resetSGP();
+            }
+            if (sensor == "dht" || sensor == "temp" || sensor == "humidity" || sensor == "all") {
+                sensorReader.resetDHT();
+            }
+            if (sensor == "co2" || sensor == "all") {
+                sensorReader.resetCO2();
+            }
+        }
+    }
 }
 
 void handleSensorError() {
@@ -229,15 +258,9 @@ void setup() {
     // Initialize I2C bus
     Wire.begin(21, 22); // SDA=21, SCL=22
     
-    // Initialize sensors individually with detailed hardware info
-    bool sgpOk = false;
-    bool bmpOk = false;
-    
-    // Try to initialize SGP40 and BMP280
-    if (sensorReader.begin()) {
-        sgpOk = true;
-        bmpOk = true;
-    }
+    // Initialize sensors individually with retry logic
+    bool sgpOk = sensorReader.initSGP();
+    bool bmpOk = sensorReader.initBMP();
     
     // Log each sensor status
     if (logger) {
@@ -367,8 +390,10 @@ void loop() {
             snprintf(msg, sizeof(msg), "📤 VOC: %d", voc);
             logger->info(msg);
         }
+
     }
 
+    // --- LECTURE PRESSION & TEMP BMP ---
     // --- LECTURE PRESSION & TEMP BMP ---
     if (now - lastPressureReadTime >= sensorConfig.pressureInterval) {
         lastPressureReadTime = now;
@@ -383,15 +408,7 @@ void loop() {
         
         if (logger) {
             char msg[96];
-            char pStr[16], tStr[16];
-            
-            if (isnan(pressure)) strcpy(pStr, "error");
-            else snprintf(pStr, sizeof(pStr), "%.1f", pressure);
-            
-            if (isnan(tempBmp)) strcpy(tStr, "error");
-            else snprintf(tStr, sizeof(tStr), "%.1f", tempBmp);
-            
-            snprintf(msg, sizeof(msg), "📤 Pressure: %s hPa, TempBMP: %s°C", pStr, tStr);
+            snprintf(msg, sizeof(msg), "📤 Pressure: %.1f hPa, TempBMP: %.1f°C", pressure, tempBmp);
             logger->info(msg);
         }
     }

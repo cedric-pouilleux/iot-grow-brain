@@ -19,6 +19,7 @@ declare module 'fastify' {
   interface FastifyInstance {
     mqtt: mqtt.MqttClient
     publishConfig: (moduleId: string, config: ModuleConfig) => boolean
+    publishReset: (moduleId: string, sensor: string) => boolean
   }
 }
 
@@ -165,6 +166,19 @@ export default fp(async (fastify: FastifyInstance) => {
       moduleId, 
       sensorCount,
       config 
+    })
+    return true
+  })
+
+  fastify.decorate('publishReset', (moduleId: string, sensor: string) => {
+    if (!client) return false
+    const topic = `${moduleId}/sensors/reset`
+    const payload = JSON.stringify({ sensor })
+    client.publish(topic, payload, { qos: 1 })
+    fastify.log.info({ 
+      msg: `📤 [MQTT] Published reset command to ${moduleId}`, 
+      moduleId, 
+      sensor 
     })
     return true
   })

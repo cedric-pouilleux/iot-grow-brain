@@ -10,13 +10,20 @@
         <!-- Status Pastille with Tooltip -->
         <div class="cursor-help group/status relative flex items-center justify-center">
           <Icon
+            v-if="isIncoherent"
+            name="tabler:help-circle-filled"
+            class="w-4 h-4 text-yellow-500 animate-pulse"
+          />
+          <Icon
+            v-else
             :name="isActive ? 'tabler:circle-check-filled' : 'tabler:circle-x-filled'"
             :class="isActive ? 'w-4 h-4 text-green-500' : 'w-4 h-4 text-red-500'"
           />
           <div
             class="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/status:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg"
           >
-            Modèle: {{ sensor?.model || 'N/A' }} {{ sensor?.status === 'ok' ? 'ok' : '' }}
+            <span v-if="isIncoherent">Valeur incohérente</span>
+            <span v-else>Modèle: {{ sensor?.model || 'N/A' }} {{ sensor?.status === 'ok' ? 'ok' : '' }}</span>
           </div>
         </div>
       </div>
@@ -42,6 +49,7 @@ const props = defineProps({
   sensor: Object,
   isActive: Boolean,
   color: { type: String, default: 'gray' },
+  isIncoherent: { type: Boolean, default: false },
 })
 
 const colorMap = {
