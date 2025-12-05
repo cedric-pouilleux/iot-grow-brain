@@ -77,9 +77,17 @@ const graphMinMax = computed(() => {
 
   // Petit padding pour ne pas coller aux bords (identique aux mini cards)
   const range = max - min || 1
+  let minWithPadding = min - range * 0.1
+  let maxWithPadding = max + range * 0.1
+
+  // Force min to 0 (no negative padding) for specific sensors
+  if (['voc', 'co2', 'humidity'].includes(props.selectedSensor || '')) {
+    minWithPadding = Math.max(0, minWithPadding)
+  }
+
   return {
-    min: min - range * 0.1,
-    max: max + range * 0.1,
+    min: minWithPadding,
+    max: maxWithPadding,
   }
 })
 
@@ -100,6 +108,28 @@ const chartData = computed<ChartData<'line'> | null>(() => {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`
   }
 
+  // Calculate average time gap to detect significant gaps
+  const timeGaps: number[] = []
+  for (let i = 1; i < sortedData.length; i++) {
+    const t1 = sortedData[i-1].time instanceof Date ? sortedData[i-1].time.getTime() : new Date(sortedData[i-1].time).getTime()
+    const t2 = sortedData[i].time instanceof Date ? sortedData[i].time.getTime() : new Date(sortedData[i].time).getTime()
+    timeGaps.push(t2 - t1)
+  }
+  
+  // Gap threshold: 5x the median gap (or 10 min minimum)
+  const medianGap = timeGaps.length > 0 ? timeGaps.sort((a, b) => a - b)[Math.floor(timeGaps.length / 2)] : 60000
+  const gapThreshold = Math.max(medianGap * 5, 10 * 60 * 1000) // 10 min minimum
+
+  // Pre-compute gap indices for segment styling
+  const gapIndices = new Set<number>()
+  for (let i = 1; i < sortedData.length; i++) {
+    const t1 = sortedData[i-1].time instanceof Date ? sortedData[i-1].time.getTime() : new Date(sortedData[i-1].time).getTime()
+    const t2 = sortedData[i].time instanceof Date ? sortedData[i].time.getTime() : new Date(sortedData[i].time).getTime()
+    if (t2 - t1 > gapThreshold) {
+      gapIndices.add(i - 1)
+    }
+  }
+
   return {
     datasets: [
       {
@@ -117,6 +147,10 @@ const chartData = computed<ChartData<'line'> | null>(() => {
         pointHoverBorderColor: props.sensorColor,
         hitRadius: 10,
         spanGaps: true,
+        segment: {
+          borderDash: (ctx: { p0DataIndex: number }) => gapIndices.has(ctx.p0DataIndex) ? [6, 6] : undefined,
+          borderColor: (ctx: { p0DataIndex: number }) => gapIndices.has(ctx.p0DataIndex) ? hexToRgba(props.sensorColor, 0.4) : undefined,
+        },
       },
     ],
   }

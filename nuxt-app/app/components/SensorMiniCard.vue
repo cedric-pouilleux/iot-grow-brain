@@ -5,7 +5,14 @@
     @click="$emit('toggle-graph')"
   >
     <!-- Header avec Label, Status et Valeur -->
-    <SensorCardHeader :label="label" :sensor="sensor" :is-active="isActive" :color="color" :is-incoherent="isIncoherent" />
+    <SensorCardHeader 
+      :label="displayLabel" 
+      :sensor="sensor" 
+      :is-active="isActive" 
+      :color="color" 
+      :is-incoherent="isIncoherent" 
+      :is-preheating="isVocPreheating" 
+    />
 
     <!-- Dernier rafraîchissement avec dropdown stockage -->
 
@@ -32,6 +39,8 @@
           <path d="M3 3v5h5"/>
         </svg>
       </button>
+
+      <!-- Indicateur de préchauffage pour le COV : Supprimé d'ici, déplacé dans le header -->
     </div>
 
     <!-- Mini Graphique avec Chart.js -->
@@ -206,6 +215,15 @@ const isIncoherent = computed(() => {
   return false
 })
 
+const displayLabel = computed(() => {
+  if (props.label === 'Temp BMP') return 'Température'
+  return props.label
+})
+
+const isVocPreheating = computed(() => {
+  return props.sensorKey === 'voc' && props.sensor?.value !== undefined && props.sensor.value < 50
+})
+
 const hasHistory = computed(() => props.history && props.history.length >= 2)
 
 const strokeColor = computed(() => {
@@ -236,11 +254,26 @@ const graphMinMax = computed(() => {
   let min = Math.min(...values)
   let max = Math.max(...values)
 
+  // Force min to 0 for specific sensors
+  if (['voc', 'co2', 'humidity'].includes(props.sensorKey || '')) {
+    min = Math.max(0, min)
+    // If all values are 0 (e.g. VOC during preheat), set max to something visible
+    if (max === 0) max = 100
+  }
+
   // Petit padding pour ne pas coller aux bords (identique au graphique détaillé)
   const range = max - min || 1
+  let minWithPadding = min - range * 0.1
+  let maxWithPadding = max + range * 0.1
+
+  // Clamp min padding to 0 for specific sensors
+  if (['voc', 'co2', 'humidity'].includes(props.sensorKey || '')) {
+    minWithPadding = Math.max(0, minWithPadding)
+  }
+
   return {
-    min: min - range * 0.1,
-    max: max + range * 0.1,
+    min: minWithPadding,
+    max: maxWithPadding,
   }
 })
 
@@ -261,6 +294,23 @@ const chartData = computed<ChartData<'line'> | null>(() => {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`
   }
 
+  // Detect significant gaps for dashed line styling
+  const timeGaps: number[] = []
+  for (let i = 1; i < sortedData.length; i++) {
+    const t1 = sortedData[i-1].time instanceof Date ? sortedData[i-1].time.getTime() : new Date(sortedData[i-1].time).getTime()
+    const t2 = sortedData[i].time instanceof Date ? sortedData[i].time.getTime() : new Date(sortedData[i].time).getTime()
+    timeGaps.push(t2 - t1)
+  }
+  const medianGap = timeGaps.length > 0 ? timeGaps.sort((a, b) => a - b)[Math.floor(timeGaps.length / 2)] : 60000
+  const gapThreshold = Math.max(medianGap * 5, 10 * 60 * 1000)
+
+  const gapIndices = new Set<number>()
+  for (let i = 1; i < sortedData.length; i++) {
+    const t1 = sortedData[i-1].time instanceof Date ? sortedData[i-1].time.getTime() : new Date(sortedData[i-1].time).getTime()
+    const t2 = sortedData[i].time instanceof Date ? sortedData[i].time.getTime() : new Date(sortedData[i].time).getTime()
+    if (t2 - t1 > gapThreshold) gapIndices.add(i - 1)
+  }
+
   return {
     datasets: [
       {
@@ -274,6 +324,10 @@ const chartData = computed<ChartData<'line'> | null>(() => {
         pointRadius: 0,
         pointHoverRadius: 0,
         spanGaps: true,
+        segment: {
+          borderDash: (ctx: { p0DataIndex: number }) => gapIndices.has(ctx.p0DataIndex) ? [4, 4] : undefined,
+          borderColor: (ctx: { p0DataIndex: number }) => gapIndices.has(ctx.p0DataIndex) ? hexToRgba(strokeColor.value, 0.3) : undefined,
+        },
       },
     ],
   }

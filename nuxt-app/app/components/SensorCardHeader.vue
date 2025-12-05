@@ -31,11 +31,14 @@
 
     <!-- Valeur Actuelle -->
     <div
-      class="text-3xl font-bold leading-none tracking-tight flex items-baseline gap-0.5"
+      class="text-3xl font-bold leading-none tracking-tight flex items-baseline gap-0.5 w-full"
       :class="valueClass"
     >
       {{ formattedValue }}
       <span class="text-lg font-semibold opacity-80">{{ sensorUnit }}</span>
+      <span v-if="isPreheating" class="ml-auto bg-gray-600 text-white p-1 px-2 rounded text-[10px] tracking-wide animate-pulse">
+        Préchauffage
+      </span>
     </div>
   </div>
 </template>
@@ -50,6 +53,7 @@ const props = defineProps({
   isActive: Boolean,
   color: { type: String, default: 'gray' },
   isIncoherent: { type: Boolean, default: false },
+  isPreheating: { type: Boolean, default: false },
 })
 
 const colorMap = {

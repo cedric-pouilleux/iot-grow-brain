@@ -18,7 +18,7 @@ export const ModuleParamsSchema = z.object({
 })
 
 export const SensorResetSchema = z.object({
-  sensor: z.enum(['co2', 'temp', 'humidity', 'voc', 'pressure', 'all']),
+  sensor: z.enum(['co2', 'temp', 'humidity', 'voc', 'pressure', 'temperature_bmp', 'all']),
 })
 
 // --- Modules ---

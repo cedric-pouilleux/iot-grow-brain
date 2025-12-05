@@ -39,11 +39,20 @@ bool SensorReader::initSGP(int maxAttempts, int delayBetweenMs) {
 }
 
 bool SensorReader::resetBMP() {
+    // Send soft reset command to BMP280 (write 0xB6 to register 0xE0)
+    Wire.beginTransmission(0x76);
+    Wire.write(0xE0);  // Reset register
+    Wire.write(0xB6);  // Reset command
+    Wire.endTransmission();
+    
+    delay(100);  // Wait for sensor to reset
+    
+    // Re-initialize
     bool success = bmp.begin(0x76);
     if (!success) {
         Serial.println("Failed to reset BMP280 sensor!");
     } else {
-        Serial.println("BMP280 sensor reset successful");
+        Serial.println("BMP280 sensor reset successful (soft reset + re-init)");
     }
     return success;
 }

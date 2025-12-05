@@ -185,6 +185,36 @@ export class MqttMessageHandler {
   }
 
   /**
+   * Validate sensor value to reject aberrant readings
+   */
+  private isValueValid(sensorType: string, value: number): boolean {
+    // Define valid ranges for each sensor type
+    const ranges: Record<string, { min: number; max: number }> = {
+      co2: { min: 0, max: 10000 },           // ppm
+      temperature: { min: -40, max: 85 },     // °C (DHT22 range)
+      humidity: { min: 0, max: 100 },         // %
+      voc: { min: 0, max: 500 },              // VOC index
+      pressure: { min: 300, max: 1200 },      // hPa (valid atmospheric range)
+      temperature_bmp: { min: -40, max: 85 }, // °C (BMP280 range)
+    }
+
+    const range = ranges[sensorType]
+    if (!range) return true // Unknown sensor type, allow
+
+    if (value < range.min || value > range.max) {
+      this.fastify.log.warn({
+        msg: `[MQTT] ⚠️ Aberrant value rejected: ${sensorType}=${value} (valid range: ${range.min}-${range.max})`,
+        sensorType,
+        value,
+        min: range.min,
+        max: range.max,
+      })
+      return false
+    }
+    return true
+  }
+
+  /**
    * Handle sensor measurement messages
    */
   private handleSensorMeasurement(
@@ -201,6 +231,11 @@ export class MqttMessageHandler {
       if (isNaN(value)) {
         this.fastify.log.warn(`⚠️ Invalid measurement value from ${topic}: "${payload}"`)
         return false
+      }
+
+      // Validate value range
+      if (!this.isValueValid(sensorType, value)) {
+        return true // Message was handled (rejected), don't try other handlers
       }
 
       this.measurementBuffer.push({ time: now, moduleId, sensorType, value })
@@ -223,24 +258,18 @@ export class MqttMessageHandler {
       const sensorType = parts[1]
       const validTypes = ['co2', 'temperature', 'humidity', 'voc', 'pressure', 'temperature_bmp']
 
-      // Debug log for pressure and temperature_bmp
-      if (sensorType === 'pressure' || sensorType === 'temperature_bmp') {
-        console.log(
-          `[MQTT DEBUG] Checking ${sensorType} topic: ${topic}, payload: ${payload}, valid: ${validTypes.includes(sensorType)}`
-        )
-      }
-
       if (!validTypes.includes(sensorType)) {
-        this.fastify.log.debug(`⚠️ Topic not a sensor measurement: ${topic} (value: ${payload})`)
         return false
       }
 
       const value = parseFloat(payload)
       if (isNaN(value)) {
-        if (sensorType === 'pressure' || sensorType === 'temperature_bmp') {
-          console.log(`[MQTT DEBUG] Invalid value for ${sensorType}: ${payload}`)
-        }
         return false
+      }
+
+      // Validate value range
+      if (!this.isValueValid(sensorType, value)) {
+        return true // Message was handled (rejected), don't try other handlers
       }
 
       this.measurementBuffer.push({ time: now, moduleId, sensorType, value })
@@ -251,13 +280,6 @@ export class MqttMessageHandler {
         value,
         bufferSize: this.measurementBuffer.length,
       })
-      
-      // Extra debug for pressure and temperature_bmp
-      if (sensorType === 'pressure' || sensorType === 'temperature_bmp') {
-        console.log(
-          `[MQTT DEBUG] ✅ Successfully processed ${sensorType}=${value} from ${moduleId}, buffer size: ${this.measurementBuffer.length}`
-        )
-      }
 
       if (this.measurementBuffer.length >= 100) {
         void this.onMeasurementBufferFull()
