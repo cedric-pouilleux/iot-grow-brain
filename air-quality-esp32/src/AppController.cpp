@@ -24,7 +24,7 @@ static void staticOnMqttDisconnected(int reason) {
 AppController::AppController() 
     : co2Serial(2), 
       dht(4, DHT22), 
-      sensorReader(co2Serial, dht), 
+      sensorReader(co2Serial, dht, Wire1), 
       statusPublisher(network, co2Serial, dht),
       mqttHandler(sensorReader, sensorConfig),
       logger(nullptr) 
@@ -65,7 +65,10 @@ void AppController::setupLogger() {
 
 void AppController::initSensors() {
     SystemInitializer::configureSensor();
-    sensorReader.recoverI2C();
+    sensorReader.recoverI2C(); // Recovers main Wire (21/22) for BMP280
+    
+    // Initialize second I2C bus for SGP40
+    Wire1.begin(32, 33);
     
     bool sgpOk = sensorReader.initSGP();
     bool bmpOk = sensorReader.initBMP();

@@ -4,8 +4,8 @@
 
 const uint8_t SensorReader::CO2_READ_CMD[9] = { 0xFF, 0x01, 0x86, 0, 0, 0, 0, 0, 0x79 };
 
-SensorReader::SensorReader(HardwareSerial& co2Serial, DHT_Unified& dht) 
-    : co2Serial(co2Serial), dht(dht) {
+SensorReader::SensorReader(HardwareSerial& co2Serial, DHT_Unified& dht, TwoWire& wireSGP) 
+    : co2Serial(co2Serial), dht(dht), _wireSGP(wireSGP) {
 }
 
 void SensorReader::setLogger(RemoteLogger* logger) {
@@ -34,7 +34,7 @@ bool SensorReader::initBMP(int maxAttempts, int delayBetweenMs) {
 
 bool SensorReader::initSGP(int maxAttempts, int delayBetweenMs) {
     for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-        if (sgp.begin()) {
+        if (sgp.begin(&_wireSGP)) {
             if (attempt > 1) {
                 String msg = "SGP40 initialized after " + String(attempt) + " attempts";
                 Serial.println(msg);
@@ -53,41 +53,59 @@ bool SensorReader::initSGP(int maxAttempts, int delayBetweenMs) {
 }
 
 bool SensorReader::resetBMP() {
-    String msg = "Performing I2C bus recovery before BMP280 reset...";
+    // 1. Try Soft Reset first (without resetting the whole bus)
+    // This preserves SGP40 state if the bus is fine.
+    // Send soft reset command to BMP280 (write 0xB6 to register 0xE0)
+    Wire.beginTransmission(0x76);
+    Wire.write(0xE0);
+    Wire.write(0xB6);
+    byte error = Wire.endTransmission();
+    
+    delay(100); 
+
+    if (error == 0 && bmp.begin(0x76)) {
+        String ok = "BMP280 soft reset successful (no I2C recovery needed)";
+        Serial.println(ok);
+        if (_logger) _logger->success(ok);
+        return true;
+    }
+
+    // 2. If Soft Reset failed, do the hard recovery (Nuclear option)
+    String msg = "Soft reset failed. Performing full I2C bus recovery...";
     Serial.println(msg);
-    if (_logger) _logger->info(msg);
+    if (_logger) _logger->warn(msg);
     
     recoverI2C();
     
-    // Send soft reset command to BMP280 (write 0xB6 to register 0xE0)
+    // Retry soft reset after recovery
     Wire.beginTransmission(0x76);
-    Wire.write(0xE0);  // Reset register
-    Wire.write(0xB6);  // Reset command
+    Wire.write(0xE0);
+    Wire.write(0xB6);
     Wire.endTransmission();
     
-    delay(100);  // Wait for sensor to reset
+    delay(100);
     
-    // Re-initialize
+    // Re-initialize BMP
     bool success = bmp.begin(0x76);
     if (!success) {
-        String err = "Failed to reset BMP280 sensor!";
+        String err = "Failed to reset BMP280 sensor even after I2C recovery!";
         Serial.println(err);
         if (_logger) _logger->error(err);
     } else {
-        String ok = "BMP280 sensor reset successful (I2C recovery + soft reset + re-init)";
+        String ok = "BMP280 sensor reset successful (after I2C recovery)";
         Serial.println(ok);
         if (_logger) _logger->success(ok);
     }
     
-    // Also re-initialize SGP40 since we did a full I2C bus recovery
-    // which effectively disconnected the SGP driver instance
-    initSGP();
+
+    // SGP40 is now on a separate I2C bus (Wire1), so we DO NOT need to re-init it
+    // because recoverI2C() only touches the main Wire bus.
     
     return success;
 }
 
 bool SensorReader::resetSGP() {
-    bool success = sgp.begin();
+    bool success = sgp.begin(&_wireSGP);
     if (!success) {
         String err = "Failed to reset SGP40 sensor!";
         Serial.println(err);
@@ -112,12 +130,12 @@ void SensorReader::recoverI2C() {
     Serial.println(logMsg);
     if (_logger) _logger->warn(logMsg);
 
-    // Libérer le périphérique I2C
+    // Release I2C peripheral
     // Try to end Wire to release pins
     // Wire.end() is available on ESP32 Arduino and safe to call
     Wire.end(); 
 
-    // Regarder l'état initial
+    // Check initial state
     pinMode(sdaPin, INPUT);
     pinMode(sclPin, INPUT);
     delayMicroseconds(5);
@@ -130,10 +148,10 @@ void SensorReader::recoverI2C() {
         _logger->warn("I2C Bus locked before recovery (SDA=" + String(sdaLevel) + " SCL=" + String(sclLevel) + ")");
     }
 
-    // 1) Clock out jusqu'à 9 pulses sur SCL
+    // 1) Clock out up to 9 pulses on SCL
     pinMode(sclPin, OUTPUT);
     digitalWrite(sclPin, LOW);
-    pinMode(sdaPin, INPUT); // SDA laissé en entrée (pull-up externe)
+    pinMode(sdaPin, INPUT); // SDA left as input (external pull-up)
 
     for (int i = 0; i < 9; i++) {
         digitalWrite(sclPin, HIGH);
@@ -142,7 +160,7 @@ void SensorReader::recoverI2C() {
         delayMicroseconds(10);
     }
 
-    // 2) Générer un STOP : SDA LOW -> SDA HIGH pendant SCL HIGH
+    // 2) Generate a STOP: SDA LOW -> SDA HIGH while SCL is HIGH
     pinMode(sdaPin, OUTPUT);
     digitalWrite(sdaPin, LOW);
     delayMicroseconds(10);
@@ -151,12 +169,12 @@ void SensorReader::recoverI2C() {
     digitalWrite(sdaPin, HIGH);
     delayMicroseconds(10);
 
-    // 3) Relâcher les lignes
+    // 3) Release lines
     pinMode(sdaPin, INPUT);
     pinMode(sclPin, INPUT);
     delayMicroseconds(5);
 
-    // 4) Redémarrer Wire sur les bons pins
+    // 4) Restart Wire on the correct pins
     Wire.begin(sdaPin, sclPin);
     Wire.setTimeOut(1000);
     delay(100);

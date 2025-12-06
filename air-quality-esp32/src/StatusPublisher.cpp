@@ -4,7 +4,7 @@
 #include <WiFi.h>
 
 StatusPublisher::StatusPublisher(NetworkManager& network, HardwareSerial& co2Serial, DHT_Unified& dht) 
-    : network(network), sensorReader(co2Serial, dht), dht(dht) {
+    : network(network), dht(dht) {
 }
 
 String StatusPublisher::buildSystemJson(const SystemInfo& sysInfo, const String& psramStr) {
@@ -164,7 +164,7 @@ void StatusPublisher::publishSensorConfig() {
         return;
     }
     
-    // Publier uniquement les modèles des capteurs (sans les intervalles qui sont gérés par le backend)
+    // Publish only sensor models (without intervals which are managed by the backend)
     char sensorConfigMsg[256];
     snprintf(sensorConfigMsg, sizeof(sensorConfigMsg), 
         "{"
@@ -177,7 +177,7 @@ void StatusPublisher::publishSensorConfig() {
         "}"
     );
     
-    // Publier avec retained pour que le backend récupère les modèles au démarrage
+    // Publish with retained flag so the backend retrieves models on startup
     network.publishMessage("/sensors/config", sensorConfigMsg, true);
 }
 
@@ -190,7 +190,7 @@ void StatusPublisher::publishSystemInfo() {
     String psramStr = SystemInfoCollector::buildPsramJson();
     String systemMsg = buildSystemJson(sysInfo, psramStr);
     
-    // Ne pas utiliser retained pour les données dynamiques (rssi, memory change souvent)
+    // Do not use retained for dynamic data (rssi, memory change often)
     network.publishMessage("/system", systemMsg.c_str(), false);
 }
 
@@ -204,7 +204,7 @@ void StatusPublisher::publishSensorStatus(int lastCO2Value, float lastTemperatur
     String sensorStatusMsg = buildSensorStatusJson(lastCO2Value, lastTemperature, 
                                                    lastHumidity, lastDhtOk, lastVocValue,
                                                    lastPressure, lastTempBmp);
-    // Ne pas utiliser retained pour les données dynamiques (valeurs changent souvent)
+    // Do not use retained for dynamic data (values change often)
     network.publishMessage("/sensors/status", sensorStatusMsg.c_str(), false);
 }
 

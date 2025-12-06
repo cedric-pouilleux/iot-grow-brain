@@ -20,7 +20,8 @@ class RemoteLogger; // Forward declaration
  */
 class SensorReader {
 public:
-    SensorReader(HardwareSerial& co2Serial, DHT_Unified& dht);
+    // SGP40 will use the second I2C bus (wireSGP)
+    SensorReader(HardwareSerial& co2Serial, DHT_Unified& dht, TwoWire& wireSGP);
     
     /**
      * @brief Injects the logger instance for remote reporting.
@@ -80,6 +81,7 @@ private:
     RemoteLogger* _logger = nullptr;
     HardwareSerial& co2Serial;
     DHT_Unified& dht;
+    TwoWire& _wireSGP;
     Adafruit_SGP40 sgp;
     Adafruit_BMP280 bmp;
     static const uint8_t CO2_READ_CMD[9];

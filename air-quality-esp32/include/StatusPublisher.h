@@ -6,7 +6,6 @@
 #include <DHT_U.h>
 #include "NetworkManager.h"
 #include "SensorData.h"
-#include "SensorReader.h"
 
 class StatusPublisher {
 public:
@@ -22,7 +21,6 @@ public:
     
 private:
     NetworkManager& network;
-    SensorReader sensorReader;
     DHT_Unified& dht;
     
     String buildSystemJson(const SystemInfo& sysInfo, const String& psramStr);
