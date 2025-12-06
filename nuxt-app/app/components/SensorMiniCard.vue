@@ -12,6 +12,7 @@
       :color="color" 
       :is-incoherent="isIncoherent" 
       :is-preheating="isVocPreheating" 
+      @refresh="handleReset"
     />
 
     <!-- Dernier rafraîchissement avec dropdown stockage -->
@@ -26,20 +27,7 @@
         @save="handleIntervalSave"
       />
       
-      <!-- Reset Button -->
-      <button 
-        v-if="props.moduleId && props.sensorKey"
-        @click.stop="handleReset"
-        class="p-1 rounded-full hover:bg-gray-100 transition-colors"
-        :class="isIncoherent ? 'text-yellow-500 bg-yellow-50 hover:bg-yellow-100 animate-pulse' : 'text-gray-400 hover:text-blue-500'"
-        :title="isIncoherent ? 'Valeur incohérente détectée - Cliquer pour redémarrer' : 'Redémarrer la sonde'"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-          <path d="M3 3v5h5"/>
-        </svg>
-      </button>
-
+      <!-- Reset Button removed -->
       <!-- Indicateur de préchauffage pour le COV : Supprimé d'ici, déplacé dans le header -->
     </div>
 
@@ -84,6 +72,7 @@ import {
 import { Line } from 'vue-chartjs'
 import 'chartjs-adapter-date-fns'
 import { useTimeAgo } from '../composables/useTimeAgo'
+import { useSnackbar } from '../composables/useSnackbar'
 import SensorIntervalDropdown from './SensorIntervalDropdown.vue'
 import SensorCardHeader from './SensorCardHeader.vue'
 
@@ -119,6 +108,8 @@ const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
 })
 
+const { showSnackbar } = useSnackbar()
+
 const emit = defineEmits<{
   'toggle-graph': []
 }>()
@@ -141,13 +132,15 @@ const handleReset = async () => {
   // Actually schema says: 'co2', 'temp', 'humidity', 'voc', 'pressure', 'all'
   
   try {
+    showSnackbar('Rafraîchissement de la sonde lancé...', 'info')
     await $fetch(`/api/modules/${props.moduleId}/reset-sensor`, {
       method: 'POST',
       body: { sensor: sensorType }
     })
-    // Optional: Show toast notification
+    showSnackbar('Sonde redémarrée avec succès', 'success')
   } catch (err) {
     console.error('Failed to reset sensor', err)
+    showSnackbar('Erreur lors du redémarrage de la sonde', 'error')
   }
 }
 

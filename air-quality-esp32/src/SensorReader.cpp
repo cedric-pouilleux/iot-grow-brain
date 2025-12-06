@@ -78,6 +78,11 @@ bool SensorReader::resetBMP() {
         Serial.println(ok);
         if (_logger) _logger->success(ok);
     }
+    
+    // Also re-initialize SGP40 since we did a full I2C bus recovery
+    // which effectively disconnected the SGP driver instance
+    initSGP();
+    
     return success;
 }
 

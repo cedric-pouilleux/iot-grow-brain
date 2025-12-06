@@ -8,7 +8,11 @@
 
       <div class="flex items-center gap-1.5 z-20">
         <!-- Status Pastille with Tooltip -->
-        <div class="cursor-help group/status relative flex items-center justify-center">
+        <div 
+          class="group/status relative flex items-center justify-center"
+          :class="isIncoherent ? 'cursor-pointer hover:scale-110 transition-transform' : 'cursor-help'"
+          @click.stop="isIncoherent && $emit('refresh')"
+        >
           <Icon
             v-if="isIncoherent"
             name="tabler:help-circle-filled"
@@ -22,7 +26,7 @@
           <div
             class="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/status:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg"
           >
-            <span v-if="isIncoherent">Valeur incohérente</span>
+            <span v-if="isIncoherent">Valeur incohérente - Cliquer pour rafraîchir</span>
             <span v-else>Modèle: {{ sensor?.model || 'N/A' }} {{ sensor?.status === 'ok' ? 'ok' : '' }}</span>
           </div>
         </div>
@@ -55,6 +59,9 @@ const props = defineProps({
   isIncoherent: { type: Boolean, default: false },
   isPreheating: { type: Boolean, default: false },
 })
+
+defineEmits(['refresh'])
+
 
 const colorMap = {
   emerald: { text: 'text-emerald-600' },

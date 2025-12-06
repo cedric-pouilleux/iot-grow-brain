@@ -16,5 +16,6 @@ export const PostApiModulesIdResetSensorBodySensor = {
   humidity: 'humidity',
   voc: 'voc',
   pressure: 'pressure',
+  temperature_bmp: 'temperature_bmp',
   all: 'all',
 } as const;
