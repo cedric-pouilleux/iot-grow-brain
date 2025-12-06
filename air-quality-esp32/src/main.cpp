@@ -251,12 +251,16 @@ void setup() {
         snprintf(memInfo, sizeof(memInfo), "Memory: %d KB free / %d KB total", 
                  ESP.getFreeHeap() / 1024, ESP.getHeapSize() / 1024);
         logger->info(memInfo);
+
+        // Inject logger into SensorReader so it can report reset statuses and errors remotely
+        sensorReader.setLogger(logger);
     }
     
     SystemInitializer::configureSensor();
     
-    // Initialize I2C bus
-    Wire.begin(21, 22); // SDA=21, SCL=22
+    // Initialize I2C bus with recovery (fixes swollen sensors holding bus)
+    sensorReader.recoverI2C();
+    // Wire.begin(21, 22); // Called inside recoverI2C
     
     // Initialize sensors individually with retry logic
     bool sgpOk = sensorReader.initSGP();

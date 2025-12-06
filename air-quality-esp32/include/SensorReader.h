@@ -7,10 +7,13 @@
 #include <Adafruit_BMP280.h>
 #include "SensorData.h"
 
+class RemoteLogger; // Forward declaration
+
 class SensorReader {
 public:
     SensorReader(HardwareSerial& co2Serial, DHT_Unified& dht);
     
+    void setLogger(RemoteLogger* logger);
     bool initBMP(int maxAttempts = 3, int delayBetweenMs = 100);
     bool initSGP(int maxAttempts = 3, int delayBetweenMs = 100);
     int readCO2();
@@ -22,8 +25,10 @@ public:
     void resetDHT();
     void resetCO2();
     DhtReading readDhtSensors();
+    void recoverI2C();
     
 private:
+    RemoteLogger* _logger = nullptr;
     HardwareSerial& co2Serial;
     DHT_Unified& dht;
     Adafruit_SGP40 sgp;
@@ -32,4 +37,3 @@ private:
 };
 
 #endif
-
