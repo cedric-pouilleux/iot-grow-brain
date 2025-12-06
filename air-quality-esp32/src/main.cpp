@@ -18,13 +18,7 @@
 #define SYSTEM_INFO_INTERVAL_MS 5000        // 5 seconds (dynamic data: rssi, uptime, memory)
 
 // Configuration des capteurs (par défaut 60s)
-struct SensorConfig {
-    unsigned long co2Interval = 60000;
-    unsigned long tempInterval = 60000;
-    unsigned long humInterval = 60000;
-    unsigned long vocInterval = 60000;
-    unsigned long pressureInterval = 60000;
-} sensorConfig;
+SensorConfig sensorConfig;
 
 HardwareSerial co2Serial(2);
 DHT_Unified dht(DHT_PIN, DHT_TYPE);
@@ -214,6 +208,10 @@ void publishAllConfigs() {
     }
 }
 
+/**
+ * @brief Main setup function.
+ * Initializes hardware, network, sensors, and timers.
+ */
 void setup() {
     bootTime = millis();
     
@@ -312,6 +310,10 @@ void setup() {
     lastSystemInfoTime = millis() - SYSTEM_INFO_INTERVAL_MS;
 } 
 
+/**
+ * @brief Main loop.
+ * Handles network tasks, OTA, sensor reading, and publishing.
+ */
 void loop() {
     network.loop();
     ota.loop();

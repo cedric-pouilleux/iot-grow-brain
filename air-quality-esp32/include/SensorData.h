@@ -18,5 +18,13 @@ struct SystemInfo {
     float heapUsedPercent;
 };
 
+struct SensorConfig {
+    unsigned long co2Interval = 60000;
+    unsigned long tempInterval = 60000;
+    unsigned long humInterval = 60000;
+    unsigned long vocInterval = 60000;
+    unsigned long pressureInterval = 60000;
+};
+
 #endif
 
