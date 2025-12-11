@@ -15,6 +15,15 @@ The ESP32 uses two distinct I2C buses to isolate sensors and prevent conflicts d
 
 > **Important Note**: The SGP40 **MUST** be on the secondary bus (32/33) to avoid being impacted by the main bus recovery procedures for the BMP280.
 
+## ⚡ Power Supply
+
+If powering the ESP32 via an external 5V power supply (instead of USB):
+1.  Connect **5V Source (+) -> ESP32 VIN (or 5V) pin**.
+2.  Connect **5V Source (-) -> ESP32 GND**.
+3.  **Sensor Voltage Requirements**:
+    *   **MH-Z14A (CO2)**: Requires **5V**. Connect its VCC to the **VIN** pin (using the direct 5V line). It **cannot** run on 3.3V.
+    *   **BMP280, SGP40, DHT22**: Connect their VCC to the **ESP32 3V3** pin (regulated 3.3V).
+
 ---
 
 ## 🔄 Sensor Reset Strategy

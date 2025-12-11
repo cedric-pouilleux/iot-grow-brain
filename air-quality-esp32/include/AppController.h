@@ -29,6 +29,7 @@ public:
     void handleMHZ14A();   // CO2 Sensor
     void handleDHT22();    // Temp/Humidity Sensor
     void handleSGP40();    // VOC Sensor
+    void handleSPS30();    // PM Sensor
     void handleBMP280();   // Pressure/Temp Sensor
     void handleSystemStatus(); // System Info
     
@@ -47,6 +48,7 @@ private:
 
     // Hardware Interface
     HardwareSerial co2Serial;
+    HardwareSerial sps30Serial;
     DHT_Unified dht;
 
     // Subsystems
@@ -64,6 +66,7 @@ private:
     unsigned long lastTempReadTime = 0;
     unsigned long lastHumReadTime = 0;
     unsigned long lastVocReadTime = 0;
+    unsigned long lastPmReadTime = 0;
     unsigned long lastPressureReadTime = 0;
     unsigned long lastSystemInfoTime = 0;
     unsigned long stabilizationStartTime = 0;
@@ -78,7 +81,20 @@ private:
     float lastHumidity = 0.0;
     float lastPressure = 0.0;
     float lastTempBmp = 0.0;
-    bool lastDhtOk = false;
+    float lastPm1 = 0.0;
+    float lastPm25 = 0.0;
+    float lastPm4 = 0.0;
+    float lastPm10 = 0.0;
+
+    
+    // Detailed Status ("ok", "warning", "error", "missing")
+    String statusDht = "init";
+    String statusCo2 = "init";
+    String statusVoc = "init";
+    String statusPressure = "init";
+    String statusTempBmp = "init";
+    String statusPm = "init";
+
     int firstValidPpm = -1;
 
     void publishAllConfigs();

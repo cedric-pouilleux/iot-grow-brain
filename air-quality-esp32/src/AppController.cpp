@@ -23,8 +23,9 @@ static void staticOnMqttDisconnected(int reason) {
 
 AppController::AppController() 
     : co2Serial(2), 
+      sps30Serial(1),
       dht(4, DHT22), 
-      sensorReader(co2Serial, dht, Wire1), 
+      sensorReader(co2Serial, sps30Serial, dht, Wire1), 
       statusPublisher(network, co2Serial, dht),
       mqttHandler(sensorReader, sensorConfig),
       logger(nullptr) 
@@ -65,22 +66,49 @@ void AppController::setupLogger() {
 
 void AppController::initSensors() {
     SystemInitializer::configureSensor();
-    sensorReader.recoverI2C(); // Recovers main Wire (21/22) for BMP280
     
-    // Initialize second I2C bus for SGP40
-    Wire1.begin(32, 33);
+    // Give sensors time to power up (especially SPS30 which can take a few seconds)
+    delay(2000);
     
-    bool sgpOk = sensorReader.initSGP();
+    // Explicitly initialize I2C buses first
+    Wire.begin(21, 22);      // Main I2C (BMP280)
+    int devicesWire = sensorReader.scanI2C(Wire, "Wire (BMP280)");
+
+    // Initialize second I2C bus for SGP40 with auto-correction
+    Wire1.begin(32, 33);     // Default: SDA=32, SCL=33
+    int devicesWire1 = sensorReader.scanI2C(Wire1, "Wire1 (SGP40) [32,33]");
+    
+    // If no devices found on Wire1, try swapping pins
+    if (devicesWire1 == 0) {
+        if (logger) logger->warn("⚠️ No devices on Wire1 (32,33), trying swap (33,32)...");
+        Wire1.begin(33, 32); // Swap: SDA=33, SCL=32
+        devicesWire1 = sensorReader.scanI2C(Wire1, "Wire1 (SGP40) [33,32] - SWAPPED");
+        
+        if (devicesWire1 > 0) {
+            if (logger) logger->success("✅ Devices found after swapping pins! Please update wiring or config.");
+        } else {
+            // Revert to default if still nothing, to match documentation
+            Wire1.begin(32, 33);
+        }
+    }
+
+    // Initialize sensors
     bool bmpOk = sensorReader.initBMP();
+    bool sgpOk = sensorReader.initSGP();
+    bool sps30Ok = sensorReader.initSPS30();
 
     if (logger) {
-        if (sgpOk) logger->success("✓ SGP40 initialized");
-        else logger->error("✗ SGP40 init failed");
-        
         if (bmpOk) logger->success("✓ BMP280 initialized");
         else logger->error("✗ BMP280 init failed");
+
+        if (sgpOk) logger->success("✓ SGP40 initialized");
+        else logger->error("✗ SGP40 init failed");
+
+        if (sps30Ok) logger->success("✓ SPS30 (PM) initialized");
+        else logger->error("✗ SPS30 init failed");
         
-        logger->success("✓ MH-Z14A (CO2) & DHT22 initialized");
+        logger->success("✓ MH-Z14A (CO2) Serial initialized");
+        logger->success("✓ DHT22 Sensor initialized");
         logger->info("System ready - waiting for MQTT connection");
     }
 
@@ -92,6 +120,7 @@ void AppController::initSensors() {
     lastTempReadTime = now - sensorConfig.tempInterval;
     lastHumReadTime = now - sensorConfig.humInterval;
     lastVocReadTime = now - sensorConfig.vocInterval;
+    lastPmReadTime = now - sensorConfig.pmInterval;
     lastPressureReadTime = now - sensorConfig.pressureInterval;
     lastSystemInfoTime = now - 5000;
 }
@@ -120,13 +149,23 @@ void AppController::handleMHZ14A() {
         if (ppm >= 0) {
             if (firstValidPpm < 0) firstValidPpm = ppm;
             lastCO2Value = ppm;
+            statusCo2 = "ok";
             network.publishCO2(ppm);
             if (logger) {
                 char msg[48]; snprintf(msg, sizeof(msg), "📤 CO2: %d ppm", ppm);
                 logger->info(msg);
             }
-        } else if (logger) {
-            logger->error("✗ CO2 sensor read error");
+        } else {
+            if (ppm == -1) {
+                statusCo2 = "missing";
+                if (logger) logger->error("✗ CO2 sensor missing (timeout)");
+            } else if (ppm == -4) {
+                statusCo2 = "error";
+                if (logger) logger->error("✗ CO2 sensor checksum error");
+            } else {
+                statusCo2 = "error";
+                if (logger) logger->error("✗ CO2 sensor read error (code: " + String(ppm) + ")");
+            }
         }
     }
 }
@@ -140,7 +179,7 @@ void AppController::handleDHT22() {
         DhtReading reading = sensorReader.readDhtSensors();
         lastTemperature = reading.temperature;
         lastHumidity = reading.humidity;
-        lastDhtOk = reading.valid;
+        statusDht = reading.valid ? "ok" : "error";
 
         if (reading.valid) {
             if (readTemp) {
@@ -169,10 +208,58 @@ void AppController::handleSGP40() {
         lastVocReadTime = now;
         int voc = sensorReader.readVocIndex();
         lastVocValue = voc;
-        network.publishVocIndex(voc);
-        if (logger) {
-            char msg[32]; snprintf(msg, sizeof(msg), "📤 VOC: %d", voc);
-            logger->info(msg);
+        
+        if (voc >= 0) {
+            statusVoc = "ok";
+            network.publishVocIndex(voc);
+            if (logger) {
+                char msg[32]; snprintf(msg, sizeof(msg), "📤 VOC: %d", voc);
+                logger->info(msg);
+            }
+        } else {
+            // voc == -1 (disconnected)
+            if (voc == -1) {
+                statusVoc = "missing";
+                // Only log error if status just changed or periodically? 
+                // For now, consistent with other sensors: logging error every attempt might be spammy but standard here.
+                if (logger) logger->error("✗ SGP40 sensor missing (disconnected)");
+            } else {
+                statusVoc = "error";
+                if (logger) logger->error("✗ SGP40 sensor processing error");
+            }
+        }
+    }
+}
+
+
+
+void AppController::handleSPS30() {
+    unsigned long now = millis();
+    if (now - lastPmReadTime >= sensorConfig.pmInterval) {
+        lastPmReadTime = now;
+        
+        float pm1, pm25, pm4, pm10;
+        if (sensorReader.readSPS30(pm1, pm25, pm4, pm10)) {
+            lastPm1 = pm1;
+            lastPm25 = pm25;
+            lastPm4 = pm4;
+            lastPm10 = pm10;
+            statusPm = "ok";
+            
+            // Assuming network.publishValue is generic enough or we simply publish as floats
+            network.publishValue("/pm1", pm1);
+            network.publishValue("/pm25", pm25);
+            network.publishValue("/pm4", pm4);
+            network.publishValue("/pm10", pm10);
+            
+            if (logger) {
+                char msg[64]; 
+                snprintf(msg, sizeof(msg), "📤 PM2.5: %.1f, PM10: %.1f", pm25, pm10);
+                logger->info(msg);
+            }
+        } else {
+            statusPm = "error";
+            if (logger) logger->error("✗ SPS30 read failed");
         }
     }
 }
@@ -185,6 +272,8 @@ void AppController::handleBMP280() {
         float tempBmp = sensorReader.readBMPTemperature();
         lastPressure = pressure;
         lastTempBmp = tempBmp;
+        statusPressure = isnan(pressure) ? "error" : "ok";
+        statusTempBmp = isnan(tempBmp) ? "error" : "ok";
         network.publishValue("/pressure", pressure);
         network.publishValue("/temperature_bmp", tempBmp);
         if (logger) {
@@ -202,7 +291,9 @@ void AppController::handleSystemStatus() {
         publishAllConfigs();
         if (lastCO2Value > 0) {
             statusPublisher.publishSystemInfo();
-            statusPublisher.publishSensorStatus(lastCO2Value, lastTemperature, lastHumidity, lastDhtOk, lastVocValue, lastPressure, lastTempBmp);
+            statusPublisher.publishSensorStatus(lastCO2Value, statusCo2, lastTemperature, lastHumidity, statusDht, 
+                                                lastVocValue, statusVoc, lastPressure, statusPressure, lastTempBmp, statusTempBmp,
+                                                lastPm1, lastPm25, lastPm4, lastPm10, statusPm);
             if (lastVocValue > 0) network.publishVocIndex(lastVocValue);
         }
     }
@@ -210,7 +301,9 @@ void AppController::handleSystemStatus() {
     if (now - lastSystemInfoTime >= 5000) {
         lastSystemInfoTime = now;
         statusPublisher.publishSystemInfo();
-        statusPublisher.publishSensorStatus(lastCO2Value, lastTemperature, lastHumidity, lastDhtOk, lastVocValue, lastPressure, lastTempBmp);
+        statusPublisher.publishSensorStatus(lastCO2Value, statusCo2, lastTemperature, lastHumidity, statusDht, 
+                                            lastVocValue, statusVoc, lastPressure, statusPressure, lastTempBmp, statusTempBmp,
+                                            lastPm1, lastPm25, lastPm4, lastPm10, statusPm);
     }
 }
 

@@ -18,7 +18,7 @@ export const ModuleParamsSchema = z.object({
 })
 
 export const SensorResetSchema = z.object({
-  sensor: z.enum(['co2', 'temp', 'humidity', 'voc', 'pressure', 'temperature_bmp', 'all']),
+  sensor: z.enum(['co2', 'temp', 'humidity', 'voc', 'pressure', 'temperature_bmp', 'pm1', 'pm25', 'pm4', 'pm10', 'all']),
 })
 
 // --- Modules ---
@@ -103,6 +103,10 @@ export const ModuleDataResponseSchema = z.object({
     voc: z.array(SensorDataPointSchema),
     pressure: z.array(SensorDataPointSchema),
     temperature_bmp: z.array(SensorDataPointSchema),
+    pm1: z.array(SensorDataPointSchema),
+    pm25: z.array(SensorDataPointSchema),
+    pm4: z.array(SensorDataPointSchema),
+    pm10: z.array(SensorDataPointSchema),
   }),
 })
 
@@ -121,6 +125,10 @@ export const ModuleHistoryResponseSchema = z.object({
   voc: z.array(SensorDataPointSchema),
   pressure: z.array(SensorDataPointSchema),
   temperature_bmp: z.array(SensorDataPointSchema),
+  pm1: z.array(SensorDataPointSchema),
+  pm25: z.array(SensorDataPointSchema),
+  pm4: z.array(SensorDataPointSchema),
+  pm10: z.array(SensorDataPointSchema),
 })
 
 export const ConfigUpdateResponseSchema = z.object({

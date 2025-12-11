@@ -24,6 +24,7 @@ struct SensorConfig {
     unsigned long humInterval = 60000;
     unsigned long vocInterval = 60000;
     unsigned long pressureInterval = 60000;
+    unsigned long pmInterval = 60000;
 };
 
 #endif

@@ -29,6 +29,7 @@ void loop() {
         app.handleMHZ14A();       // Measure CO2 (PPM)
         app.handleDHT22();        // Measure Temperature & Humidity
         app.handleSGP40();        // Measure VOC Index
+        app.handleSPS30();        // Measure PM (SPS30)
         app.handleBMP280();       // Measure Pressure & Temperature
         app.handleSystemStatus(); // Publish System Info (RSSI, Uptime)
     }

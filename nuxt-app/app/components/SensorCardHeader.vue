@@ -82,7 +82,10 @@ const sensorUnit = computed(() => {
     CO2: 'ppm',
     Température: '°C',
     Humidité: '%',
+    'PM1.0': 'µg/m³',
     'PM2.5': 'µg/m³',
+    'PM4.0': 'µg/m³',
+    'PM10.0': 'µg/m³',
     COV: 'ppb',
     Pression: 'hPa',
   }

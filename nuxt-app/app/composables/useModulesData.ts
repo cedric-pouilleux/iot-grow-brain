@@ -34,7 +34,18 @@ export const useModulesData = () => {
    * Get sensor data for a specific module
    */
   const getModuleSensorData = (moduleId: string): SensorData => {
-    return modulesSensorData.value.get(moduleId) || { co2: [], temp: [], hum: [], voc: [], pressure: [], temperature_bmp: [] }
+    return modulesSensorData.value.get(moduleId) || { 
+      co2: [], 
+      temp: [], 
+      hum: [], 
+      voc: [], 
+      pressure: [], 
+      temperature_bmp: [],
+      pm1: [],
+      pm25: [],
+      pm4: [],
+      pm10: []
+    }
   }
 
   /**
@@ -50,7 +61,18 @@ export const useModulesData = () => {
       })
     }
     if (!modulesSensorData.value.has(moduleId)) {
-      modulesSensorData.value.set(moduleId, { co2: [], temp: [], hum: [], voc: [], pressure: [], temperature_bmp: [] })
+      modulesSensorData.value.set(moduleId, { 
+        co2: [], 
+        temp: [], 
+        hum: [], 
+        voc: [], 
+        pressure: [], 
+        temperature_bmp: [],
+        pm1: [],
+        pm25: [],
+        pm4: [],
+        pm10: []
+      })
     }
   }
 
@@ -179,6 +201,10 @@ export const useModulesData = () => {
         voc: processSensorData(dashboardData.sensors?.voc || []) as SensorDataPoint[],
         pressure: processSensorData(dashboardData.sensors?.pressure || []) as SensorDataPoint[],
         temperature_bmp: processSensorData(dashboardData.sensors?.temperature_bmp || []) as SensorDataPoint[],
+        pm1: processSensorData(dashboardData.sensors?.pm1 || []) as SensorDataPoint[],
+        pm25: processSensorData(dashboardData.sensors?.pm25 || []) as SensorDataPoint[],
+        pm4: processSensorData(dashboardData.sensors?.pm4 || []) as SensorDataPoint[],
+        pm10: processSensorData(dashboardData.sensors?.pm10 || []) as SensorDataPoint[],
       }
 
       modulesSensorData.value.set(moduleId, {
@@ -188,6 +214,10 @@ export const useModulesData = () => {
         voc: mergeSensorData(existingData.voc, newData.voc),
         pressure: mergeSensorData(existingData.pressure, newData.pressure),
         temperature_bmp: mergeSensorData(existingData.temperature_bmp, newData.temperature_bmp),
+        pm1: mergeSensorData(existingData.pm1, newData.pm1),
+        pm25: mergeSensorData(existingData.pm25, newData.pm25),
+        pm4: mergeSensorData(existingData.pm4, newData.pm4),
+        pm10: mergeSensorData(existingData.pm10, newData.pm10),
       })
     }
   }
@@ -205,6 +235,10 @@ export const useModulesData = () => {
       voc: SensorDataPoint[]
       pressure: SensorDataPoint[]
       temperature_bmp: SensorDataPoint[]
+      pm1: SensorDataPoint[]
+      pm25: SensorDataPoint[]
+      pm4: SensorDataPoint[]
+      pm10: SensorDataPoint[]
     }
   ): void => {
     initializeModule(moduleId)

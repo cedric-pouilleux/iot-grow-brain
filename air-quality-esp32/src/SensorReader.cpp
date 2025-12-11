@@ -4,8 +4,8 @@
 
 const uint8_t SensorReader::CO2_READ_CMD[9] = { 0xFF, 0x01, 0x86, 0, 0, 0, 0, 0, 0x79 };
 
-SensorReader::SensorReader(HardwareSerial& co2Serial, DHT_Unified& dht, TwoWire& wireSGP) 
-    : co2Serial(co2Serial), dht(dht), _wireSGP(wireSGP) {
+SensorReader::SensorReader(HardwareSerial& co2Serial, HardwareSerial& sps30Serial, DHT_Unified& dht, TwoWire& wireSGP) 
+    : co2Serial(co2Serial), sps30Serial(sps30Serial), dht(dht), _wireSGP(wireSGP) {
 }
 
 void SensorReader::setLogger(RemoteLogger* logger) {
@@ -19,6 +19,10 @@ bool SensorReader::initBMP(int maxAttempts, int delayBetweenMs) {
                 String msg = "BMP280 initialized after " + String(attempt) + " attempts";
                 Serial.println(msg);
                 if (_logger) _logger->warn(msg);
+            } else {
+                String msg = "BMP280 initialized successfully";
+                Serial.println(msg);
+                if (_logger) _logger->info(msg);
             }
             return true;
         }
@@ -39,6 +43,10 @@ bool SensorReader::initSGP(int maxAttempts, int delayBetweenMs) {
                 String msg = "SGP40 initialized after " + String(attempt) + " attempts";
                 Serial.println(msg);
                 if (_logger) _logger->warn(msg);
+            } else {
+                String msg = "SGP40 initialized successfully";
+                Serial.println(msg);
+                if (_logger) _logger->info(msg);
             }
             return true;
         }
@@ -46,16 +54,170 @@ bool SensorReader::initSGP(int maxAttempts, int delayBetweenMs) {
             delay(delayBetweenMs);
         }
     }
-    String msg = "Sensor SGP40 not found after retries :(";
-    Serial.println(msg);
-    if (_logger) _logger->error(msg);
+    String err = "Sensor SGP40 not found after retries :(";
+    Serial.println(err);
+    if (_logger) _logger->error(err);
+    return false;
+}
+
+bool SensorReader::initSPS30(int maxAttempts, int delayBetweenMs) {
+    sps30Serial.begin(115200, SERIAL_8N1, 13, 27);
+    sps30.begin(sps30Serial);
+
+    int16_t ret;
+    int8_t serialNumber[32];
+    uint16_t serialNumberSize = 32;
+
+    int attempts = 0;
+    while (attempts < maxAttempts) {
+        // 1. Hard Reset Sequence
+        sps30.wakeUp(); 
+        sps30.stopMeasurement(); 
+        delay(100);
+        sps30.deviceReset();
+        delay(1000); // 1s for reboot
+
+        // 2. Read Serial (Verify connection)
+        ret = sps30.readSerialNumber(serialNumber, serialNumberSize);
+        
+        if (ret == 0) {
+            String msg = "SPS30 detected, Serial: " + String((char*)serialNumber);
+            Serial.println(msg);
+            if (_logger) _logger->success(msg);
+            
+            // 3. Start Measurement
+            ret = sps30.startMeasurement(SPS30_OUTPUT_FORMAT_OUTPUT_FORMAT_FLOAT);
+            if (ret != 0 && ret != 1347 && (ret & 0xFF00) != 0x0500) {
+                 String warn = "SPS30 Start failed: Err " + String(ret);
+                 Serial.println(warn);
+                 // Don't return false yet, retry loop will continue
+            } else {
+                 if (ret == 0) {
+                     Serial.println("SPS30 Start Command Accepted.");
+                 } else {
+                     Serial.println("SPS30 Already Running.");
+                 }
+                 
+                 // 4. VERIFY DATA: Wait 2s and try to read ONCE to confirm success
+                 delay(2000); 
+                 float p1, p2, p4, p10;
+                 if (readSPS30(p1, p2, p4, p10)) {
+                      String success = "SPS30 Initial Read Successful!";
+                      Serial.println(success);
+                      if (_logger) _logger->success(success);
+                      return true; // FULL SUCCESS
+                 } else {
+                      String fail = "SPS30 Start looked OK but Read failed!";
+                      Serial.println(fail);
+                      if (_logger) _logger->error(fail);
+                      // Loop will retry...
+                 }
+            }
+        } else {
+            Serial.println("SPS30 Serial Check Failed (Err " + String(ret) + ")");
+        }
+        attempts++;
+        delay(delayBetweenMs);
+    }
+    
+    String err = "SPS30 UART communication failed (Sensor not found)";
+    Serial.println(err);
+    if (_logger) _logger->error(err);
+    return false;
+}
+
+int SensorReader::scanI2C(TwoWire& wire, const char* busName) {
+    String startMsg = String("Scanning I2C bus: ") + busName + "...";
+    Serial.println(startMsg);
+    if (_logger) _logger->info(startMsg);
+
+    byte error, address;
+    int nDevices = 0;
+
+    for(address = 1; address < 127; address++ ) {
+        wire.beginTransmission(address);
+        error = wire.endTransmission();
+
+        if (error == 0) {
+            String found = String("I2C device found at address 0x");
+            if (address < 16) found += "0";
+            found += String(address, HEX);
+            found += " on " + String(busName);
+            Serial.println(found);
+            if (_logger) _logger->success(found);
+            nDevices++;
+        }
+        else if (error == 4) {
+             String err = String("Unknown error at address 0x");
+             if (address < 16) err += "0";
+             err += String(address, HEX);
+             Serial.println(err);
+             if (_logger) _logger->debug(err);
+        }
+    }
+    
+    if (nDevices == 0) {
+        String msg = "No I2C devices found on " + String(busName);
+        Serial.println(msg);
+        if (_logger) _logger->warn(msg);
+    } else {
+        String msg = "Scan complete on " + String(busName) + ", devices: " + String(nDevices);
+        Serial.println(msg);
+        if (_logger) _logger->info(msg);
+    }
+    return nDevices;
+}
+
+bool SensorReader::readSPS30(float& pm1, float& pm25, float& pm4, float& pm10) {
+    float mc1p0, mc2p5, mc4p0, mc10p0, nc0p5, nc1p0, nc2p5, nc4p0, nc10p0, typPartSize;
+    int16_t ret;
+    
+    // Retry up to 3 times to read data before declaring failure
+    for (int i = 0; i < 3; i++) {
+        ret = sps30.readMeasurementValuesFloat(mc1p0, mc2p5, mc4p0, mc10p0, 
+                                               nc0p5, nc1p0, nc2p5, nc4p0, nc10p0, typPartSize);
+        if (ret == 0) {
+            pm1 = mc1p0;
+            pm25 = mc2p5;
+            pm4 = mc4p0;
+            pm10 = mc10p0;
+            return true;
+        }
+        
+        // If failed, wait a bit and clear buffer
+        delay(100);
+    }
+
+    // If we reached here, 3 attempts failed
+    String err = "SPS30 read failed after 3 attempts (Last Err: " + String(ret) + ")";
+    Serial.println(err);
+    if (_logger) _logger->error(err);
+
+    // Auto-recovery: 
+    // If read fails (Timeout 518), the sensor might have reset or is sleeping.
+    sps30.wakeUp(); 
+    
+    int16_t startRet = sps30.startMeasurement(SPS30_OUTPUT_FORMAT_OUTPUT_FORMAT_FLOAT);
+    if (startRet == 0) {
+        String msg = "SPS30 restarted measurement (Auto-recovery)";
+        Serial.println(msg);
+        if (_logger) _logger->warn(msg);
+    } else if (startRet == 1347 || (startRet & 0xFF00) == 0x0500) {
+            // Already running, maybe just a hiccup?
+            String msg = "SPS30 was already running during recovery (Error " + String(startRet) + ")";
+            Serial.println(msg);
+            if (_logger) _logger->warn(msg);
+    } else {
+            String msg = "SPS30 recovery failed: Start Error " + String(startRet);
+            Serial.println(msg);
+            if (_logger) _logger->error(msg);
+    }
+    
     return false;
 }
 
 bool SensorReader::resetBMP() {
-    // 1. Try Soft Reset first (without resetting the whole bus)
-    // This preserves SGP40 state if the bus is fine.
-    // Send soft reset command to BMP280 (write 0xB6 to register 0xE0)
+    // 1. Try Soft Reset first
     Wire.beginTransmission(0x76);
     Wire.write(0xE0);
     Wire.write(0xB6);
@@ -64,20 +226,19 @@ bool SensorReader::resetBMP() {
     delay(100); 
 
     if (error == 0 && bmp.begin(0x76)) {
-        String ok = "BMP280 soft reset successful (no I2C recovery needed)";
+        String ok = "BMP280 soft reset successful";
         Serial.println(ok);
         if (_logger) _logger->success(ok);
         return true;
     }
 
-    // 2. If Soft Reset failed, do the hard recovery (Nuclear option)
     String msg = "Soft reset failed. Performing full I2C bus recovery...";
     Serial.println(msg);
     if (_logger) _logger->warn(msg);
     
     recoverI2C();
     
-    // Retry soft reset after recovery
+    // Retry soft reset
     Wire.beginTransmission(0x76);
     Wire.write(0xE0);
     Wire.write(0xB6);
@@ -85,23 +246,17 @@ bool SensorReader::resetBMP() {
     
     delay(100);
     
-    // Re-initialize BMP
-    bool success = bmp.begin(0x76);
-    if (!success) {
-        String err = "Failed to reset BMP280 sensor even after I2C recovery!";
-        Serial.println(err);
-        if (_logger) _logger->error(err);
-    } else {
+    if (bmp.begin(0x76)) {
         String ok = "BMP280 sensor reset successful (after I2C recovery)";
         Serial.println(ok);
         if (_logger) _logger->success(ok);
+        return true;
     }
     
-
-    // SGP40 is now on a separate I2C bus (Wire1), so we DO NOT need to re-init it
-    // because recoverI2C() only touches the main Wire bus.
-    
-    return success;
+    String err = "Failed to reset BMP280 sensor even after I2C recovery!";
+    Serial.println(err);
+    if (_logger) _logger->error(err);
+    return false;
 }
 
 bool SensorReader::resetSGP() {
@@ -130,28 +285,15 @@ void SensorReader::recoverI2C() {
     Serial.println(logMsg);
     if (_logger) _logger->warn(logMsg);
 
-    // Release I2C peripheral
-    // Try to end Wire to release pins
-    // Wire.end() is available on ESP32 Arduino and safe to call
     Wire.end(); 
 
-    // Check initial state
     pinMode(sdaPin, INPUT);
     pinMode(sclPin, INPUT);
     delayMicroseconds(5);
 
-    int sdaLevel = digitalRead(sdaPin);
-    int sclLevel = digitalRead(sclPin);
-    Serial.printf("Before recovery: SDA=%d SCL=%d\n", sdaLevel, sclLevel);
-    // Logging levels to remote might be too verbose, maybe only if low?
-    if (_logger && (sdaLevel == 0 || sclLevel == 0)) {
-        _logger->warn("I2C Bus locked before recovery (SDA=" + String(sdaLevel) + " SCL=" + String(sclLevel) + ")");
-    }
-
-    // 1) Clock out up to 9 pulses on SCL
     pinMode(sclPin, OUTPUT);
     digitalWrite(sclPin, LOW);
-    pinMode(sdaPin, INPUT); // SDA left as input (external pull-up)
+    pinMode(sdaPin, INPUT); 
 
     for (int i = 0; i < 9; i++) {
         digitalWrite(sclPin, HIGH);
@@ -160,7 +302,6 @@ void SensorReader::recoverI2C() {
         delayMicroseconds(10);
     }
 
-    // 2) Generate a STOP: SDA LOW -> SDA HIGH while SCL is HIGH
     pinMode(sdaPin, OUTPUT);
     digitalWrite(sdaPin, LOW);
     delayMicroseconds(10);
@@ -169,47 +310,41 @@ void SensorReader::recoverI2C() {
     digitalWrite(sdaPin, HIGH);
     delayMicroseconds(10);
 
-    // 3) Release lines
     pinMode(sdaPin, INPUT);
     pinMode(sclPin, INPUT);
     delayMicroseconds(5);
 
-    // 4) Restart Wire on the correct pins
     Wire.begin(sdaPin, sclPin);
     Wire.setTimeOut(1000);
     delay(100);
 
-    int sdaAfter = digitalRead(sdaPin);
-    int sclAfter = digitalRead(sclPin);
-    Serial.printf("After recovery: SDA=%d SCL=%d\n", sdaAfter, sclAfter);
-
-    if (sdaAfter == HIGH && sclAfter == HIGH) {
-        String ok = "I2C bus recovery complete.";
-        Serial.println(ok);
-        if (_logger) _logger->info(ok); // Info level is fine for success
-    } else {
-        String fail = "I2C bus still stuck after recovery, sensor may be hard-locked.";
-        Serial.println(fail);
-        if (_logger) _logger->error(fail);
-    }
+    // Logging
+    // ...
 }
 
 void SensorReader::resetDHT() {
     dht.begin();
-    String msg = "DHT sensor reset (re-initialized)";
-    Serial.println(msg);
-    if (_logger) _logger->info(msg);
+    if (_logger) _logger->info("DHT reset");
 }
 
 void SensorReader::resetCO2() {
-    // For MH-Z14A via Serial, we can't hard reset, but we can clear buffers
     while (co2Serial.available()) co2Serial.read();
-    String msg = "CO2 sensor serial buffer cleared";
-    Serial.println(msg);
-    if (_logger) _logger->info(msg);
+    if (_logger) _logger->info("CO2 cleared");
+}
+
+bool SensorReader::isSGPConnected() {
+    _wireSGP.beginTransmission(0x59);
+    return _wireSGP.endTransmission() == 0;
+}
+
+bool SensorReader::isBMPConnected() {
+    Wire.beginTransmission(0x76);
+    return Wire.endTransmission() == 0;
 }
 
 int SensorReader::readVocIndex() {
+    if (!isSGPConnected()) return -1;
+
     sensors_event_t temp, humidity;
     dht.temperature().getEvent(&temp);
     dht.humidity().getEvent(&humidity);
@@ -217,34 +352,40 @@ int SensorReader::readVocIndex() {
     float t = isnan(temp.temperature) ? 25.0 : temp.temperature;
     float h = isnan(humidity.relative_humidity) ? 50.0 : humidity.relative_humidity;
     
-    int32_t voc = sgp.measureVocIndex(t, h);
-    
-    return voc;
+    return sgp.measureVocIndex(t, h);
 }
 
 float SensorReader::readPressure() {
-    return bmp.readPressure() / 100.0F; // Conversion Pa -> hPa
+    if (!isBMPConnected()) return NAN;
+    return bmp.readPressure() / 100.0F;
 }
 
 float SensorReader::readBMPTemperature() {
+    if (!isBMPConnected()) return NAN;
     return bmp.readTemperature();
 }
 
 int SensorReader::readCO2() {
-    co2Serial.write(CO2_READ_CMD, 9);
-    delay(50);
+    while (co2Serial.available()) co2Serial.read(); 
 
-    if (co2Serial.available() < 9) {
-        while (co2Serial.available()) co2Serial.read();
-        return -1;
+    co2Serial.write(CO2_READ_CMD, 9);
+    unsigned long start = millis();
+    while (co2Serial.available() < 9 && millis() - start < 500) {
+        delay(10);
     }
+
+    if (co2Serial.available() < 9) return -1; 
 
     uint8_t buf[9];
     co2Serial.readBytes(buf, 9);
 
-    if (buf[0] != 0xFF || buf[1] != 0x86) {
-        return -2;
-    }
+    if (buf[0] != 0xFF || buf[1] != 0x86) return -2; 
+    
+    uint8_t checksum = 0;
+    for (int i = 1; i < 8; i++) checksum += buf[i];
+    checksum = 0xFF - checksum + 1;
+    
+    if (checksum != buf[8]) return -4; 
 
     int ppm = buf[2] * 256 + buf[3];
     return (ppm >= 0 && ppm <= 10000) ? ppm : -3;

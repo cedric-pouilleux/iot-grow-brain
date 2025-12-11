@@ -10,8 +10,8 @@ const LogsQuerySchema = z.object({
     z.array(z.enum(['ESP32', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']))
   ]).optional(),
   level: z.union([
-    z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']),
-    z.array(z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']))
+    z.enum(['trace', 'debug', 'success', 'info', 'warn', 'error', 'fatal']),
+    z.array(z.enum(['trace', 'debug', 'success', 'info', 'warn', 'error', 'fatal']))
   ]).optional(),
   search: z.string().optional(),
   startDate: z.string().datetime().optional(),
@@ -126,8 +126,8 @@ const logsRoutes: FastifyPluginAsync = async fastify => {
             z.array(z.enum(['ESP32', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']))
           ]).optional(),
           level: z.union([
-            z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']),
-            z.array(z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']))
+            z.enum(['trace', 'debug', 'success', 'info', 'warn', 'error', 'fatal']),
+            z.array(z.enum(['trace', 'debug', 'success', 'info', 'warn', 'error', 'fatal']))
           ]).optional(),
           search: z.string().optional(),
         }),

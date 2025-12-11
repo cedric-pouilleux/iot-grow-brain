@@ -7,7 +7,7 @@ void SystemInitializer::initHardware(HardwareSerial& co2Serial,
     Serial.begin(115200);
     Serial.println("=== ESP32 CO2 + DHT Sensor ===");
     
-    co2Serial.begin(9600, SERIAL_8N1, 16, 17); // MHZ_RX_PIN, MHZ_TX_PIN
+    co2Serial.begin(9600, SERIAL_8N1, 25, 26); // MHZ_RX_PIN (25), MHZ_TX_PIN (26) - Moved from 16/17 (PSRAM conflict)
     dht.begin();
     
     Serial.println("Connecting to WiFi...");

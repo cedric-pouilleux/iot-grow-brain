@@ -25,7 +25,10 @@ export function getSensorLabel(type: string): string {
     temp: 'Température',
     humidity: 'Humidité',
     hum: 'Humidité',
+    pm1: 'PM1.0',
     pm25: 'PM2.5',
+    pm4: 'PM4.0',
+    pm10: 'PM10.0',
     voc: 'COV',
     pressure: 'Pression',
   }
@@ -45,7 +48,10 @@ export function getSensorColor(type: string): string {
     temp: '#f97316',
     humidity: '#3b82f6',
     hum: '#3b82f6',
+    pm1: '#8b5cf6',
     pm25: '#8b5cf6',
+    pm4: '#7c3aed',
+    pm10: '#7c3aed',
     voc: '#ec4899',
     pressure: '#06b6d4',
   }
@@ -65,7 +71,10 @@ export function getSensorUnit(type: string): string {
     temp: '°C',
     humidity: '%',
     hum: '%',
+    pm1: 'µg/m³',
     pm25: 'µg/m³',
+    pm4: 'µg/m³',
+    pm10: 'µg/m³',
     voc: 'ppb',
     pressure: 'hPa',
   }

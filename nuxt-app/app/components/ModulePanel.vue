@@ -70,7 +70,18 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  sensorData: () => ({ co2: [], temp: [], hum: [], voc: [], pressure: [], temperature_bmp: [] }),
+  sensorData: () => ({ 
+    co2: [], 
+    temp: [], 
+    hum: [], 
+    voc: [], 
+    pressure: [], 
+    temperature_bmp: [], 
+    pm1: [], 
+    pm25: [], 
+    pm4: [], 
+    pm10: [] 
+  }),
   isHistoryLoading: false,
 })
 
@@ -108,7 +119,10 @@ const sensorTypes = [
   { key: 'temperature', label: 'Température', color: 'orange' },
   { key: 'temperature_bmp', label: 'Temp BMP', color: 'orange' },
   { key: 'humidity', label: 'Humidité', color: 'blue' },
+  { key: 'pm1', label: 'PM1.0', color: 'violet' },
   { key: 'pm25', label: 'PM2.5', color: 'violet' },
+  { key: 'pm4', label: 'PM4.0', color: 'violet' },
+  { key: 'pm10', label: 'PM10.0', color: 'violet' },
   { key: 'voc', label: 'COV', color: 'pink' },
   { key: 'pressure', label: 'Pression', color: 'cyan' },
 ] as const
@@ -136,6 +150,10 @@ const getSensorHistory = (type: string) => {
   if (normalizedType === 'voc') return props.sensorData.voc
   if (normalizedType === 'pressure') return props.sensorData.pressure
   if (normalizedType === 'temperature_bmp') return props.sensorData.temperature_bmp
+  if (normalizedType === 'pm1') return props.sensorData.pm1
+  if (normalizedType === 'pm25') return props.sensorData.pm25
+  if (normalizedType === 'pm4') return props.sensorData.pm4
+  if (normalizedType === 'pm10') return props.sensorData.pm10
   return []
 }
 </script>

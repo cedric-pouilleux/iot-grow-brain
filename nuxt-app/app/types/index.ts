@@ -27,6 +27,10 @@ export interface SensorData {
   voc: SensorDataPoint[]
   pressure: SensorDataPoint[]
   temperature_bmp: SensorDataPoint[]
+  pm1: SensorDataPoint[]
+  pm25: SensorDataPoint[]
+  pm4: SensorDataPoint[]
+  pm10: SensorDataPoint[]
 }
 
 export interface SensorStatus {
@@ -118,6 +122,10 @@ export interface DashboardSensorData {
   voc?: Array<{ time: string; value: number }>
   pressure?: Array<{ time: string; value: number }>
   temperature_bmp?: Array<{ time: string; value: number }>
+  pm1?: Array<{ time: string; value: number }>
+  pm25?: Array<{ time: string; value: number }>
+  pm4?: Array<{ time: string; value: number }>
+  pm10?: Array<{ time: string; value: number }>
 }
 
 export interface DashboardData {

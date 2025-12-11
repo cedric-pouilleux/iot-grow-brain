@@ -229,6 +229,10 @@ export class DeviceController {
       voc: [] as SensorDataPoint[],
       pressure: [] as SensorDataPoint[],
       temperature_bmp: [] as SensorDataPoint[],
+      pm1: [] as SensorDataPoint[],
+      pm25: [] as SensorDataPoint[],
+      pm4: [] as SensorDataPoint[],
+      pm10: [] as SensorDataPoint[],
     }
 
     historyRows.forEach(row => {
@@ -240,6 +244,10 @@ export class DeviceController {
         case 'voc': sensors.voc.push(dataPoint); break
         case 'pressure': sensors.pressure.push(dataPoint); break
         case 'temperature_bmp': sensors.temperature_bmp.push(dataPoint); break
+        case 'pm1': sensors.pm1.push(dataPoint); break
+        case 'pm25': sensors.pm25.push(dataPoint); break
+        case 'pm4': sensors.pm4.push(dataPoint); break
+        case 'pm10': sensors.pm10.push(dataPoint); break
       }
     })
 

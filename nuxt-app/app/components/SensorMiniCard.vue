@@ -214,7 +214,7 @@ const displayLabel = computed(() => {
 })
 
 const isVocPreheating = computed(() => {
-  return props.sensorKey === 'voc' && props.sensor?.value !== undefined && props.sensor.value < 50
+  return props.sensorKey === 'voc' && props.sensor?.value !== undefined && props.sensor.value >= 0 && props.sensor.value < 50
 })
 
 const hasHistory = computed(() => props.history && props.history.length >= 2)

@@ -196,6 +196,10 @@ export class MqttMessageHandler {
       voc: { min: 0, max: 500 },              // VOC index
       pressure: { min: 300, max: 1200 },      // hPa (valid atmospheric range)
       temperature_bmp: { min: -40, max: 85 }, // °C (BMP280 range)
+      pm1: { min: 0, max: 3000 },
+      pm25: { min: 0, max: 3000 },
+      pm4: { min: 0, max: 3000 },
+      pm10: { min: 0, max: 3000 },
     }
 
     const range = ranges[sensorType]
@@ -256,7 +260,7 @@ export class MqttMessageHandler {
     // Format: module_id/sensor_type (ESP32 format)
     if (parts.length === 2) {
       const sensorType = parts[1]
-      const validTypes = ['co2', 'temperature', 'humidity', 'voc', 'pressure', 'temperature_bmp']
+      const validTypes = ['co2', 'temperature', 'humidity', 'voc', 'pressure', 'temperature_bmp', 'pm1', 'pm25', 'pm4', 'pm10']
 
       if (!validTypes.includes(sensorType)) {
         return false
