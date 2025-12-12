@@ -80,7 +80,11 @@ const props = withDefaults(defineProps<Props>(), {
     pm1: [], 
     pm25: [], 
     pm4: [], 
-    pm10: [] 
+    pm10: [],
+    eco2: [],
+    tvoc: [],
+    temp_sht: [],
+    hum_sht: [] 
   }),
   isHistoryLoading: false,
 })
@@ -124,7 +128,11 @@ const sensorTypes = [
   { key: 'pm4', label: 'PM4.0', color: 'violet' },
   { key: 'pm10', label: 'PM10.0', color: 'violet' },
   { key: 'voc', label: 'COV', color: 'pink' },
+  { key: 'eco2', label: 'eCO2', color: 'emerald' },
+  { key: 'tvoc', label: 'TVOC', color: 'pink' },
   { key: 'pressure', label: 'Pression', color: 'cyan' },
+  { key: 'temp_sht', label: 'Temp SHT', color: 'orange' },
+  { key: 'hum_sht', label: 'Hum SHT', color: 'blue' },
 ] as const
 
 const calculatedUptime = computed(() => {
@@ -154,6 +162,10 @@ const getSensorHistory = (type: string) => {
   if (normalizedType === 'pm25') return props.sensorData.pm25
   if (normalizedType === 'pm4') return props.sensorData.pm4
   if (normalizedType === 'pm10') return props.sensorData.pm10
+  if (normalizedType === 'eco2') return props.sensorData.eco2
+  if (normalizedType === 'tvoc') return props.sensorData.tvoc
+  if (normalizedType === 'temp_sht') return props.sensorData.temp_sht
+  if (normalizedType === 'hum_sht') return props.sensorData.hum_sht
   return []
 }
 </script>

@@ -31,6 +31,10 @@ export interface SensorData {
   pm25: SensorDataPoint[]
   pm4: SensorDataPoint[]
   pm10: SensorDataPoint[]
+  eco2: SensorDataPoint[]
+  tvoc: SensorDataPoint[]
+  temp_sht: SensorDataPoint[]
+  hum_sht: SensorDataPoint[]
 }
 
 export interface SensorStatus {
@@ -126,6 +130,10 @@ export interface DashboardSensorData {
   pm25?: Array<{ time: string; value: number }>
   pm4?: Array<{ time: string; value: number }>
   pm10?: Array<{ time: string; value: number }>
+  eco2?: Array<{ time: string; value: number }>
+  tvoc?: Array<{ time: string; value: number }>
+  temp_sht?: Array<{ time: string; value: number }>
+  hum_sht?: Array<{ time: string; value: number }>
 }
 
 export interface DashboardData {

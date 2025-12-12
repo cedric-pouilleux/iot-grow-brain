@@ -44,7 +44,11 @@ export const useModulesData = () => {
       pm1: [],
       pm25: [],
       pm4: [],
-      pm10: []
+      pm10: [],
+      eco2: [],
+      tvoc: [],
+      temp_sht: [],
+      hum_sht: []
     }
   }
 
@@ -71,7 +75,11 @@ export const useModulesData = () => {
         pm1: [],
         pm25: [],
         pm4: [],
-        pm10: []
+        pm10: [],
+        eco2: [],
+        tvoc: [],
+        temp_sht: [],
+        hum_sht: []
       })
     }
   }
@@ -205,6 +213,10 @@ export const useModulesData = () => {
         pm25: processSensorData(dashboardData.sensors?.pm25 || []) as SensorDataPoint[],
         pm4: processSensorData(dashboardData.sensors?.pm4 || []) as SensorDataPoint[],
         pm10: processSensorData(dashboardData.sensors?.pm10 || []) as SensorDataPoint[],
+        eco2: processSensorData(dashboardData.sensors?.eco2 || []) as SensorDataPoint[],
+        tvoc: processSensorData(dashboardData.sensors?.tvoc || []) as SensorDataPoint[],
+        temp_sht: processSensorData(dashboardData.sensors?.temp_sht || []) as SensorDataPoint[],
+        hum_sht: processSensorData(dashboardData.sensors?.hum_sht || []) as SensorDataPoint[],
       }
 
       modulesSensorData.value.set(moduleId, {
@@ -218,6 +230,10 @@ export const useModulesData = () => {
         pm25: mergeSensorData(existingData.pm25, newData.pm25),
         pm4: mergeSensorData(existingData.pm4, newData.pm4),
         pm10: mergeSensorData(existingData.pm10, newData.pm10),
+        eco2: mergeSensorData(existingData.eco2, newData.eco2),
+        tvoc: mergeSensorData(existingData.tvoc, newData.tvoc),
+        temp_sht: mergeSensorData(existingData.temp_sht, newData.temp_sht),
+        hum_sht: mergeSensorData(existingData.hum_sht, newData.hum_sht),
       })
     }
   }
@@ -239,6 +255,10 @@ export const useModulesData = () => {
       pm25: SensorDataPoint[]
       pm4: SensorDataPoint[]
       pm10: SensorDataPoint[]
+      eco2: SensorDataPoint[]
+      tvoc: SensorDataPoint[]
+      temp_sht: SensorDataPoint[]
+      hum_sht: SensorDataPoint[]
     }
   ): void => {
     initializeModule(moduleId)

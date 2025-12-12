@@ -25,6 +25,10 @@ export const SENSOR_TOPICS = {
   '/pm25': 'pm25',
   '/pm4': 'pm4',
   '/pm10': 'pm10',
+  '/eco2': 'eco2',
+  '/tvoc': 'tvoc',
+  '/temp_sht': 'temp_sht',
+  '/hum_sht': 'hum_sht',
 } as const
 
 /**

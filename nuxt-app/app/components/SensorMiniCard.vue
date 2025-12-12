@@ -1,7 +1,7 @@
 <template>
   <div
     ref="cardRef"
-    class="relative rounded-lg transition-all group/card cursor-pointer hover:shadow-md bg-white border border-gray-100 shadow-sm hover:shadow-md"
+    class="relative rounded-lg transition-all group/card cursor-pointer hover:shadow-md bg-white border border-gray-100 shadow-sm hover:shadow-md flex flex-col justify-between"
     @click="$emit('toggle-graph')"
   >
     <!-- Header avec Label, Status et Valeur -->
@@ -32,9 +32,9 @@
     </div>
 
     <!-- Mini Graphique avec Chart.js -->
-    <div v-if="hasHistory" class="h-24 w-full relative p-0.5 rounded-lg">
+    <div v-if="hasHistory" class="h-[92px] w-full relative mt-auto rounded-b-lg overflow-hidden">
       <!-- Loading overlay -->
-      <div v-if="isLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-lg">
+      <div v-if="isLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
         <div class="animate-spin w-5 h-5 border-2 border-gray-300 border-t-emerald-500 rounded-full"></div>
       </div>
       <ClientOnly>
@@ -49,7 +49,7 @@
 
     <div
       v-else
-      class="h-24 flex items-center justify-center text-[10px] text-gray-300 border-t border-gray-100 mt-2"
+      class="h-[92px] flex items-center justify-center text-[10px] text-gray-300 border-t border-gray-100 mt-2"
     >
       Pas d'historique
     </div>
@@ -247,20 +247,18 @@ const graphMinMax = computed(() => {
   let min = Math.min(...values)
   let max = Math.max(...values)
 
-  // Force min to 0 for specific sensors
-  if (['voc', 'co2', 'humidity'].includes(props.sensorKey || '')) {
+  // Force min to 0 for all sensors except temperature types
+  if (!['temperature', 'temperature_bmp', 'temp'].includes(props.sensorKey || '')) {
     min = Math.max(0, min)
-    // If all values are 0 (e.g. VOC during preheat), set max to something visible
-    if (max === 0) max = 100
   }
-
-  // Petit padding pour ne pas coller aux bords (identique au graphique détaillé)
+  
+  // Padding logic
   const range = max - min || 1
   let minWithPadding = min - range * 0.1
   let maxWithPadding = max + range * 0.1
 
-  // Clamp min padding to 0 for specific sensors
-  if (['voc', 'co2', 'humidity'].includes(props.sensorKey || '')) {
+  // Clamp min padding to 0 again for non-temp sensors
+  if (!['temperature', 'temperature_bmp', 'temp'].includes(props.sensorKey || '')) {
     minWithPadding = Math.max(0, minWithPadding)
   }
 
@@ -313,7 +311,7 @@ const chartData = computed<ChartData<'line'> | null>(() => {
         borderWidth: 2,
         data: sortedData.map(m => ({ x: m.time as unknown as number, y: m.value })),
         tension: 0.2,
-        fill: true,
+        fill: 'start',
         pointRadius: 0,
         pointHoverRadius: 0,
         spanGaps: true,

@@ -49,6 +49,10 @@ export const useDashboard = () => {
     pm25: SensorDataPoint[]
     pm4: SensorDataPoint[]
     pm10: SensorDataPoint[]
+    eco2: SensorDataPoint[]
+    tvoc: SensorDataPoint[]
+    temp_sht: SensorDataPoint[]
+    hum_sht: SensorDataPoint[]
   } | null> => {
     if (!moduleId) return null
 
@@ -68,6 +72,10 @@ export const useDashboard = () => {
       const pm25Data = isSensorDataArray(sensors?.pm25) ? sensors.pm25 : []
       const pm4Data = isSensorDataArray(sensors?.pm4) ? sensors.pm4 : []
       const pm10Data = isSensorDataArray(sensors?.pm10) ? sensors.pm10 : []
+      const eco2Data = isSensorDataArray(sensors?.eco2) ? sensors.eco2 : []
+      const tvocData = isSensorDataArray(sensors?.tvoc) ? sensors.tvoc : []
+      const tempShtData = isSensorDataArray(sensors?.temp_sht) ? sensors.temp_sht : []
+      const humShtData = isSensorDataArray(sensors?.hum_sht) ? sensors.hum_sht : []
 
       return {
         co2: processSensorData(co2Data),
@@ -80,6 +88,10 @@ export const useDashboard = () => {
         pm25: processSensorData(pm25Data),
         pm4: processSensorData(pm4Data),
         pm10: processSensorData(pm10Data),
+        eco2: processSensorData(eco2Data),
+        tvoc: processSensorData(tvocData),
+        temp_sht: processSensorData(tempShtData),
+        hum_sht: processSensorData(humShtData),
       }
     } catch (e) {
       console.error('Erreur fetch history:', e)
@@ -106,6 +118,10 @@ export const useDashboard = () => {
       pm25: SensorDataPoint[]
       pm4: SensorDataPoint[]
       pm10: SensorDataPoint[]
+      eco2: SensorDataPoint[]
+      tvoc: SensorDataPoint[]
+      temp_sht: SensorDataPoint[]
+      hum_sht: SensorDataPoint[]
     }
   } | null> => {
     if (!moduleId) return null
@@ -132,6 +148,10 @@ export const useDashboard = () => {
           pm25: [],
           pm4: [],
           pm10: [],
+          eco2: [],
+          tvoc: [],
+          temp_sht: [],
+          hum_sht: [],
         },
       }
     } catch (e) {

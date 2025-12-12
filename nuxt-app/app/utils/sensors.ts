@@ -30,7 +30,11 @@ export function getSensorLabel(type: string): string {
     pm4: 'PM4.0',
     pm10: 'PM10.0',
     voc: 'COV',
+    eco2: 'eCO2',
+    tvoc: 'TVOC',
     pressure: 'Pression',
+    temp_sht: 'Temp SHT',
+    hum_sht: 'Hum SHT',
   }
   return map[type] || type
 }
@@ -53,7 +57,11 @@ export function getSensorColor(type: string): string {
     pm4: '#7c3aed',
     pm10: '#7c3aed',
     voc: '#ec4899',
+    eco2: '#10b981', // Similar to CO2 but distinct if needed? Or same green.
+    tvoc: '#db2777', // Pink-600
     pressure: '#06b6d4',
+    temp_sht: '#fdba74', // Orange-300
+    hum_sht: '#93c5fd', // Blue-300
   }
   return map[type] || '#9ca3af'
 }
@@ -76,7 +84,11 @@ export function getSensorUnit(type: string): string {
     pm4: 'µg/m³',
     pm10: 'µg/m³',
     voc: 'ppb',
+    eco2: 'ppm',
+    tvoc: 'ppb',
     pressure: 'hPa',
+    temp_sht: '°C',
+    hum_sht: '%',
   }
   return unitMap[type] || ''
 }

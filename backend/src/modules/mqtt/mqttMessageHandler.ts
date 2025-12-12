@@ -137,9 +137,8 @@ export class MqttMessageHandler {
       const { level, msg, time } = logEntry
 
       // Log to console to trace the flow (bypasses Pino to ensure we see it)
-      console.log(
-        `[MQTT DEBUG] Received ESP32 log: topic=${topic}, moduleId=${moduleId}, level=${level}, msg=${msg}`
-      )
+      // Log to console removed
+      // console.log(\`[MQTT DEBUG] ...\`)
 
       const logData = {
         msg: `[ESP32] ${msg}`,
@@ -150,7 +149,7 @@ export class MqttMessageHandler {
 
       // Use the appropriate Pino method based on the log level
       const logLevel = (level || 'info').toLowerCase()
-      console.log(`[MQTT DEBUG] Calling Pino method: ${logLevel}`)
+      // console.log(\`[MQTT DEBUG] Calling Pino method: ${logLevel}\`)
       switch (logLevel) {
         case 'trace':
           this.fastify.log.trace(logData)
@@ -175,7 +174,7 @@ export class MqttMessageHandler {
           this.fastify.log.info(logData)
           break
       }
-      console.log(`[MQTT DEBUG] Log sent to Pino successfully`)
+      // console.log(\`[MQTT DEBUG] Log sent to Pino successfully\`)
       return true
     } catch (e) {
       console.error(`[MQTT DEBUG] Failed to parse device log from ${topic}:`, e)
@@ -200,6 +199,10 @@ export class MqttMessageHandler {
       pm25: { min: 0, max: 3000 },
       pm4: { min: 0, max: 3000 },
       pm10: { min: 0, max: 3000 },
+      eco2: { min: 400, max: 60000 },
+      tvoc: { min: 0, max: 60000 },
+      temp_sht: { min: -40, max: 125 },       // °C (SHT3x range)
+      hum_sht: { min: 0, max: 100 },          // %
     }
 
     const range = ranges[sensorType]
@@ -243,7 +246,7 @@ export class MqttMessageHandler {
       }
 
       this.measurementBuffer.push({ time: now, moduleId, sensorType, value })
-      this.fastify.log.info({
+      this.fastify.log.debug({
         msg: `[MQTT] 📥 ${sensorType}=${value} from ${moduleId}`,
         moduleId,
         sensorType,
@@ -260,7 +263,7 @@ export class MqttMessageHandler {
     // Format: module_id/sensor_type (ESP32 format)
     if (parts.length === 2) {
       const sensorType = parts[1]
-      const validTypes = ['co2', 'temperature', 'humidity', 'voc', 'pressure', 'temperature_bmp', 'pm1', 'pm25', 'pm4', 'pm10']
+      const validTypes = ['co2', 'temperature', 'humidity', 'voc', 'pressure', 'temperature_bmp', 'pm1', 'pm25', 'pm4', 'pm10', 'eco2', 'tvoc', 'temp_sht', 'hum_sht']
 
       if (!validTypes.includes(sensorType)) {
         return false
@@ -277,7 +280,7 @@ export class MqttMessageHandler {
       }
 
       this.measurementBuffer.push({ time: now, moduleId, sensorType, value })
-      this.fastify.log.info({
+      this.fastify.log.debug({
         msg: `[MQTT] 📥 ${sensorType}=${value} from ${moduleId}`,
         moduleId,
         sensorType,
@@ -357,21 +360,23 @@ export class MqttMessageHandler {
 
     // Debug: log all /logs topics
     if (topic.endsWith('/logs')) {
-      console.log(
-        `[MQTT DEBUG] Received message on /logs topic: ${topic}, payload: ${payload.substring(0, 200)}`
-      )
+      // console.log(
+      //   `[MQTT DEBUG] Received message on /logs topic: ${topic}, payload: ${payload.substring(0, 200)}`
+      // )
     }
 
-    // Debug: log pressure and temperature_bmp topics
+    // Debug logging removed to reduce spam
+    /*
     if (topic.includes('/pressure') || topic.includes('/temperature_bmp')) {
       console.log(
         `[MQTT DEBUG] Received message on sensor topic: ${topic}, payload: ${payload}, parsed: ${parsed ? 'OK' : 'FAILED'}`
       )
     }
+    */
 
     if (!parsed) {
       if (topic.endsWith('/logs')) {
-        console.log(`[MQTT DEBUG] Topic ${topic} was rejected by parseTopic`)
+        // console.log(`[MQTT DEBUG] Topic ${topic} was rejected by parseTopic`)
       }
       return
     }
@@ -389,12 +394,12 @@ export class MqttMessageHandler {
       // Handled
     } else if (this.handleDeviceLog(topic, payload, moduleId)) {
       // Handled
-      console.log(`[MQTT DEBUG] handleDeviceLog returned true for ${topic}`)
+      // console.log(`[MQTT DEBUG] handleDeviceLog returned true for ${topic}`)
     } else if (this.handleSensorMeasurement(topic, payload, parsed, now)) {
       // Handled
     } else {
       if (topic.endsWith('/logs')) {
-        console.log(`[MQTT DEBUG] Topic ${topic} was not handled by any handler`)
+        // console.log(`[MQTT DEBUG] Topic ${topic} was not handled by any handler`)
       }
       this.fastify.log.info(`⚠️ Topic not processed: ${topic} (parts: ${parsed.parts.join(', ')})`)
     }
@@ -410,7 +415,7 @@ export class MqttMessageHandler {
           this.lastBroadcastedPayload.set(topic, payload)
           this.fastify.io.emit('mqtt:data', wsData)
 
-          this.fastify.log.info({
+          this.fastify.log.debug({
             msg: `[WEBSOCKET] Data changed, sent to frontend - ${parsed.moduleId} - ${topic}`,
             moduleId: parsed.moduleId,
             topic,

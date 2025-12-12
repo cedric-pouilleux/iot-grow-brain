@@ -44,11 +44,10 @@ export const dbLoggerStream = new Writable({
         cleanMsg = cleanMsg.replace(/^\[([A-Z0-9→/]+)\]\s*/, '') // Remove category prefix
       }
 
-      // Debug: log ESP32 logs specifically
-      if (category === 'ESP32' || msg?.includes('[ESP32]')) {
-        console.log(
-          `[LOGGER DEBUG] Processing ESP32 log: level=${levelStr} (${level}), category=${category}, msg=${cleanMsg.substring(0, 100)}`
-        )
+      // Filter: Only insert WARNING (40) and ERROR (50) and FATAL (60)
+      if (level < 40) {
+        callback()
+        return
       }
 
       // Insert into DB asynchronously
@@ -61,21 +60,16 @@ export const dbLoggerStream = new Writable({
           details: details,
         })
         .then(() => {
-          if (category === 'ESP32') {
-            console.log(
-              `[LOGGER DEBUG] Successfully inserted ESP32 log into DB: level=${levelStr}, category=${category}`
-            )
-          }
+          // No more debug logging
           callback()
         })
         .catch(err => {
           // We write to stderr directly to avoid infinite loop if we used logger
-          console.error(`[LOGGER DEBUG] Failed to write log to DB:`, err)
           process.stderr.write(`Failed to write log to DB: ${err.message}\n`)
           callback()
         })
     } catch (err) {
-      console.error(`[LOGGER DEBUG] Failed to parse log entry:`, err)
+      // console.error(`Failed to parse log entry:`, err)
       process.stderr.write(`Failed to parse log entry: ${err}\n`)
       callback()
     }

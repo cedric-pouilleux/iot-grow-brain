@@ -87,7 +87,11 @@ const sensorUnit = computed(() => {
     'PM4.0': 'µg/m³',
     'PM10.0': 'µg/m³',
     COV: 'ppb',
+    eCO2: 'ppm',
+    TVOC: 'ppb',
     Pression: 'hPa',
+    'Temp SHT': '°C',
+    'Hum SHT': '%',
   }
   return unitMap[props.label] || ''
 })

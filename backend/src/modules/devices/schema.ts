@@ -107,6 +107,10 @@ export const ModuleDataResponseSchema = z.object({
     pm25: z.array(SensorDataPointSchema),
     pm4: z.array(SensorDataPointSchema),
     pm10: z.array(SensorDataPointSchema),
+    eco2: z.array(SensorDataPointSchema),
+    tvoc: z.array(SensorDataPointSchema),
+    temp_sht: z.array(SensorDataPointSchema),
+    hum_sht: z.array(SensorDataPointSchema),
   }),
 })
 
@@ -129,6 +133,10 @@ export const ModuleHistoryResponseSchema = z.object({
   pm25: z.array(SensorDataPointSchema),
   pm4: z.array(SensorDataPointSchema),
   pm10: z.array(SensorDataPointSchema),
+  eco2: z.array(SensorDataPointSchema),
+  tvoc: z.array(SensorDataPointSchema),
+  temp_sht: z.array(SensorDataPointSchema),
+  hum_sht: z.array(SensorDataPointSchema),
 })
 
 export const ConfigUpdateResponseSchema = z.object({
