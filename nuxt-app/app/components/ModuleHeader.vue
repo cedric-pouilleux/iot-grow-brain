@@ -302,6 +302,47 @@
           </div>
         </div>
 
+
+
+        <!-- Graph Duration -->
+        <AppDropdown
+          id="graph-duration"
+          position="relative"
+          dropdown-class="top-full right-0 w-32 bg-gray-800 rounded-b-lg rounded-tl-lg shadow-xl z-50 overflow-hidden"
+        >
+          <template #trigger="{ isOpen, toggle }">
+             <button
+               class="p-1.5 rounded-t-lg transition-colors flex items-center justify-center gap-1"
+               :class="isOpen ? 'bg-gray-900 group' : 'hover:bg-white'"
+               title="Durée des graphiques"
+               @click.stop="toggle"
+             >
+               <Icon
+                 name="tabler:chart-dots"
+                 class="w-4 h-4 transition-colors"
+                 :class="isOpen ? 'text-white' : 'text-gray-600 group-hover:text-gray-800'"
+               />
+               <span class="text-[10px] font-medium" :class="isOpen ? 'text-white' : 'text-gray-500 group-hover:text-gray-800'">
+                 {{ graphDuration }}
+               </span>
+             </button>
+          </template>
+          <template #content="{ close }">
+            <div class="p-1 space-y-0.5">
+               <button
+                 v-for="duration in ['1h', '6h', '12h', '24h', '7j']"
+                 :key="duration"
+                 @click="selectDuration(duration, close)"
+                 class="w-full text-left px-2 py-1.5 rounded text-xs transition-colors flex items-center justify-between"
+                 :class="graphDuration === duration ? 'bg-gray-700 text-white font-medium' : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'"
+               >
+                 <span>{{ duration }}</span>
+                 <Icon v-if="graphDuration === duration" name="tabler:check" class="w-3 h-3 text-emerald-400" />
+               </button>
+            </div>
+          </template>
+        </AppDropdown>
+
         <div class="relative group/rssi cursor-help flex items-center justify-center">
           <!-- Conditions statiques pour forcer l'inclusion des icônes WiFi dans le bundle -->
           <Icon v-if="!rssi" name="tabler:wifi-off" class="w-6 h-6" :class="rssiClass" />
@@ -326,12 +367,24 @@ import { formatSize } from '../utils/format'
 import { getHardwareModel, getWifiClass } from '../utils/hardware'
 import { useStorageCalculations } from '../composables/useStorageCalculations'
 
+import AppDropdown from './AppDropdown.vue'
+
 const props = defineProps<{
   moduleName: string
   rssi: number | null | undefined
   deviceStatus: DeviceStatus | null
   formattedUptime: string
+  graphDuration?: string
 }>()
+
+const emit = defineEmits<{
+  (e: 'update:graphDuration', value: string): void
+}>()
+
+const selectDuration = (duration: string, closeFn: () => void) => {
+  emit('update:graphDuration', duration)
+  closeFn()
+}
 
 // Computed device status ref for composable
 const deviceStatusRef = computed(() => props.deviceStatus)
@@ -339,7 +392,9 @@ const deviceStatusRef = computed(() => props.deviceStatus)
 // Use shared storage calculations
 const { flashPercentages, ramPercentages } = useStorageCalculations(deviceStatusRef)
 
-// UI state
+
+
+
 const capitalizedModuleName = computed(() => {
   if (!props.moduleName) return ''
   return props.moduleName.charAt(0).toUpperCase() + props.moduleName.slice(1)

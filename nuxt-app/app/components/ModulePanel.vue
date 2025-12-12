@@ -12,30 +12,35 @@
       <!-- ModuleHeader avec menus à droite -->
       <ModuleHeader
         :module-name="moduleName"
-        :rssi="deviceStatus?.system?.rssi"
+        :rssi="deviceStatus?.system?.rssi" 
         :device-status="deviceStatus"
         :formatted-uptime="formatUptime(calculatedUptime)"
+        v-model:graph-duration="graphDuration"
       />
 
       <!-- Grille des Capteurs -->
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <SensorMiniCard
-          v-for="type in sensorTypes"
-          :key="type.key"
-          :label="type.label"
-          :sensor="getSensorData(type.key)"
-          :color="type.color"
-          :history="getSensorHistory(type.key)"
-          :is-graph-open="selectedGraphSensor === normalizeSensorType(type.key)"
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+        <UnifiedSensorCard
+          v-for="group in activeGroups"
+          :key="group.type"
+          :label="group.label"
+          :sensors="group.sensors"
+          :history-map="getHistoryMap(group)"
           :module-id="moduleId"
-          :sensor-key="type.key"
-          :initial-interval="deviceStatus?.sensorsConfig?.sensors?.[type.key]?.interval || 60"
-          :is-loading="props.isHistoryLoading"
-          @toggle-graph="toggleGraph(type.key)"
+          :color="group.color"
+          :graph-duration="graphDuration"
+          :initial-active-sensor-key="group.sensors[0]?.key"
+          @toggle-graph="toggleGraph(group.sensors[0]?.key)"
         />
       </div>
 
-      <!-- Graphique Détaillé -->
+      <!-- Graphique Détaillé (Legacy / Todo: adapt if needed) -->
+      <!-- With new card, graph is inside. Do we still need detailed overlay? -->
+      <!-- The user requirement: "Au click sur un item on ouvrira le sensor et l'historique concerné dans la card." -->
+      <!-- So maybe we don't need the external detailed graph anymore if the card handles it? -->
+      <!-- However, ModulePanel had 'SensorDetailGraph'. UnifiedSensorCard emits 'toggle-graph'. -->
+      <!-- Let's keep supporting it for now. -->
+      
       <SensorDetailGraph
         v-if="selectedGraphSensor"
         :selected-sensor="selectedGraphSensor"
@@ -50,9 +55,11 @@
 </template>
 
 <script setup lang="ts">
-import type { DeviceStatus, SensorData } from '../types'
+import { computed, ref } from 'vue'
+import type { DeviceStatus, SensorData, SensorDataPoint } from '../types'
 import ModuleHeader from './ModuleHeader.vue'
 import SensorDetailGraph from './SensorDetailGraph.vue'
+import UnifiedSensorCard from './UnifiedSensorCard.vue'
 import { formatUptime } from '../utils/time'
 import {
   getSensorLabel,
@@ -89,83 +96,136 @@ const props = withDefaults(defineProps<Props>(), {
   isHistoryLoading: false,
 })
 
+// Sensor Groups Definition
+const sensorGroupsDefinition = [
+  {
+    type: 'temperature',
+    label: 'Température',
+    color: 'orange',
+    keys: ['temperature', 'temperature_bmp', 'temp_sht', 'temp']
+  },
+  {
+    type: 'humidity',
+    label: 'Humidité',
+    color: 'blue',
+    keys: ['humidity', 'hum_sht', 'hum']
+  },
+  { type: 'co2', label: 'CO2', color: 'emerald', keys: ['co2', 'eco2'] },
+  { type: 'voc', label: 'COV', color: 'pink', keys: ['voc', 'tvoc'] },
+  { type: 'pressure', label: 'Pression', color: 'cyan', keys: ['pressure'] },
+  { 
+    type: 'pm', 
+    label: 'Particules', 
+    color: 'violet', 
+    keys: ['pm1', 'pm25', 'pm4', 'pm10'] 
+  },
+]
+
+// Helpers
 const getSensorData = (sensorName: string) => {
   const status = props.deviceStatus?.sensors?.[sensorName] || {}
   const config = props.deviceStatus?.sensorsConfig?.sensors?.[sensorName] || {}
   return {
     ...status,
     ...(config.model && { model: config.model }),
+    ...(config.interval && { interval: config.interval }), // Include interval
   }
 }
 
-const selectedGraphSensor = ref<string | null>(null)
-const isToggling = ref(false)
+// Compute available sensors keys for global config
+const availableSensorKeys = computed(() => {
+  if (!props.deviceStatus?.sensors) return []
+  return Object.keys(props.deviceStatus.sensors).filter(k => !k.startsWith('_'))
+})
 
-const toggleGraph = (sensorType: string) => {
-  if (isToggling.value) return
+// Compute Active Groups
+const activeGroups = computed(() => {
+  return sensorGroupsDefinition.map(group => {
+    // Find active sensors for this group
+    const sensors = group.keys.map(key => {
+        const data = getSensorData(key)
+        // Heuristic: sensor exists if it has status (even 'missing') or value
+        const exists = data.status !== undefined || data.value !== undefined
+        if (!exists) return null
 
-  isToggling.value = true
-  const normalizedType = normalizeSensorType(sensorType)
+        return {
+            key,
+            label: getSensorLabel(key), // Use utility for individual labels
+            model: data.model,
+            value: data.value,
+            status: data.status
+        }
+    }).filter((s): s is NonNullable<typeof s> => s !== null)
 
-  if (selectedGraphSensor.value === normalizedType) {
-    selectedGraphSensor.value = null
-  } else {
-    selectedGraphSensor.value = normalizedType
-  }
+    if (sensors.length === 0) return null
 
-  setTimeout(() => {
-    isToggling.value = false
-  }, 100)
-}
-
-const sensorTypes = [
-  { key: 'co2', label: 'CO2', color: 'emerald' },
-  { key: 'temperature', label: 'Température', color: 'orange' },
-  { key: 'temperature_bmp', label: 'Temp BMP', color: 'orange' },
-  { key: 'humidity', label: 'Humidité', color: 'blue' },
-  { key: 'pm1', label: 'PM1.0', color: 'violet' },
-  { key: 'pm25', label: 'PM2.5', color: 'violet' },
-  { key: 'pm4', label: 'PM4.0', color: 'violet' },
-  { key: 'pm10', label: 'PM10.0', color: 'violet' },
-  { key: 'voc', label: 'COV', color: 'pink' },
-  { key: 'eco2', label: 'eCO2', color: 'emerald' },
-  { key: 'tvoc', label: 'TVOC', color: 'pink' },
-  { key: 'pressure', label: 'Pression', color: 'cyan' },
-  { key: 'temp_sht', label: 'Temp SHT', color: 'orange' },
-  { key: 'hum_sht', label: 'Hum SHT', color: 'blue' },
-] as const
-
-const calculatedUptime = computed(() => {
-  if (!props.deviceStatus?.system?.uptimeStart) return null
-
-  const now = Math.floor(Date.now() / 1000)
-  const system = props.deviceStatus.system
-
-  // Si on a déjà calculé l'offset, on l'utilise
-  if (system._configReceivedAt && system._uptimeStartOffset !== undefined) {
-    const elapsedSinceConfig = now - system._configReceivedAt
-    return system._uptimeStartOffset + elapsedSinceConfig
-  }
-
-  return system.uptimeStart
+    return {
+        type: group.type,
+        label: group.label,
+        color: group.color,
+        sensors
+    }
+  }).filter((g): g is NonNullable<typeof g> => g !== null)
 })
 
 const getSensorHistory = (type: string) => {
   const normalizedType = normalizeSensorType(type)
-  if (normalizedType === 'co2') return props.sensorData.co2
-  if (normalizedType === 'temp') return props.sensorData.temp
-  if (normalizedType === 'hum') return props.sensorData.hum
-  if (normalizedType === 'voc') return props.sensorData.voc
-  if (normalizedType === 'pressure') return props.sensorData.pressure
-  if (normalizedType === 'temperature_bmp') return props.sensorData.temperature_bmp
-  if (normalizedType === 'pm1') return props.sensorData.pm1
-  if (normalizedType === 'pm25') return props.sensorData.pm25
-  if (normalizedType === 'pm4') return props.sensorData.pm4
-  if (normalizedType === 'pm10') return props.sensorData.pm10
-  if (normalizedType === 'eco2') return props.sensorData.eco2
-  if (normalizedType === 'tvoc') return props.sensorData.tvoc
-  if (normalizedType === 'temp_sht') return props.sensorData.temp_sht
-  if (normalizedType === 'hum_sht') return props.sensorData.hum_sht
-  return []
+  // Simplified mapping accessing props.sensorData directly with type safety check if possible
+  // Using explicit map for safety
+  const map: Record<string, SensorDataPoint[]> = {
+      co2: props.sensorData.co2,
+      temp: props.sensorData.temp,
+      hum: props.sensorData.hum,
+      voc: props.sensorData.voc,
+      pressure: props.sensorData.pressure,
+      temperature_bmp: props.sensorData.temperature_bmp,
+      pm1: props.sensorData.pm1,
+      pm25: props.sensorData.pm25,
+      pm4: props.sensorData.pm4,
+      pm10: props.sensorData.pm10,
+      eco2: props.sensorData.eco2,
+      tvoc: props.sensorData.tvoc,
+      temp_sht: props.sensorData.temp_sht,
+      hum_sht: props.sensorData.hum_sht
+  }
+  return map[normalizedType] || []
 }
+
+// Get history map for a group (all sensors in the group)
+const getHistoryMap = (group: any) => {
+    const map: Record<string, SensorDataPoint[]> = {}
+    group.sensors.forEach((s: any) => {
+        map[s.key] = getSensorHistory(s.key)
+    })
+    return map
+}
+
+// Graph Toggle Logic
+const selectedGraphSensor = ref<string | null>(null)
+const isToggling = ref(false)
+const graphDuration = ref('24h')
+
+const toggleGraph = (sensorType: string) => {
+  if (isToggling.value) return
+  isToggling.value = true
+  const normalizedType = normalizeSensorType(sensorType)
+  
+  if (selectedGraphSensor.value === normalizedType) {
+      selectedGraphSensor.value = null
+  } else {
+      selectedGraphSensor.value = normalizedType
+  }
+  setTimeout(() => isToggling.value = false, 100)
+}
+
+const calculatedUptime = computed(() => {
+  if (!props.deviceStatus?.system?.uptimeStart) return null
+  const now = Math.floor(Date.now() / 1000)
+  const system = props.deviceStatus.system
+  if (system._configReceivedAt && system._uptimeStartOffset !== undefined) {
+    const elapsedSinceConfig = now - system._configReceivedAt
+    return system._uptimeStartOffset + elapsedSinceConfig
+  }
+  return system.uptimeStart
+})
 </script>

@@ -1,10 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-100 text-gray-800 p-4 sm:p-8">
     <div class="max-w-7xl mx-auto">
-      <header class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-        <h1 class="text-3xl font-bold text-gray-900">Tableau de bord</h1>
-        <TimeRangeSelector v-model="selectedRange" @update:modelValue="handleRangeChange" />
-      </header>
 
       <main>
         <ClientOnly>
