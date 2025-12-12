@@ -95,7 +95,9 @@ void AppController::initSensors() {
     // Initialize sensors
     bool bmpOk = sensorReader.initBMP();
     bool sgpOk = sensorReader.initSGP();
+    bool sgp30Ok = sensorReader.initSGP30();
     bool sps30Ok = sensorReader.initSPS30();
+    bool shtOk = sensorReader.initSHT();
 
     if (logger) {
         if (bmpOk) logger->success("✓ BMP280 initialized");
@@ -104,8 +106,14 @@ void AppController::initSensors() {
         if (sgpOk) logger->success("✓ SGP40 initialized");
         else logger->error("✗ SGP40 init failed");
 
+        if (sgp30Ok) logger->success("✓ SGP30 initialized");
+        else logger->error("✗ SGP30 init failed");
+
         if (sps30Ok) logger->success("✓ SPS30 (PM) initialized");
         else logger->error("✗ SPS30 init failed");
+
+        if (shtOk) logger->success("✓ SHT3x initialized");
+        else logger->error("✗ SHT3x init failed");
         
         logger->success("✓ MH-Z14A (CO2) Serial initialized");
         logger->success("✓ DHT22 Sensor initialized");
@@ -120,7 +128,10 @@ void AppController::initSensors() {
     lastTempReadTime = now - sensorConfig.tempInterval;
     lastHumReadTime = now - sensorConfig.humInterval;
     lastVocReadTime = now - sensorConfig.vocInterval;
+    lastSgp30ReadTime = now - 1000; 
+    lastSgp30PublishTime = now - sensorConfig.eco2Interval;
     lastPmReadTime = now - sensorConfig.pmInterval;
+    lastShtReadTime = now - sensorConfig.shtInterval;
     lastPressureReadTime = now - sensorConfig.pressureInterval;
     lastSystemInfoTime = now - 5000;
 }
@@ -231,7 +242,47 @@ void AppController::handleSGP40() {
     }
 }
 
+void AppController::handleSGP30() {
+    unsigned long now = millis();
+    
+    // 1. Hardware Read (Must be 1Hz for SGP30 baseline algorithm)
+    if (now - lastSgp30ReadTime >= 1000) { 
+        lastSgp30ReadTime = now;
+        
+        int eco2, tvoc;
+        if (sensorReader.readSGP30(eco2, tvoc)) {
+            lastEco2Value = eco2;
+            lastTvocValue = tvoc;
+            statusEco2 = "ok";
+            statusTvoc = "ok";
+        } else {
+            // Only log error periodically or if it persists?
+            // For now, keep it simple. If 1Hz logging is too much, user will see.
+            // But since we only publish on interval, maybe we should suppress 1Hz error logs?
+            // Let's keep it but maybe it will spam if sensor is missing.
+            statusEco2 = "error";
+            statusTvoc = "error";
+            // if (logger) logger->error("✗ SGP30 read failed"); // Commented out to reduce spam if missing
+        }
+    }
 
+    // 2. Publish (User Configured Interval)
+    if (now - lastSgp30PublishTime >= sensorConfig.eco2Interval) {
+        lastSgp30PublishTime = now;
+        
+        if (statusEco2 == "ok") {
+            network.publishValue("/eco2", lastEco2Value);
+            network.publishValue("/tvoc", lastTvocValue);
+            
+            if (logger) {
+                char msg[64]; snprintf(msg, sizeof(msg), "📤 eCO2: %d ppm, TVOC: %d ppb", lastEco2Value, lastTvocValue);
+                logger->info(msg);
+            }
+        } else {
+             if (logger) logger->error("✗ SGP30 not ready or read failed");
+        }
+    }
+}
 
 void AppController::handleSPS30() {
     unsigned long now = millis();
@@ -293,8 +344,10 @@ void AppController::handleSystemStatus() {
             statusPublisher.publishSystemInfo();
             statusPublisher.publishSensorStatus(lastCO2Value, statusCo2, lastTemperature, lastHumidity, statusDht, 
                                                 lastVocValue, statusVoc, lastPressure, statusPressure, lastTempBmp, statusTempBmp,
-                                                lastPm1, lastPm25, lastPm4, lastPm10, statusPm);
-            if (lastVocValue > 0) network.publishVocIndex(lastVocValue);
+                                                lastPm1, lastPm25, lastPm4, lastPm10, statusPm,
+                                                lastEco2Value, statusEco2, lastTvocValue, statusTvoc,
+                                                lastTempSht, statusTempSht, lastHumSht, statusHumSht);
+            if (lastVocValue >= 0) network.publishVocIndex(lastVocValue);
         }
     }
 
@@ -303,7 +356,9 @@ void AppController::handleSystemStatus() {
         statusPublisher.publishSystemInfo();
         statusPublisher.publishSensorStatus(lastCO2Value, statusCo2, lastTemperature, lastHumidity, statusDht, 
                                             lastVocValue, statusVoc, lastPressure, statusPressure, lastTempBmp, statusTempBmp,
-                                            lastPm1, lastPm25, lastPm4, lastPm10, statusPm);
+                                            lastPm1, lastPm25, lastPm4, lastPm10, statusPm,
+                                            lastEco2Value, statusEco2, lastTvocValue, statusTvoc,
+                                            lastTempSht, statusTempSht, lastHumSht, statusHumSht);
     }
 }
 
@@ -319,6 +374,36 @@ void AppController::onMqttConnected() {
         logger->success("✓ MQTT connected");
     }
     reconnectAttempts = 0;
+}
+
+void AppController::handleSHT3x() {
+    unsigned long now = millis();
+    if (now - lastShtReadTime >= sensorConfig.shtInterval) {
+        lastShtReadTime = now;
+        
+        float temp, hum;
+        if (sensorReader.readSHT(temp, hum)) {
+            lastTempSht = temp;
+            lastHumSht = hum;
+            statusTempSht = "ok";
+            statusHumSht = "ok";
+            
+            network.publishValue("/temp_sht", temp);
+            network.publishValue("/hum_sht", hum);
+            
+            if (logger) {
+                char msg[64]; snprintf(msg, sizeof(msg), "📤 SHT3x: %.1f°C, %.1f%%", temp, hum);
+                logger->info(msg);
+            }
+        } else {
+            statusTempSht = "error";
+            statusHumSht = "error";
+            // Set to NAN so frontend treats it as invalid/missing (Red pill)
+            lastTempSht = NAN;
+            lastHumSht = NAN;
+            if (logger) logger->error("✗ SHT3x read failed");
+        }
+    }
 }
 
 void AppController::publishAllConfigs() {

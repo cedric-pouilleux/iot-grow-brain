@@ -5,13 +5,15 @@
 #include <DHT_U.h>
 #include <Adafruit_SGP40.h>
 #include <Adafruit_BMP280.h>
+#include <Adafruit_SGP30.h>
+#include <Adafruit_SHT31.h>
 #include <SensirionUartSps30.h>
 #include "SensorData.h"
 
 class RemoteLogger; // Forward declaration
 
 /**
- * @brief Handles communication with all connected sensors (BMP280, SGP40, DHT, CO2).
+ * @brief Handles communication with all connected sensors (BMP280, SGP40, SGP30, DHT, CO2).
  * 
  * Responsible for:
  * - Initialization and re-initialization (reset)
@@ -21,7 +23,7 @@ class RemoteLogger; // Forward declaration
  */
 class SensorReader {
 public:
-    // SGP40 will use the second I2C bus (wireSGP)
+    // SGP40 and SGP30 will use the second I2C bus (wireSGP)
     SensorReader(HardwareSerial& co2Serial, HardwareSerial& sps30Serial, DHT_Unified& dht, TwoWire& wireSGP);
     
     /**
@@ -41,6 +43,12 @@ public:
      * @return true if successful, false otherwise.
      */
     bool initSGP(int maxAttempts = 3, int delayBetweenMs = 100);
+
+    /**
+     * @brief Initializes the SGP30 sensor (eCO2/TVOC).
+     * @return true if successful, false otherwise.
+     */
+    bool initSGP30(int maxAttempts = 3, int delayBetweenMs = 100);
 
     /**
      * @brief Initializes the SPS30 sensor (PM) via UART.
@@ -64,6 +72,11 @@ public:
      * @brief Checks if SGP40 is reachable on the I2C bus.
      */
     bool isSGPConnected();
+    
+    /**
+     * @brief Checks if SGP30 is reachable on the I2C bus.
+     */
+    bool isSGP30Connected();
 
     /**
      * @brief Checks if BMP280 is reachable on the I2C bus.
@@ -77,6 +90,14 @@ public:
      * @return VOC Index (0-500), or -1 on error.
      */
     int readVocIndex();
+
+    /**
+     * @brief Reads eCO2 and TVOC from SGP30.
+     * @param eco2 Reference to store eCO2 value (ppm)
+     * @param tvoc Reference to store TVOC value (ppb)
+     * @return true if read successful, false otherwise
+     */
+    bool readSGP30(int& eco2, int& tvoc);
 
     /**
      * @brief Reads Pressure from BMP280.
@@ -119,6 +140,30 @@ public:
      * @return true if read successful, false otherwise
      */
     bool readSPS30(float& pm1, float& pm25, float& pm4, float& pm10);
+
+    /**
+     * @brief Initializes the SHT3x sensor (Temp/Hum).
+     * @return true if successful, false otherwise.
+     */
+    bool initSHT(int maxAttempts = 3, int delayBetweenMs = 100);
+
+    /**
+     * @brief Checks if SHT3x is reachable on the I2C bus.
+     */
+    bool isSHTConnected();
+
+    /**
+     * @brief Reads Temp/Hum from SHT3x.
+     * @param temp Reference to store Temperature
+     * @param hum Reference to store Humidity
+     * @return true if read successful, false otherwise
+     */
+    bool readSHT(float& temp, float& hum);
+
+    /**
+     * @brief Resets the SHT3x sensor.
+     */
+    void resetSHT();
     
 private:
     RemoteLogger* _logger = nullptr;
@@ -127,6 +172,8 @@ private:
     DHT_Unified& dht;
     TwoWire& _wireSGP;
     Adafruit_SGP40 sgp;
+    Adafruit_SGP30 sgp30;
+    Adafruit_SHT31 sht;
     Adafruit_BMP280 bmp;
     SensirionUartSps30 sps30;
     static const uint8_t CO2_READ_CMD[9];

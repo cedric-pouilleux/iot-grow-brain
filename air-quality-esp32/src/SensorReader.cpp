@@ -5,7 +5,7 @@
 const uint8_t SensorReader::CO2_READ_CMD[9] = { 0xFF, 0x01, 0x86, 0, 0, 0, 0, 0, 0x79 };
 
 SensorReader::SensorReader(HardwareSerial& co2Serial, HardwareSerial& sps30Serial, DHT_Unified& dht, TwoWire& wireSGP) 
-    : co2Serial(co2Serial), sps30Serial(sps30Serial), dht(dht), _wireSGP(wireSGP) {
+    : co2Serial(co2Serial), sps30Serial(sps30Serial), dht(dht), _wireSGP(wireSGP), sht(&wireSGP) {
 }
 
 void SensorReader::setLogger(RemoteLogger* logger) {
@@ -55,6 +55,30 @@ bool SensorReader::initSGP(int maxAttempts, int delayBetweenMs) {
         }
     }
     String err = "Sensor SGP40 not found after retries :(";
+    Serial.println(err);
+    if (_logger) _logger->error(err);
+    return false;
+}
+
+bool SensorReader::initSGP30(int maxAttempts, int delayBetweenMs) {
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (sgp30.begin(&_wireSGP)) {
+            if (attempt > 1) {
+                String msg = "SGP30 initialized after " + String(attempt) + " attempts";
+                Serial.println(msg);
+                if (_logger) _logger->warn(msg);
+            } else {
+                String msg = "SGP30 initialized successfully";
+                Serial.println(msg);
+                if (_logger) _logger->info(msg);
+            }
+            return true;
+        }
+        if (attempt < maxAttempts) {
+            delay(delayBetweenMs);
+        }
+    }
+    String err = "Sensor SGP30 not found after retries :(";
     Serial.println(err);
     if (_logger) _logger->error(err);
     return false;
@@ -337,9 +361,28 @@ bool SensorReader::isSGPConnected() {
     return _wireSGP.endTransmission() == 0;
 }
 
+bool SensorReader::isSGP30Connected() {
+    _wireSGP.beginTransmission(0x58);
+    return _wireSGP.endTransmission() == 0;
+}
+
 bool SensorReader::isBMPConnected() {
     Wire.beginTransmission(0x76);
     return Wire.endTransmission() == 0;
+}
+
+bool SensorReader::readSGP30(int& eco2, int& tvoc) {
+    if (!isSGP30Connected()) return false;
+    
+    // Note: SGP30 needs measure() called every 1s ideally for baseline algo
+    if (!sgp30.IAQmeasure()) {
+        if (_logger) _logger->error("SGP30 read failed");
+        return false;
+    }
+
+    eco2 = sgp30.eCO2;
+    tvoc = sgp30.TVOC;
+    return true;
 }
 
 int SensorReader::readVocIndex() {
@@ -407,4 +450,82 @@ DhtReading SensorReader::readDhtSensors() {
     }
     
     return reading;
+}
+
+bool SensorReader::initSHT(int maxAttempts, int delayBetweenMs) {
+    // Force 100kHz and increase timeout for stability
+    _wireSGP.setClock(100000);
+    _wireSGP.setTimeOut(150);
+
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (sht.begin(0x44)) {
+            sht.reset(); // Soft reset to ensure clean state
+            delay(100);  // Wait for reset
+            
+            if (attempt > 1) {
+                String msg = "SHT31 initialized after " + String(attempt) + " attempts";
+                Serial.println(msg);
+                if (_logger) _logger->warn(msg);
+            } else {
+                String msg = "SHT31 initialized successfully (100kHz)";
+                Serial.println(msg);
+                if (_logger) _logger->info(msg);
+            }
+            return true;
+        }
+        if (attempt < maxAttempts) {
+            String retry = "SHT31 init attempt " + String(attempt) + " failed, retrying...";
+            Serial.println(retry);
+            delay(delayBetweenMs);
+        }
+    }
+    String err = "Sensor SHT31 not found after retries :(";
+    Serial.println(err);
+    if (_logger) _logger->error(err);
+    return false;
+}
+
+bool SensorReader::isSHTConnected() {
+    _wireSGP.beginTransmission(0x44);
+    return _wireSGP.endTransmission() == 0;
+}
+
+bool SensorReader::readSHT(float& temp, float& hum) {
+    if (!isSHTConnected()) return false;
+    
+    // Ensure accurate timing
+    _wireSGP.setClock(100000); 
+
+    // Read with retry and aggressive recovery
+    for (int i = 0; i < 3; i++) {
+        if (sht.readBoth(&temp, &hum)) {
+            // Validate humidity
+            if (hum >= 0 && hum <= 100 && temp > -45 && temp < 130) {
+                 return true;
+            }
+        }
+        
+        // If read failed, try to recover by re-initializing
+        if (i < 2) { 
+            if (_logger) _logger->warn("SHT31 read failed, re-initializing...");
+            if (sht.begin(0x44)) {
+                delay(10); // Give it a moment after init
+            } else {
+                delay(50);
+            }
+        }
+    }
+    
+    if (_logger) _logger->error("SHT31 read failed after 3 retries");
+    return false;
+}
+
+void SensorReader::resetSHT() {
+    if (_logger) _logger->warn("Resetting SHT3x sensor...");
+    // Try to re-initialize
+    if (initSHT()) {
+        if (_logger) _logger->success("SHT3x reset successful");
+    } else {
+        if (_logger) _logger->error("SHT3x reset failed");
+    }
 }

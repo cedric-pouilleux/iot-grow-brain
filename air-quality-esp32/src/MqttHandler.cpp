@@ -98,6 +98,55 @@ void MqttHandler::handleConfigMessage(char* msg) {
                 }
             }
         }
+
+        if (sensors.containsKey("eco2")) {
+            unsigned long interval = sensors["eco2"]["interval"];
+            if (interval >= 5) {
+                _config.eco2Interval = interval * 1000;
+                if (_logger) {
+                    char logMsg[64];
+                    snprintf(logMsg, sizeof(logMsg), "eCO2 interval: %lus", interval);
+                    _logger->info(logMsg);
+                }
+            }
+        }
+
+        if (sensors.containsKey("tvoc")) {
+            unsigned long interval = sensors["tvoc"]["interval"];
+            if (interval >= 5) {
+                _config.tvocInterval = interval * 1000;
+                if (_logger) {
+                    char logMsg[64];
+                    snprintf(logMsg, sizeof(logMsg), "TVOC interval: %lus", interval);
+                    _logger->info(logMsg);
+                }
+            }
+        }
+
+        if (sensors.containsKey("temp_sht")) {
+            unsigned long interval = sensors["temp_sht"]["interval"];
+            if (interval >= 5) {
+                _config.shtInterval = interval * 1000;
+                // Also update humidity if shared? For now separate config keys but shared interval variable
+                if (_logger) {
+                    char logMsg[64];
+                    snprintf(logMsg, sizeof(logMsg), "SHT Temp interval: %lus", interval);
+                    _logger->info(logMsg);
+                }
+            }
+        }
+
+        if (sensors.containsKey("hum_sht")) {
+            unsigned long interval = sensors["hum_sht"]["interval"];
+            if (interval >= 5) {
+                _config.shtInterval = interval * 1000;
+                if (_logger) {
+                    char logMsg[64];
+                    snprintf(logMsg, sizeof(logMsg), "SHT Hum interval: %lus", interval);
+                    _logger->info(logMsg);
+                }
+            }
+        }
     }
 }
 
@@ -124,6 +173,9 @@ void MqttHandler::handleResetMessage(char* msg) {
         }
         if (sensor == "co2" || sensor == "all") {
             _reader.resetCO2();
+        }
+        if (sensor == "sht" || sensor == "temp_sht" || sensor == "hum_sht" || sensor == "all") {
+            _reader.resetSHT();
         }
     }
 }

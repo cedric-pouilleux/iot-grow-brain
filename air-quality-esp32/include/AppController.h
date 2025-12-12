@@ -30,6 +30,8 @@ public:
     void handleDHT22();    // Temp/Humidity Sensor
     void handleSGP40();    // VOC Sensor
     void handleSPS30();    // PM Sensor
+    void handleSGP30();    // eCO2/TVOC Sensor (SGP30)
+    void handleSHT3x();    // Temp/Hum Sensor (SHT3x)
     void handleBMP280();   // Pressure/Temp Sensor
     void handleSystemStatus(); // System Info
     
@@ -66,7 +68,10 @@ private:
     unsigned long lastTempReadTime = 0;
     unsigned long lastHumReadTime = 0;
     unsigned long lastVocReadTime = 0;
+    unsigned long lastSgp30ReadTime = 0;
+    unsigned long lastSgp30PublishTime = 0;
     unsigned long lastPmReadTime = 0;
+    unsigned long lastShtReadTime = 0;
     unsigned long lastPressureReadTime = 0;
     unsigned long lastSystemInfoTime = 0;
     unsigned long stabilizationStartTime = 0;
@@ -77,6 +82,8 @@ private:
     // Last Values
     int lastCO2Value = 0;
     int lastVocValue = 0;
+    int lastEco2Value = 0;
+    int lastTvocValue = 0;
     float lastTemperature = 0.0;
     float lastHumidity = 0.0;
     float lastPressure = 0.0;
@@ -85,14 +92,20 @@ private:
     float lastPm25 = 0.0;
     float lastPm4 = 0.0;
     float lastPm10 = 0.0;
+    float lastTempSht = 0.0;
+    float lastHumSht = 0.0;
 
     
     // Detailed Status ("ok", "warning", "error", "missing")
     String statusDht = "init";
     String statusCo2 = "init";
     String statusVoc = "init";
+    String statusEco2 = "init";
+    String statusTvoc = "init";
     String statusPressure = "init";
     String statusTempBmp = "init";
+    String statusTempSht = "init";
+    String statusHumSht = "init";
     String statusPm = "init";
 
     int firstValidPpm = -1;

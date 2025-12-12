@@ -96,7 +96,9 @@ void StatusPublisher::publishHardwareConfig() {
 String StatusPublisher::buildSensorStatusJson(int lastCO2Value, const String& statusCo2, float lastTemperature, 
                                               float lastHumidity, const String& statusDht, int lastVocValue, const String& statusVoc,
                                               float lastPressure, const String& statusPressure, float lastTempBmp, const String& statusTempBmp,
-                                              float lastPm1, float lastPm25, float lastPm4, float lastPm10, const String& statusPm) {
+                                              float lastPm1, float lastPm25, float lastPm4, float lastPm10, const String& statusPm,
+                                              int lastEco2, const String& statusEco2, int lastTvoc, const String& statusTvoc,
+                                              float lastTempSht, const String& statusTempSht, float lastHumSht, const String& statusHumSht) {
     
     char tempStr[16];
     if (isnan(lastTemperature)) strcpy(tempStr, "null");
@@ -129,7 +131,15 @@ String StatusPublisher::buildSensorStatusJson(int lastCO2Value, const String& st
         snprintf(pm10Str, sizeof(pm10Str), "%.1f", lastPm10);
     }
 
-    char sensorStatusMsg[1024]; // Increased buffer size to be safe
+    char tempShtStr[16];
+    if (isnan(lastTempSht)) strcpy(tempShtStr, "null");
+    else snprintf(tempShtStr, sizeof(tempShtStr), "%.1f", lastTempSht);
+
+    char humShtStr[16];
+    if (isnan(lastHumSht)) strcpy(humShtStr, "null");
+    else snprintf(humShtStr, sizeof(humShtStr), "%.1f", lastHumSht);
+
+    char sensorStatusMsg[1280]; // Increased buffer size to be safe
     snprintf(sensorStatusMsg, sizeof(sensorStatusMsg), 
         "{"
             "\"co2\":{"
@@ -164,11 +174,27 @@ String StatusPublisher::buildSensorStatusJson(int lastCO2Value, const String& st
                 "\"status\":\"%s\","
                 "\"value\":%d"
             "},"
+            "\"eco2\":{"
+                "\"status\":\"%s\","
+                "\"value\":%d"
+            "},"
+            "\"tvoc\":{"
+                "\"status\":\"%s\","
+                "\"value\":%d"
+            "},"
             "\"pressure\":{"
                 "\"status\":\"%s\","
                 "\"value\":%s"
             "},"
             "\"temperature_bmp\":{"
+                "\"status\":\"%s\","
+                "\"value\":%s"
+            "},"
+            "\"temp_sht\":{"
+                "\"status\":\"%s\","
+                "\"value\":%s"
+            "},"
+            "\"hum_sht\":{"
                 "\"status\":\"%s\","
                 "\"value\":%s"
             "}"
@@ -183,12 +209,18 @@ String StatusPublisher::buildSensorStatusJson(int lastCO2Value, const String& st
         statusPm.c_str(), pm25Str, // PM2.5
         statusPm.c_str(), pm4Str, // PM4
         statusPm.c_str(), pm10Str, // PM10
-        statusVoc.c_str(), // Now using dynamic status for VOC
+        statusVoc.c_str(), 
         lastVocValue,
+        statusEco2.c_str(), lastEco2,
+        statusTvoc.c_str(), lastTvoc,
         statusPressure.c_str(),
         pressStr,
         statusTempBmp.c_str(),
-        tempBmpStr
+        tempBmpStr,
+        statusTempSht.c_str(),
+        tempShtStr,
+        statusHumSht.c_str(),
+        humShtStr
     );
     return String(sensorStatusMsg);
 }
@@ -199,7 +231,7 @@ void StatusPublisher::publishSensorConfig() {
     }
     
     // Publish only sensor models (without intervals which are managed by the backend)
-    char sensorConfigMsg[256];
+    char sensorConfigMsg[512];
     snprintf(sensorConfigMsg, sizeof(sensorConfigMsg), 
         "{"
             "\"co2\":{\"model\":\"MH-Z14A\"},"
@@ -210,8 +242,12 @@ void StatusPublisher::publishSensorConfig() {
             "\"pm4\":{\"model\":\"SPS30\"},"
             "\"pm10\":{\"model\":\"SPS30\"},"
             "\"voc\":{\"model\":\"SGP40\"},"
+            "\"eco2\":{\"model\":\"SGP30\"},"
+            "\"tvoc\":{\"model\":\"SGP30\"},"
             "\"pressure\":{\"model\":\"BMP280\"},"
-            "\"temperature_bmp\":{\"model\":\"BMP280\"}"
+            "\"temperature_bmp\":{\"model\":\"BMP280\"},"
+            "\"temp_sht\":{\"model\":\"SHT31\"},"
+            "\"hum_sht\":{\"model\":\"SHT31\"}"
         "}"
     );
     
@@ -235,7 +271,9 @@ void StatusPublisher::publishSystemInfo() {
 void StatusPublisher::publishSensorStatus(int lastCO2Value, const String& statusCo2, float lastTemperature, 
                                           float lastHumidity, const String& statusDht, int lastVocValue, const String& statusVoc,
                                           float lastPressure, const String& statusPressure, float lastTempBmp, const String& statusTempBmp,
-                                          float lastPm1, float lastPm25, float lastPm4, float lastPm10, const String& statusPm) {
+                                          float lastPm1, float lastPm25, float lastPm4, float lastPm10, const String& statusPm,
+                                          int lastEco2, const String& statusEco2, int lastTvoc, const String& statusTvoc,
+                                          float lastTempSht, const String& statusTempSht, float lastHumSht, const String& statusHumSht) {
     if (!network.isConnected()) {
         return;
     }
@@ -243,7 +281,9 @@ void StatusPublisher::publishSensorStatus(int lastCO2Value, const String& status
     String sensorStatusMsg = buildSensorStatusJson(lastCO2Value, statusCo2, lastTemperature, 
                                                    lastHumidity, statusDht, lastVocValue, statusVoc,
                                                    lastPressure, statusPressure, lastTempBmp, statusTempBmp,
-                                                   lastPm1, lastPm25, lastPm4, lastPm10, statusPm);
+                                                   lastPm1, lastPm25, lastPm4, lastPm10, statusPm,
+                                                   lastEco2, statusEco2, lastTvoc, statusTvoc,
+                                                   lastTempSht, statusTempSht, lastHumSht, statusHumSht);
     // Do not use retained for dynamic data (values change often)
     network.publishMessage("/sensors/status", sensorStatusMsg.c_str(), false);
 }
