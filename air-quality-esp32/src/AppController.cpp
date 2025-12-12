@@ -123,16 +123,32 @@ void AppController::initSensors() {
     SystemInitializer::runWarmupSequence();
 
     // Reset timers for immediate read
+    // Reset timers for staggered reads (offsets to prevent thundering herd)
     unsigned long now = millis();
+    
+    // CO2: Immediate
     lastCo2ReadTime = now - sensorConfig.co2Interval;
-    lastTempReadTime = now - sensorConfig.tempInterval;
-    lastHumReadTime = now - sensorConfig.humInterval;
-    lastVocReadTime = now - sensorConfig.vocInterval;
+    
+    // Temp/Hum (DHT): +2s
+    lastTempReadTime = now - sensorConfig.tempInterval + 2000;
+    lastHumReadTime = now - sensorConfig.humInterval + 2000;
+    
+    // VOC (SGP40): +4s
+    lastVocReadTime = now - sensorConfig.vocInterval + 4000;
+    
+    // PM (SPS30): +6s
+    lastPmReadTime = now - sensorConfig.pmInterval + 6000;
+    
+    // SHT3x: +8s
+    lastShtReadTime = now - sensorConfig.shtInterval + 8000;
+    
+    // Pressure (BMP): +10s
+    lastPressureReadTime = now - sensorConfig.pressureInterval + 10000;
+    
+    // SGP30: +12s (Publish), Read is 1Hz
+    lastSgp30PublishTime = now - sensorConfig.eco2Interval + 12000;
     lastSgp30ReadTime = now - 1000; 
-    lastSgp30PublishTime = now - sensorConfig.eco2Interval;
-    lastPmReadTime = now - sensorConfig.pmInterval;
-    lastShtReadTime = now - sensorConfig.shtInterval;
-    lastPressureReadTime = now - sensorConfig.pressureInterval;
+
     lastSystemInfoTime = now - 5000;
 }
 
@@ -167,6 +183,13 @@ void AppController::handleMHZ14A() {
                 logger->info(msg);
             }
         } else {
+             errCo2++;
+             if (errCo2 > 5) {
+                 if (logger) logger->warn("⚠️ CO2 self-healing: Resetting sensor...");
+                 sensorReader.resetCO2();
+                 errCo2 = 0;
+             }
+            
             if (ppm == -1) {
                 statusCo2 = "missing";
                 if (logger) logger->error("✗ CO2 sensor missing (timeout)");
@@ -193,6 +216,7 @@ void AppController::handleDHT22() {
         statusDht = reading.valid ? "ok" : "error";
 
         if (reading.valid) {
+            errDht = 0;
             if (readTemp) {
                 lastTempReadTime = now;
                 network.publishValue("/temperature", reading.temperature);
@@ -209,6 +233,13 @@ void AppController::handleDHT22() {
                     logger->info(msg);
                 }
             }
+        } else {
+             errDht++;
+             if (errDht > 10) {
+                 if (logger) logger->warn("⚠️ DHT self-healing: Resetting sensor...");
+                 sensorReader.resetDHT();
+                 errDht = 0;
+             }
         }
     }
 }
@@ -228,6 +259,15 @@ void AppController::handleSGP40() {
                 logger->info(msg);
             }
         } else {
+            // Self-healing for SGP40
+            errSgp40++;
+            if (errSgp40 > 5) {
+                if (logger) logger->warn("⚠️ SGP40 self-healing: Resetting sensor...");
+                if (sensorReader.resetSGP()) {
+                    errSgp40 = 0; 
+                }
+            }
+
             // voc == -1 (disconnected)
             if (voc == -1) {
                 statusVoc = "missing";
@@ -263,6 +303,13 @@ void AppController::handleSGP30() {
             statusEco2 = "error";
             statusTvoc = "error";
             // if (logger) logger->error("✗ SGP30 read failed"); // Commented out to reduce spam if missing
+            
+            errSgp30++;
+            if (errSgp30 > 10) {
+                 if (logger) logger->warn("⚠️ SGP30 self-healing: Resetting sensor...");
+                 sensorReader.resetSGP(); 
+                 errSgp30 = 0;
+            }
         }
     }
 
@@ -311,6 +358,12 @@ void AppController::handleSPS30() {
         } else {
             statusPm = "error";
             if (logger) logger->error("✗ SPS30 read failed");
+            
+            if (errSps30 > 3) {
+                if (logger) logger->warn("⚠️ SPS30 self-healing: Resetting sensor...");
+                sensorReader.initSPS30(1, 100);
+                errSps30 = 0;
+            }
         }
     }
 }
@@ -325,11 +378,22 @@ void AppController::handleBMP280() {
         lastTempBmp = tempBmp;
         statusPressure = isnan(pressure) ? "error" : "ok";
         statusTempBmp = isnan(tempBmp) ? "error" : "ok";
-        network.publishValue("/pressure", pressure);
-        network.publishValue("/temperature_bmp", tempBmp);
-        if (logger) {
-            char msg[96]; snprintf(msg, sizeof(msg), "📤 Pressure: %.1f hPa, TempBMP: %.1f°C", pressure, tempBmp);
-            logger->info(msg);
+        
+        if (!isnan(pressure)) {
+            errBmp = 0;
+            network.publishValue("/pressure", pressure);
+            network.publishValue("/temperature_bmp", tempBmp);
+            if (logger) {
+                char msg[96]; snprintf(msg, sizeof(msg), "📤 Pressure: %.1f hPa, TempBMP: %.1f°C", pressure, tempBmp);
+                logger->info(msg);
+            }
+        } else {
+             errBmp++;
+             if (errBmp > 5) {
+                 if (logger) logger->warn("⚠️ BMP280 self-healing: Resetting sensor...");
+                 sensorReader.resetBMP();
+                 errBmp = 0;
+             }
         }
     }
 }
@@ -402,6 +466,13 @@ void AppController::handleSHT3x() {
             lastTempSht = NAN;
             lastHumSht = NAN;
             if (logger) logger->error("✗ SHT3x read failed");
+            
+            errSht++;
+            if (errSht > 5) {
+                 if (logger) logger->warn("⚠️ SHT3x self-healing: Resetting sensor...");
+                 sensorReader.resetSHT();
+                 errSht = 0;
+            }
         }
     }
 }

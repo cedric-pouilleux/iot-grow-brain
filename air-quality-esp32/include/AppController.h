@@ -79,6 +79,15 @@ private:
     bool mqttJustConnected = false;
     unsigned int reconnectAttempts = 0;
 
+    // Self-healing counters
+    int errCo2 = 0;
+    int errDht = 0;
+    int errSgp40 = 0;
+    int errSgp30 = 0;
+    int errSps30 = 0;
+    int errBmp = 0;
+    int errSht = 0;
+
     // Last Values
     int lastCO2Value = 0;
     int lastVocValue = 0;

@@ -260,7 +260,7 @@ bool SensorReader::resetBMP() {
     Serial.println(msg);
     if (_logger) _logger->warn(msg);
     
-    recoverI2C();
+    recoverI2C(21, 22);
     
     // Retry soft reset
     Wire.beginTransmission(0x76);
@@ -289,6 +289,8 @@ bool SensorReader::resetSGP() {
         String err = "Failed to reset SGP40 sensor!";
         Serial.println(err);
         if (_logger) _logger->error(err);
+        // Try to recover Wire1 (32, 33)
+        recoverI2C(32, 33);
     } else {
         String ok = "SGP40 sensor reset successful";
         Serial.println(ok);
@@ -297,20 +299,15 @@ bool SensorReader::resetSGP() {
     return success;
 }
 
-void SensorReader::recoverI2C() {
-    int sdaPin = 21;
-    int sclPin = 22;
-    #if defined(SDA) && defined(SCL)
-        sdaPin = SDA;
-        sclPin = SCL;
-    #endif
-
+void SensorReader::recoverI2C(int sdaPin, int sclPin) {
     String logMsg = "Recovering I2C bus on SDA=" + String(sdaPin) + " SCL=" + String(sclPin) + "...";
     Serial.println(logMsg);
     if (_logger) _logger->warn(logMsg);
 
-    Wire.end(); 
-
+    // Note: We cannot rely on Wire.end() for arbitrary pins if Wire is global instance, 
+    // but here we are just toggling pins manually.
+    
+    // Explicitly set pins as input first to check state (optional)
     pinMode(sdaPin, INPUT);
     pinMode(sclPin, INPUT);
     delayMicroseconds(5);
@@ -319,6 +316,7 @@ void SensorReader::recoverI2C() {
     digitalWrite(sclPin, LOW);
     pinMode(sdaPin, INPUT); 
 
+    // Toggle SCL to release slave
     for (int i = 0; i < 9; i++) {
         digitalWrite(sclPin, HIGH);
         delayMicroseconds(10);
@@ -326,6 +324,7 @@ void SensorReader::recoverI2C() {
         delayMicroseconds(10);
     }
 
+    // Generate STOP condition
     pinMode(sdaPin, OUTPUT);
     digitalWrite(sdaPin, LOW);
     delayMicroseconds(10);
@@ -338,12 +337,23 @@ void SensorReader::recoverI2C() {
     pinMode(sclPin, INPUT);
     delayMicroseconds(5);
 
-    Wire.begin(sdaPin, sclPin);
-    Wire.setTimeOut(1000);
+    // Re-init Wire instances is handled by caller (e.g. sgp.begin) 
+    // OR we should re-begin here? 
+    // Wire.begin(sda, scl) might be needed if we called Wire.end()?
+    // But Wire1 is separate. 
+    // To be safe, we just bang the pins. The next .begin() call from driver should take over.
+    // However, for Wire (main), we did this:
+    if (sdaPin == 21 && sclPin == 22) {
+        Wire.begin(sdaPin, sclPin);
+        Wire.setTimeOut(1000);
+    } else {
+        // Assume Wire1 
+        // We can't access Wire1 global here easily without passing it or assuming standard pins?
+        // _wireSGP is passed in constructor. We could use it:
+        // _wireSGP.begin(sdaPin, sclPin);
+        // But let's leave it to the next init call.
+    }
     delay(100);
-
-    // Logging
-    // ...
 }
 
 void SensorReader::resetDHT() {
@@ -527,5 +537,7 @@ void SensorReader::resetSHT() {
         if (_logger) _logger->success("SHT3x reset successful");
     } else {
         if (_logger) _logger->error("SHT3x reset failed");
+        // Try to recover Wire1 (32, 33)
+        recoverI2C(32, 33);
     }
 }

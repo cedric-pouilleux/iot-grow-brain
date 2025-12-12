@@ -404,26 +404,17 @@ export class MqttMessageHandler {
       this.fastify.log.info(`⚠️ Topic not processed: ${topic} (parts: ${parsed.parts.join(', ')})`)
     }
 
-    // Broadcast via WebSocket (with delta check)
+    // Broadcast via WebSocket (always emit to keep frontend "alive" status updated)
     const wsData = this.prepareWebSocketData(topic, payload, parsed, now)
     if (wsData && this.fastify.io) {
       const clientCount = this.fastify.io.sockets.sockets.size 
       if (clientCount > 0) {
-        // Check if data has changed before broadcasting
-        const lastPayload = this.lastBroadcastedPayload.get(topic)
-        if (lastPayload !== payload) {
-          this.lastBroadcastedPayload.set(topic, payload)
+          // REMOVED DELTA CHECK: We want to send updates even if value is same, 
+          // so the frontend knows the sensor is still alive (timestamp refresh).
+          // this.lastBroadcastedPayload.set(topic, payload)
           this.fastify.io.emit('mqtt:data', wsData)
 
-          this.fastify.log.debug({
-            msg: `[WEBSOCKET] Data changed, sent to frontend - ${parsed.moduleId} - ${topic}`,
-            moduleId: parsed.moduleId,
-            topic,
-          })
-        }
-        // If data is the same, don't broadcast (delta update optimization)
       }
-      // No logging when no clients connected - it's expected behavior
     }
   }
 }

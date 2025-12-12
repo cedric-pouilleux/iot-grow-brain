@@ -128,8 +128,10 @@ public:
     /**
      * @brief Manual I2C bus recovery routine.
      * Bit-bangs SCL to drain any stuck slave holding SDA low.
+     * @param sdaPin GPIO pin for SDA (default: 21)
+     * @param sclPin GPIO pin for SCL (default: 22)
      */
-    void recoverI2C();
+    void recoverI2C(int sdaPin = 21, int sclPin = 22);
 
     /**
      * @brief Reads PM values from SPS30.
