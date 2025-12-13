@@ -19,6 +19,9 @@
         
         <!-- LEFT SECTION: Device Info (all in one block) -->
         <div class="space-y-3">
+          <!-- Module Name -->
+          <div class="text-sm font-medium text-gray-800 capitalize">{{ moduleId }}</div>
+          
           <!-- Hardware + Network Info -->
           <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
             <div class="flex justify-between">

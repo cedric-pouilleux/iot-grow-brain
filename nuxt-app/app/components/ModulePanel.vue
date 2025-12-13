@@ -24,6 +24,7 @@
       <!-- Header with options toggle -->
       <ModuleHeader
         :module-name="moduleName"
+        :zone-name="deviceStatus?.zoneName"
         :rssi="deviceStatus?.system?.rssi" 
         :device-status="deviceStatus"
         :formatted-uptime="formatUptime(calculatedUptime)"

@@ -32,11 +32,17 @@ export class DeviceRepository {
         flashKb: schema.deviceHardware.flashKb,
         cores: schema.deviceHardware.cores,
         preferences: schema.deviceSystemStatus.preferences,
+        zoneId: schema.deviceSystemStatus.zoneId,
+        zoneName: schema.zones.name,
       })
       .from(schema.deviceSystemStatus)
       .leftJoin(
         schema.deviceHardware,
         eq(schema.deviceSystemStatus.moduleId, schema.deviceHardware.moduleId)
+      )
+      .leftJoin(
+        schema.zones,
+        eq(schema.deviceSystemStatus.zoneId, schema.zones.id)
       )
       .where(eq(schema.deviceSystemStatus.moduleId, moduleId))
 

@@ -105,6 +105,7 @@ const DeviceStatusSchema = z.object({
     })
     .optional(),
   preferences: z.record(z.any()).optional(),
+  zoneName: z.string().nullable().optional(),
 })
 
 export const ModuleDataResponseSchema = z.object({

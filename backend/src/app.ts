@@ -10,6 +10,9 @@ import {
   jsonSchemaTransform,
 } from 'fastify-type-provider-zod'
 
+// Core
+import { registry } from './core/registry'
+
 // Plugins
 import dbPlugin from './plugins/db'
 import socketPlugin from './plugins/socket'
@@ -63,6 +66,9 @@ export async function buildApp() {
     routePrefix: '/documentation',
   })
 
+  // Load module manifests (must be before MQTT for validation)
+  await registry.loadAll()
+
   // Core Plugins
   await app.register(dbPlugin)
   await app.register(socketPlugin)
@@ -75,6 +81,14 @@ export async function buildApp() {
   // Routes
   await app.register(devicesRoutes, { prefix: '/api' })
   await app.register(systemRoutes, { prefix: '/api' })
+
+  // Module types routes (manifests)
+  const moduleTypesRoutes = await import('./modules/module-types/routes')
+  await app.register(moduleTypesRoutes.default, { prefix: '/api' })
+
+  // Zones routes
+  const zonesRoutes = await import('./modules/zones/routes')
+  await app.register(zonesRoutes.default, { prefix: '/api' })
 
   // Import logs routes dynamically
   const logsRoutes = await import('./modules/system/logs-routes')

@@ -8,13 +8,25 @@ import {
   primaryKey,
   index,
   jsonb,
+  uuid,
 } from 'drizzle-orm/pg-core'
 import crypto from 'node:crypto'
+
+// --- Zones ---
+
+export const zones = pgTable('zones', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+})
 
 // --- Devices & Status ---
 
 export const deviceSystemStatus = pgTable('device_system_status', {
   moduleId: text('module_id').primaryKey(),
+  name: text('name'),                                    // Nom affiché (défini par user)
+  moduleType: text('module_type'),                       // "air-quality", "lighting", etc.
+  zoneId: uuid('zone_id').references(() => zones.id),    // Zone assignée (nullable)
   ip: text('ip'),
   mac: text('mac'),
   uptimeStart: integer('uptime_start'),

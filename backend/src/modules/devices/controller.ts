@@ -187,6 +187,9 @@ export class DeviceController {
     ])
 
     const status: DeviceStatus = {}
+    
+    // DEBUG: Log zone info
+    console.log('[DEBUG] statusRow zones:', { zoneId: statusRow?.zoneId, zoneName: statusRow?.zoneName })
 
     if (statusRow) {
       status.system = {
@@ -217,6 +220,11 @@ export class DeviceController {
           },
         }
         status.preferences = statusRow.preferences || {}
+      }
+      
+      // Add zone name if device is assigned to a zone
+      if (statusRow.zoneName) {
+        status.zoneName = statusRow.zoneName
       }
     }
 

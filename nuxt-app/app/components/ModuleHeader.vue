@@ -11,16 +11,13 @@
   <div class="py-2 border-b border-gray-100">
     <div class="flex flex-wrap justify-between items-center gap-3">
       
-      <!-- Left: Module Name -->
+      <!-- Left: Zone Name (no icon) -->
       <div class="flex items-center gap-2">
-        <div class="flex items-center justify-center text-emerald-600">
-          <Icon name="tabler:cloud-computing" class="w-4 h-4" />
-        </div>
         <h2
           class="font-normal text-lg text-gray-500 leading-none"
           style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
         >
-          {{ capitalizedModuleName }}
+          {{ zoneName || 'Sans zone' }}
         </h2>
       </div>
 
@@ -121,6 +118,7 @@ import AppDropdown from './AppDropdown.vue'
 
 const props = defineProps<{
   moduleName: string
+  zoneName?: string | null
   rssi: number | null | undefined
   deviceStatus: DeviceStatus | null
   formattedUptime: string

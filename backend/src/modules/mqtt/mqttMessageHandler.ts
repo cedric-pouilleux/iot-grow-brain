@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import type { MqttMeasurement, DeviceStatusUpdate, WebSocketMqttData } from '../../types/mqtt'
 import { MqttRepository } from './mqttRepository'
+import { registry } from '../../core/registry'
 
 type TopicParts = {
   moduleId: string
@@ -184,29 +185,15 @@ export class MqttMessageHandler {
   }
 
   /**
-   * Validate sensor value to reject aberrant readings
+   * Validate sensor value to reject aberrant readings.
+   * Ranges are now loaded from module manifests via the registry.
    */
   private isValueValid(sensorType: string, value: number): boolean {
-    // Define valid ranges for each sensor type
-    const ranges: Record<string, { min: number; max: number }> = {
-      co2: { min: 0, max: 10000 },           // ppm
-      temperature: { min: -40, max: 85 },     // °C (DHT22 range)
-      humidity: { min: 0, max: 100 },         // %
-      voc: { min: 0, max: 500 },              // VOC index
-      pressure: { min: 300, max: 1200 },      // hPa (valid atmospheric range)
-      temperature_bmp: { min: -40, max: 85 }, // °C (BMP280 range)
-      pm1: { min: 0, max: 10000 },            // µg/m³ (high pollution possible)
-      pm25: { min: 0, max: 10000 },           // µg/m³
-      pm4: { min: 0, max: 10000 },            // µg/m³
-      pm10: { min: 0, max: 10000 },           // µg/m³
-      eco2: { min: 400, max: 60000 },
-      tvoc: { min: 0, max: 60000 },
-      temp_sht: { min: -40, max: 125 },       // °C (SHT3x range)
-      hum_sht: { min: 0, max: 100 },          // %
-    }
-
-    const range = ranges[sensorType]
-    if (!range) return true // Unknown sensor type, allow
+    // Get range from registry (loaded from manifests)
+    const range = registry.getValidationRange(sensorType)
+    
+    // Unknown sensor type - allow (backwards compatibility)
+    if (!range) return true
 
     if (value < range.min || value > range.max) {
       this.fastify.log.warn({

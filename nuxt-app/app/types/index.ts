@@ -114,6 +114,7 @@ export interface DeviceStatus {
   sensorsConfig?: SensorsConfigData
   hardware?: HardwareInfo
   preferences?: Record<string, any>
+  zoneName?: string | null
 }
 
 // ============================================================================
