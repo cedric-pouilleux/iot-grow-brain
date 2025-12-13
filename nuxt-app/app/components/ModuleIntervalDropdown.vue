@@ -1,8 +1,8 @@
 <template>
   <AppDropdown
     :id="`interval-${moduleId}-${sensorKeys[0] || 'global'}`"
-    dropdown-class="top-full left-0 w-[calc(100%+0.75rem)] -ml-3 bg-gray-800 rounded-b-lg rounded-t-none shadow-xl p-3 text-left"
-    class="w-full"
+    dropdown-class="top-full left-0 right-0 -ml-2 bg-gray-800 rounded-b-lg rounded-t-none shadow-xl p-3 text-left"
+    position="static"
   >
     <template #trigger="{ isOpen }">
       <slot name="trigger" :is-open="isOpen" :current-interval="localInterval">

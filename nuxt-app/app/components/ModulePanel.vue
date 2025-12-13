@@ -29,7 +29,7 @@
           :module-id="moduleId"
           :color="group.color"
           :graph-duration="graphDuration"
-          :initial-active-sensor-key="group.sensors[0]?.key"
+          :initial-active-sensor-key="group.initialKey"
           @toggle-graph="toggleGraph(group.sensors[0]?.key)"
         />
       </div>
@@ -141,8 +141,7 @@ const availableSensorKeys = computed(() => {
 // Compute Active Groups
 const activeGroups = computed(() => {
   return sensorGroupsDefinition.map(group => {
-    // Find active sensors for this group
-    const sensors = group.keys.map(key => {
+        const sensors = group.keys.map(key => {
         const data = getSensorData(key)
         // Heuristic: sensor exists if it has status (even 'missing') or value
         const exists = data.status !== undefined || data.value !== undefined
@@ -153,17 +152,30 @@ const activeGroups = computed(() => {
             label: getSensorLabel(key), // Use utility for individual labels
             model: data.model,
             value: data.value,
-            status: data.status
+            status: data.status,
+            interval: data.interval
         }
     }).filter((s): s is NonNullable<typeof s> => s !== null)
 
     if (sensors.length === 0) return null
 
+    // Determine initial active sensor from preferences
+    // Preference key format: "sensor-pref-<Label>" (to match old local storage logic or just Label)
+    // Let's use simple Label as key in DB preferences JSON
+    const prefKey = `sensor-pref-${group.label}`
+    const preferredSensorKey = props.deviceStatus?.preferences?.[prefKey]
+    
+    // Validate preference exists in current sensors
+    const initialKey = (preferredSensorKey && sensors.find(s => s.key === preferredSensorKey)) 
+        ? preferredSensorKey 
+        : sensors[0]?.key
+
     return {
         type: group.type,
         label: group.label,
         color: group.color,
-        sensors
+        sensors,
+        initialKey
     }
   }).filter((g): g is NonNullable<typeof g> => g !== null)
 })

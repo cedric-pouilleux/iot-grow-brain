@@ -113,6 +113,7 @@ export interface DeviceStatus {
   sensors?: Record<string, SensorStatus>
   sensorsConfig?: SensorsConfigData
   hardware?: HardwareInfo
+  preferences?: Record<string, any>
 }
 
 // ============================================================================

@@ -31,7 +31,7 @@ export function getSensorLabel(type: string): string {
     pm10: 'PM10.0',
     voc: 'COV',
     eco2: 'eCO2',
-    tvoc: 'TVOC',
+    tvoc: 'TCOV',
     pressure: 'Pression',
     temp_sht: 'Temp SHT',
     hum_sht: 'Hum SHT',

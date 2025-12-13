@@ -22,7 +22,7 @@
                <button 
                  @click.stop="toggle"
                  class="p-1 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                 :class="{'text-white bg-gray-800 hover:bg-gray-800 hover:text-white': isOpen}"
+                 :class="{'text-white bg-gray-800 hover:bg-gray-800 hover:text-white rounded-tr-lg': isOpen}"
                  title="Changer de capteur"
                >
                  <Icon name="tabler:list" class="w-4 h-4" />
@@ -38,7 +38,9 @@
                    class="w-full text-left p-2 rounded flex items-center justify-between transition-colors"
                    :class="activeSensorKey === sensor.key ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'"
                  >
-                   <span class="text-xs">{{ sensor.label !== label ? sensor.label : (sensor.model || sensor.label) }}</span>
+                   <span class="text-xs">
+                     {{ getDropdownItemLabel(sensor) }}
+                   </span>
                    <div class="flex items-center gap-2">
                       <span class="font-bold font-mono text-xs">{{ formatSensorValue(sensor.value) }}<span class="text-xs font-normal text-gray-400">{{ getUnit(sensor.key) }}</span></span>
                       <Icon 
@@ -77,16 +79,15 @@
       </div>
       
       <!-- Footer: Time Ago & Interval -->
-      <div v-if="timeAgo || sensors.length > 0">
+      <div v-if="timeAgo || sensors.length > 0" class="relative">
         <ModuleIntervalDropdown
           :initial-interval="currentInterval"
           :module-id="moduleId"
           :sensor-keys="allSensorKeys"
-          class="w-full z-[70]"
         >
             <template #trigger="{ isOpen }">
                 <div 
-                    class="flex items-center gap-1.5 px-2 py-1 -ml-2 rounded-t-md cursor-pointer transition-colors relative"
+                    class="flex items-center gap-1.5 px-2 py-1 -ml-2 rounded-t-md cursor-pointer transition-colors"
                     :class="isOpen ? 'bg-gray-800 text-white' : 'group hover:bg-gray-50'"
                 >
                     <Icon 
@@ -186,10 +187,32 @@ defineEmits(['toggle-graph'])
 
 const activeSensorKey = ref(props.initialActiveSensorKey || props.sensors[0]?.key)
 
-// Ensure activeSensorKey is valid
+// Ensure activeSensorKey is valid if sensors change
 if (!props.sensors.find(s => s.key === activeSensorKey.value)) {
   activeSensorKey.value = props.sensors[0]?.key
 }
+
+// Watch and save to backend
+watch(activeSensorKey, async (newVal) => {
+  if (process.client && newVal) {
+    try {
+      // Use the computed preference key
+      // storageKey is "sensor-pref-MODULEID-LABEL"
+      // We want to store generic preference for this card label
+      // Key: "sensor-pref-<Label>"
+      const prefKey = `sensor-pref-${props.label}`
+      
+      await $fetch(`/api/modules/${props.moduleId}/preferences`, {
+        method: 'PATCH',
+        body: {
+          [prefKey]: newVal
+        }
+      })
+    } catch (e) {
+      console.error('Failed to save preference', e)
+    }
+  }
+})
 
 const activeSensor = computed(() => 
   props.sensors.find(s => s.key === activeSensorKey.value) || props.sensors[0]
@@ -242,6 +265,16 @@ const timeAgo = useTimeAgo(() => {
 
 const currentTitle = computed(() => {
   if (props.sensors.length <= 1) return props.label
+  // Special case for COV/VOC group to switch title completely between COV and TCOV
+  if ((props.label === 'COV' || props.label === 'TCOV') && activeSensor.value?.label) {
+      return activeSensor.value.label
+  }
+
+  // Explicitly keep simple titles for Temperature and Humidity groups
+  if (props.label === 'Température' || props.label === 'Humidité') {
+      return props.label
+  }
+
   // If sensor label is different from group label (e.g. PM1.0 vs Particules fines), show group config (sensor)
   if (activeSensor.value?.label && activeSensor.value.label !== props.label) {
       return `${props.label} (${activeSensor.value.label})`
@@ -253,6 +286,21 @@ const activeSensorLabel = computed(() => {
     // Priority: Model > Label > 'Principal'
     return activeSensor.value?.model || activeSensor.value?.label || 'Principal'
 })
+
+const getDropdownItemLabel = (sensor: SensorItem) => {
+    // 1. PM Sensors (Particules fines) : Label only (e.g. "PM1.0")
+    if (props.label === 'Particules fines') {
+        return sensor.label
+    }
+
+    // 2. Temperature & Humidity : Model only (e.g. "SHT30") if available
+    if (props.label === 'Température' || props.label === 'Humidité') {
+        return sensor.model || sensor.label
+    }
+
+    // 3. Default (e.g. VOC) : Label + Model (e.g. "COV (SGP40)")
+    return sensor.label + (sensor.model ? ` (${sensor.model})` : '')
+}
 
 // Unit deduction
 // Unit deduction helper

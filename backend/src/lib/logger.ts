@@ -44,12 +44,6 @@ export const dbLoggerStream = new Writable({
         cleanMsg = cleanMsg.replace(/^\[([A-Z0-9→/]+)\]\s*/, '') // Remove category prefix
       }
 
-      // Filter: Only insert WARNING (40) and ERROR (50) and FATAL (60)
-      if (level < 40) {
-        callback()
-        return
-      }
-
       // Insert into DB asynchronously
       db.insert(systemLogs)
         .values({

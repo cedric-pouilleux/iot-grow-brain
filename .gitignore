@@ -15,7 +15,7 @@ terminals/
 .env.*
 !env.example
 
-# air-quality-esp32/
+air-quality-esp32/
 
 # Dependencies
 node_modules/

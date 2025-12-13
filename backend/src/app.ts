@@ -25,7 +25,7 @@ export async function buildApp() {
   const app = fastify({
     logger: {
       stream: dbLoggerStream,
-      level: 'warn', // Only show warnings, errors and fatal
+      level: 'trace', // Allow all log levels to be processed
       customLevels: {
         success: 25,
       },
