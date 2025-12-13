@@ -1,17 +1,26 @@
 <template>
+  <!--
+    UnifiedSensorCard.vue
+    =====================
+    Compact sensor card displaying:
+    - Title with sensor selector (for groups with multiple sensors)
+    - Main value with unit and status indicator
+    - Mini chart with history data
+    
+    Interval config and time counter moved to ModuleOptionsPanel.
+  -->
   <div
     class="relative rounded-lg group/card bg-white border border-gray-100 shadow-sm hover:shadow-md flex flex-col justify-between"
   >
-    <!-- Header with Label, Main Value, and Controls -->
+    <!-- Header: Title + Sensor Selector -->
     <div class="pl-2 pb-0">
       <div class="flex justify-between items-center h-[30px]">
         <div class="flex items-center">
-           <!-- Title -->
            <span class="text-gray-500 text-[12px]">{{ currentTitle }}</span>
         </div>
 
         <div class="flex items-center">
-           <!-- Sensor Selection Dropdown -->
+           <!-- Sensor Selection Dropdown (for multi-sensor groups) -->
            <AppDropdown
              v-if="sensors.length > 1"
              :id="`sensor-list-${moduleId}-${sensors[0]?.key || 'default'}`"
@@ -53,8 +62,6 @@
                </div>
              </template>
            </AppDropdown>
-
-
         </div>
       </div>
 
@@ -65,7 +72,7 @@
         </span>
         <span class="text-sm font-medium text-gray-400">{{ unit }}</span>
         
-        <!-- Active Sensor Status (Dot only) -->
+        <!-- Status Indicator -->
         <div 
           class="ml-auto p-1 cursor-help"
           :title="statusTooltip"
@@ -77,34 +84,6 @@
           />
         </div>
       </div>
-      
-      <!-- Footer: Time Ago & Interval -->
-      <div v-if="timeAgo || sensors.length > 0" class="relative">
-        <ModuleIntervalDropdown
-          :initial-interval="currentInterval"
-          :module-id="moduleId"
-          :sensor-keys="allSensorKeys"
-        >
-            <template #trigger="{ isOpen }">
-                <div 
-                    class="flex items-center gap-1.5 px-2 py-1 -ml-2 rounded-t-md cursor-pointer transition-colors"
-                    :class="isOpen ? 'bg-gray-800 text-white' : 'group hover:bg-gray-50'"
-                >
-                    <Icon 
-                        name="tabler:clock" 
-                        class="w-3 h-3 transition-colors" 
-                        :class="isOpen ? 'text-gray-300' : 'text-gray-300 group-hover:text-gray-500'" 
-                    />
-                    <span 
-                        class="text-[10px] font-medium transition-colors"
-                        :class="isOpen ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'"
-                    >
-                        {{ timeAgo || 'Config' }}
-                    </span>
-                </div>
-            </template>
-        </ModuleIntervalDropdown>
-      </div>
     </div>
 
     <!-- Graph Area -->
@@ -114,7 +93,7 @@
         <div class="animate-spin w-5 h-5 border-2 border-gray-300 border-t-emerald-500 rounded-full"></div>
       </div>
 
-      <!-- Maximize Graph Button (Bottom Right) -->
+      <!-- Maximize Graph Button -->
       <button 
         @click.stop="$emit('toggle-graph')"
         class="absolute bottom-1 right-1 p-1.5 text-gray-600 hover:text-blue-600 hover:bg-white/80 rounded transition-colors z-20 opacity-0 group-hover/card:opacity-100"
@@ -134,7 +113,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+/**
+ * UnifiedSensorCard
+ * 
+ * Displays a sensor group's data in a compact card format.
+ * 
+ * Features:
+ * - Multi-sensor selector (for groups like Temperature with DHT, BMP, SHT)
+ * - Main value display with status indicator
+ * - Mini history chart
+ * 
+ * Note: Interval configuration moved to ModuleOptionsPanel.
+ */
+import { ref, computed, watch } from 'vue'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -150,33 +141,41 @@ import type { ChartData, ChartOptions } from 'chart.js'
 import type { SensorDataPoint } from '../types'
 import { formatValue } from '../utils/format'
 import AppDropdown from './AppDropdown.vue'
-import ModuleIntervalDropdown from './ModuleIntervalDropdown.vue'
-import { useTimeAgo } from '../composables/useTimeAgo'
 
-// Register ChartJS
+// ============================================================================
+// ChartJS Registration
+// ============================================================================
+
 if (process.client) {
   ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Filler)
 }
+
+// ============================================================================
+// Types
+// ============================================================================
 
 interface SensorItem {
   key: string
   label: string
   value?: number
-  status?: string // 'ok', 'missing', etc.
+  status?: string
   model?: string
-  interval?: number
 }
 
 interface Props {
   label: string
   sensors: SensorItem[]
-  historyMap: Record<string, SensorDataPoint[]> // key -> history
+  historyMap: Record<string, SensorDataPoint[]>
   moduleId: string
-  color: string // 'emerald', 'orange', etc.
+  color: string
   isLoading?: boolean
   initialActiveSensorKey?: string
   graphDuration?: string
 }
+
+// ============================================================================
+// Props & Emits
+// ============================================================================
 
 const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
@@ -185,34 +184,38 @@ const props = withDefaults(defineProps<Props>(), {
 
 defineEmits(['toggle-graph'])
 
+// ============================================================================
+// State
+// ============================================================================
+
 const activeSensorKey = ref(props.initialActiveSensorKey || props.sensors[0]?.key)
 
-// Ensure activeSensorKey is valid if sensors change
+// Ensure valid sensor key
 if (!props.sensors.find(s => s.key === activeSensorKey.value)) {
   activeSensorKey.value = props.sensors[0]?.key
 }
 
-// Watch and save to backend
+// ============================================================================
+// Persist Sensor Selection
+// ============================================================================
+
 watch(activeSensorKey, async (newVal) => {
   if (process.client && newVal) {
     try {
-      // Use the computed preference key
-      // storageKey is "sensor-pref-MODULEID-LABEL"
-      // We want to store generic preference for this card label
-      // Key: "sensor-pref-<Label>"
       const prefKey = `sensor-pref-${props.label}`
-      
       await $fetch(`/api/modules/${props.moduleId}/preferences`, {
         method: 'PATCH',
-        body: {
-          [prefKey]: newVal
-        }
+        body: { [prefKey]: newVal }
       })
     } catch (e) {
       console.error('Failed to save preference', e)
     }
   }
 })
+
+// ============================================================================
+// Computed: Active Sensor
+// ============================================================================
 
 const activeSensor = computed(() => 
   props.sensors.find(s => s.key === activeSensorKey.value) || props.sensors[0]
@@ -222,17 +225,21 @@ const activeHistory = computed(() =>
   props.historyMap[activeSensorKey.value] || []
 )
 
+// ============================================================================
 // Actions
+// ============================================================================
+
 const selectSensor = (key: string, closeFn?: () => void) => {
   activeSensorKey.value = key
   if (closeFn) closeFn()
 }
 
+// ============================================================================
 // Formatters
+// ============================================================================
+
 const formatSensorValue = (val?: number) => formatValue(val)
 const formattedValue = computed(() => formatSensorValue(activeSensor.value?.value))
-
-
 
 const valueColorClass = computed(() => {
   const map: Record<string, string> = {
@@ -247,63 +254,43 @@ const valueColorClass = computed(() => {
   return map[props.color] || 'text-gray-800'
 })
 
-// Interval Logic
-const allSensorKeys = computed(() => props.sensors.map(s => s.key))
-const currentInterval = computed(() => {
-  // Use the interval of active sensor or first valid found
-  if (activeSensor.value?.interval) return activeSensor.value.interval
-  const s = props.sensors.find(s => s.interval)
-  return s?.interval || 60
-})
-
-// Time Ago
-const timeAgo = useTimeAgo(() => {
-  if (!activeHistory.value || activeHistory.value.length === 0) return null
-  const lastItem = activeHistory.value[activeHistory.value.length - 1]
-  return lastItem.time
-})
+// ============================================================================
+// Title Logic
+// ============================================================================
 
 const currentTitle = computed(() => {
   if (props.sensors.length <= 1) return props.label
-  // Special case for COV/VOC group to switch title completely between COV and TCOV
+  
+  // COV group: show sensor label directly
   if ((props.label === 'COV' || props.label === 'TCOV') && activeSensor.value?.label) {
-      return activeSensor.value.label
+    return activeSensor.value.label
   }
 
-  // Explicitly keep simple titles for Temperature and Humidity groups
+  // Temperature/Humidity: keep simple group label
   if (props.label === 'Température' || props.label === 'Humidité') {
-      return props.label
+    return props.label
   }
 
-  // If sensor label is different from group label (e.g. PM1.0 vs Particules fines), show group config (sensor)
+  // Other groups: show "Group (Sensor)"
   if (activeSensor.value?.label && activeSensor.value.label !== props.label) {
-      return `${props.label} (${activeSensor.value.label})`
+    return `${props.label} (${activeSensor.value.label})`
   }
+  
   return activeSensor.value?.label || props.label
 })
 
-const activeSensorLabel = computed(() => {
-    // Priority: Model > Label > 'Principal'
-    return activeSensor.value?.model || activeSensor.value?.label || 'Principal'
-})
-
 const getDropdownItemLabel = (sensor: SensorItem) => {
-    // 1. PM Sensors (Particules fines) : Label only (e.g. "PM1.0")
-    if (props.label === 'Particules fines') {
-        return sensor.label
-    }
-
-    // 2. Temperature & Humidity : Model only (e.g. "SHT30") if available
-    if (props.label === 'Température' || props.label === 'Humidité') {
-        return sensor.model || sensor.label
-    }
-
-    // 3. Default (e.g. VOC) : Label + Model (e.g. "COV (SGP40)")
-    return sensor.label + (sensor.model ? ` (${sensor.model})` : '')
+  if (props.label === 'Particules fines') return sensor.label
+  if (props.label === 'Température' || props.label === 'Humidité') {
+    return sensor.model || sensor.label
+  }
+  return sensor.label + (sensor.model ? ` (${sensor.model})` : '')
 }
 
-// Unit deduction
-// Unit deduction helper
+// ============================================================================
+// Unit Helper
+// ============================================================================
+
 const getUnit = (sensorKey: string) => {
   if (!sensorKey) return ''
   const k = sensorKey.toLowerCase()
@@ -313,7 +300,7 @@ const getUnit = (sensorKey: string) => {
   if (k.includes('pressure') || k.includes('pression')) return 'hPa'
   if (k === 'co2' || k === 'eco2') return 'ppm'
   if (k === 'tvoc') return 'ppb'
-  if (k === 'voc') return '' // COV Index (no unit)
+  if (k === 'voc') return ''
   if (k.includes('pm')) return 'µg/m³'
   
   return ''
@@ -321,7 +308,10 @@ const getUnit = (sensorKey: string) => {
 
 const unit = computed(() => activeSensor.value ? getUnit(activeSensor.value.key) : '')
 
-// Status Logic
+// ============================================================================
+// Status Display
+// ============================================================================
+
 const getSensorStatus = (sensor: SensorItem) => {
   if (sensor.status === 'ok') return { icon: 'tabler:circle-check-filled', color: 'text-green-500', text: 'OK' }
   if (sensor.status === 'missing') return { icon: 'tabler:circle-x-filled', color: 'text-red-500', text: 'Manquant' }
@@ -337,7 +327,10 @@ const statusTooltip = computed(() => {
   return `${model}: ${currentStatus.value.text}`
 })
 
-// Chart Logic
+// ============================================================================
+// Chart Configuration
+// ============================================================================
+
 const colorMap: Record<string, string> = {
   emerald: '#10b981',
   orange: '#f97316',
@@ -356,37 +349,33 @@ const chartData = computed<ChartData<'line'> | null>(() => {
 
   // Filter based on duration
   const now = Date.now()
-  let durationMs = 24 * 60 * 60 * 1000 // default 24h
+  let durationMs = 24 * 60 * 60 * 1000
   if (props.graphDuration === '1h') durationMs = 1 * 60 * 60 * 1000
   if (props.graphDuration === '6h') durationMs = 6 * 60 * 60 * 1000
   if (props.graphDuration === '12h') durationMs = 12 * 60 * 60 * 1000
-  // 24h is default
   if (props.graphDuration === '7j') durationMs = 7 * 24 * 60 * 60 * 1000
 
   const cutoff = now - durationMs
-  
   const filteredData = history.filter(d => new Date(d.time).getTime() > cutoff)
 
   if (filteredData.length < 2) return null
 
-  const sortedData = [...filteredData].sort((a, b) => {
-    const timeA = new Date(a.time).getTime()
-    const timeB = new Date(b.time).getTime()
-    return timeA - timeB
-  })
+  const sortedData = [...filteredData].sort((a, b) => 
+    new Date(a.time).getTime() - new Date(b.time).getTime()
+  )
 
-  // Gap detection
+  // Gap detection for dashed lines
   const gapIndices = new Set<number>()
   const timeGaps = []
   for (let i = 1; i < sortedData.length; i++) {
-     timeGaps.push(new Date(sortedData[i].time).getTime() - new Date(sortedData[i-1].time).getTime())
+    timeGaps.push(new Date(sortedData[i].time).getTime() - new Date(sortedData[i-1].time).getTime())
   }
-  const medianGap = timeGaps.length ? timeGaps.sort((a,b)=>a-b)[Math.floor(timeGaps.length/2)] : 60000
+  const medianGap = timeGaps.length ? timeGaps.sort((a,b) => a-b)[Math.floor(timeGaps.length/2)] : 60000
   const gapThreshold = Math.max(medianGap * 5, 10 * 60 * 1000)
 
-  for(let i=1; i<sortedData.length; i++) {
+  for (let i = 1; i < sortedData.length; i++) {
     if (new Date(sortedData[i].time).getTime() - new Date(sortedData[i-1].time).getTime() > gapThreshold) {
-      gapIndices.add(i-1)
+      gapIndices.add(i - 1)
     }
   }
 
@@ -398,22 +387,20 @@ const chartData = computed<ChartData<'line'> | null>(() => {
   }
 
   return {
-    datasets: [
-      {
-        label: props.label,
-        backgroundColor: hexToRgba(strokeColor.value, 0.1),
-        borderColor: strokeColor.value,
-        borderWidth: 2,
-        data: sortedData.map(m => ({ x: new Date(m.time).getTime(), y: m.value })),
-        tension: 0.2,
-        fill: 'start',
-        pointRadius: 0,
-        segment: {
-          borderDash: (ctx: any) => gapIndices.has(ctx.p0DataIndex) ? [4, 4] : undefined,
-          borderColor: (ctx: any) => gapIndices.has(ctx.p0DataIndex) ? hexToRgba(strokeColor.value, 0.3) : undefined
-        }
+    datasets: [{
+      label: props.label,
+      backgroundColor: hexToRgba(strokeColor.value, 0.1),
+      borderColor: strokeColor.value,
+      borderWidth: 2,
+      data: sortedData.map(m => ({ x: new Date(m.time).getTime(), y: m.value })),
+      tension: 0.2,
+      fill: 'start',
+      pointRadius: 0,
+      segment: {
+        borderDash: (ctx: any) => gapIndices.has(ctx.p0DataIndex) ? [4, 4] : undefined,
+        borderColor: (ctx: any) => gapIndices.has(ctx.p0DataIndex) ? hexToRgba(strokeColor.value, 0.3) : undefined
       }
-    ]
+    }]
   }
 })
 

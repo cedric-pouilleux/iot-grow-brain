@@ -1,0 +1,185 @@
+<template>
+  <!--
+    HardwareSensorRow.vue
+    =====================
+    Compact row for hardware sensor with measurements and interval control.
+    All elements on a single line for maximum density.
+  -->
+  <div class="px-3 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2">
+    
+    <!-- Status Indicator -->
+    <div 
+      class="w-2 h-2 rounded-full flex-shrink-0"
+      :class="statusClass"
+      :title="statusLabel"
+    />
+    
+    <!-- Hardware Name -->
+    <span class="text-xs font-semibold text-gray-700 flex-shrink-0">
+      {{ hardware.name }}
+    </span>
+    
+    <!-- Measurement badges -->
+    <div class="flex items-center gap-0.5 flex-shrink-0">
+      <span 
+        v-for="m in hardware.measurements" 
+        :key="m.key"
+        class="px-1 py-0.5 rounded text-[9px] font-medium"
+        :class="getMeasurementClass(m.status)"
+      >
+        {{ m.label }}
+      </span>
+    </div>
+    
+    <!-- Spacer -->
+    <div class="flex-1"></div>
+    
+    <!-- Time Counter (compact) -->
+    <span class="text-[10px] text-gray-400 flex-shrink-0">
+      {{ timeAgo || '--' }}
+    </span>
+    
+    <!-- Interval Control (discreet rectangle) -->
+    <div class="flex items-center gap-1 bg-gray-100 rounded px-2 py-1 flex-shrink-0">
+      <input
+        v-model.number="localInterval"
+        type="range"
+        min="10"
+        max="300"
+        step="10"
+        class="w-16 h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-gray-500"
+        @change="saveInterval"
+      />
+      <span class="text-[10px] text-gray-600 font-mono w-7 text-right">
+        {{ localInterval }}s
+      </span>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+/**
+ * HardwareSensorRow - Compact single-line row for hardware sensor
+ */
+import { ref, computed, watch } from 'vue'
+import { useTimeAgo } from '../composables/useTimeAgo'
+import { useSnackbar } from '../composables/useSnackbar'
+import type { SensorDataPoint } from '../types'
+
+// ============================================================================
+// Types
+// ============================================================================
+
+interface Measurement {
+  key: string
+  label: string
+  status: 'ok' | 'missing' | 'unknown'
+  value?: number
+}
+
+interface HardwareData {
+  hardwareKey: string
+  name: string
+  measurements: Measurement[]
+  interval: number
+  status: 'ok' | 'partial' | 'missing'
+}
+
+interface Props {
+  hardware: HardwareData
+  moduleId: string
+  sensorHistoryMap?: Record<string, SensorDataPoint[]>
+}
+
+// ============================================================================
+// Props & State
+// ============================================================================
+
+const props = withDefaults(defineProps<Props>(), {
+  sensorHistoryMap: () => ({})
+})
+
+const localInterval = ref(props.hardware.interval)
+const saving = ref(false)
+const { showSnackbar } = useSnackbar()
+
+// ============================================================================
+// Status Display
+// ============================================================================
+
+const statusClass = computed(() => {
+  switch (props.hardware.status) {
+    case 'ok': return 'bg-green-500'
+    case 'partial': return 'bg-yellow-500'
+    case 'missing': return 'bg-red-500'
+    default: return 'bg-gray-300'
+  }
+})
+
+const statusLabel = computed(() => {
+  switch (props.hardware.status) {
+    case 'ok': return 'OK'
+    case 'partial': return 'Partiel'
+    case 'missing': return 'Déconnecté'
+    default: return 'Inconnu'
+  }
+})
+
+const getMeasurementClass = (status: string) => {
+  switch (status) {
+    case 'ok': return 'bg-green-100 text-green-700'
+    case 'missing': return 'bg-red-100 text-red-700'
+    default: return 'bg-gray-100 text-gray-500'
+  }
+}
+
+// ============================================================================
+// Time Ago
+// ============================================================================
+
+const timeAgo = useTimeAgo(() => {
+  const firstKey = props.hardware.measurements[0]?.key
+  if (!firstKey) return null
+  const history = props.sensorHistoryMap?.[firstKey]
+  if (!history || history.length === 0) return null
+  return history[history.length - 1].time
+})
+
+// ============================================================================
+// Sync & Save
+// ============================================================================
+
+watch(() => props.hardware.interval, (newVal) => {
+  localInterval.value = newVal
+})
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+const saveInterval = async () => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  
+  debounceTimer = setTimeout(async () => {
+    if (saving.value) return
+    saving.value = true
+    
+    try {
+      const sensorsConfig: Record<string, { interval: number }> = {}
+      for (const m of props.hardware.measurements) {
+        sensorsConfig[m.key] = { interval: localInterval.value }
+      }
+      
+      await $fetch(`/api/modules/${encodeURIComponent(props.moduleId)}/config`, {
+        method: 'POST',
+        body: { sensors: sensorsConfig }
+      })
+      
+      showSnackbar(`${props.hardware.name}: ${localInterval.value}s`, 'success')
+    } catch (err) {
+      console.error('Failed to save interval:', err)
+      showSnackbar('Erreur sauvegarde', 'error')
+    } finally {
+      saving.value = false
+    }
+  }, 500)
+}
+</script>

@@ -160,12 +160,17 @@ export default fp(async (fastify: FastifyInstance) => {
     const topic = `${moduleId}/sensors/config`
     const payload = JSON.stringify(config)
     client.publish(topic, payload, { retain: true, qos: 1 })
-    const sensorCount = Object.keys(config.sensors || {}).length
-    fastify.log.info({ 
-      msg: `📤 [MQTT] Published config to ${moduleId}`, 
+    
+    // Build detailed sensor config summary for logging
+    const sensorDetails = Object.entries(config.sensors || {})
+      .map(([key, cfg]) => `${key}=${cfg.interval}s`)
+      .join(', ')
+    
+    fastify.log.success({ 
+      msg: `✓ [MQTT] Config sent to ${moduleId}: ${sensorDetails || 'empty'}`, 
       moduleId, 
-      sensorCount,
-      config 
+      sensorCount: Object.keys(config.sensors || {}).length,
+      sensors: config.sensors
     })
     return true
   })

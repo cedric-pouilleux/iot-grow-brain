@@ -195,10 +195,10 @@ export class MqttMessageHandler {
       voc: { min: 0, max: 500 },              // VOC index
       pressure: { min: 300, max: 1200 },      // hPa (valid atmospheric range)
       temperature_bmp: { min: -40, max: 85 }, // °C (BMP280 range)
-      pm1: { min: 0, max: 3000 },
-      pm25: { min: 0, max: 3000 },
-      pm4: { min: 0, max: 3000 },
-      pm10: { min: 0, max: 3000 },
+      pm1: { min: 0, max: 10000 },            // µg/m³ (high pollution possible)
+      pm25: { min: 0, max: 10000 },           // µg/m³
+      pm4: { min: 0, max: 10000 },            // µg/m³
+      pm10: { min: 0, max: 10000 },           // µg/m³
       eco2: { min: 400, max: 60000 },
       tvoc: { min: 0, max: 60000 },
       temp_sht: { min: -40, max: 125 },       // °C (SHT3x range)
