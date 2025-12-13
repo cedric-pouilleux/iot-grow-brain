@@ -115,7 +115,7 @@ const sensorGroupsDefinition = [
   { type: 'pressure', label: 'Pression', color: 'cyan', keys: ['pressure'] },
   { 
     type: 'pm', 
-    label: 'Particules', 
+    label: 'Particules fines', 
     color: 'violet', 
     keys: ['pm1', 'pm25', 'pm4', 'pm10'] 
   },

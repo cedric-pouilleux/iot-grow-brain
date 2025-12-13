@@ -3,16 +3,16 @@
     class="relative rounded-lg group/card bg-white border border-gray-100 shadow-sm hover:shadow-md flex flex-col justify-between"
   >
     <!-- Header with Label, Main Value, and Controls -->
-    <div class="pl-3 pb-0">
-      <div class="flex justify-between items-center">
+    <div class="pl-2 pb-0">
+      <div class="flex justify-between items-center h-[30px]">
         <div class="flex items-center">
            <!-- Title -->
-           <span class="text-gray-500">{{ currentTitle }}</span>
+           <span class="text-gray-500 text-[12px]">{{ currentTitle }}</span>
         </div>
 
         <div class="flex items-center">
            <!-- Sensor Selection Dropdown -->
-           <AppDropdown 
+           <AppDropdown
              v-if="sensors.length > 1"
              :id="`sensor-list-${moduleId}-${sensors[0]?.key || 'default'}`"
              position="static"
@@ -30,21 +30,21 @@
              </template>
 
              <template #content="{ close }">
-               <div class="max-h-48 overflow-y-auto p-2 space-y-1">
+               <div class="max-h-48 overflow-y-auto">  
                  <button
                    v-for="sensor in sensors"
                    :key="sensor.key"
                    @click="selectSensor(sensor.key, close)"
-                   class="w-full text-left px-3 py-2 rounded flex items-center justify-between transition-colors"
+                   class="w-full text-left p-2 rounded flex items-center justify-between transition-colors"
                    :class="activeSensorKey === sensor.key ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'"
                  >
-                   <span class="font-medium text-xs">{{ sensor.model || sensor.label }}</span>
+                   <span class="text-xs">{{ sensor.label !== label ? sensor.label : (sensor.model || sensor.label) }}</span>
                    <div class="flex items-center gap-2">
-                      <span class="font-bold font-mono text-xs">{{ formatSensorValue(sensor.value) }}</span>
+                      <span class="font-bold font-mono text-xs">{{ formatSensorValue(sensor.value) }}<span class="text-xs font-normal text-gray-400">{{ getUnit(sensor.key) }}</span></span>
                       <Icon 
-                        :name="getSensorStatus(sensor).icon" 
+                        :name="getSensorStatus(sensor).icon"
                         class="w-3 h-3" 
-                        :class="getSensorStatus(sensor).color" 
+                        :class="getSensorStatus(sensor).color"
                       />
                    </div>
                  </button>
@@ -52,17 +52,7 @@
              </template>
            </AppDropdown>
 
-           <!-- Status Indicator -->
-           <div 
-             class="p-1 transition-colors"
-             :title="statusTooltip"
-           >
-              <Icon
-               :name="statusIcon"
-               class="w-4 h-4"
-               :class="statusColor"
-             />
-           </div>
+
         </div>
       </div>
 
@@ -73,14 +63,21 @@
         </span>
         <span class="text-sm font-medium text-gray-400">{{ unit }}</span>
         
-        <!-- Active Sensor Label (if multiple) -->
-        <span v-if="sensors.length > 1" class="ml-auto text-[10px] text-gray-400 font-medium bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
-          {{ activeSensorLabel }}
-        </span>
+        <!-- Active Sensor Status (Dot only) -->
+        <div 
+          class="ml-auto p-1 cursor-help"
+          :title="statusTooltip"
+        >
+          <Icon
+            :name="statusIcon"
+            class="w-3 h-3"
+            :class="statusColor"
+          />
+        </div>
       </div>
       
       <!-- Footer: Time Ago & Interval -->
-      <div v-if="timeAgo || sensors.length > 0" class="mt-1">
+      <div v-if="timeAgo || sensors.length > 0">
         <ModuleIntervalDropdown
           :initial-interval="currentInterval"
           :module-id="moduleId"
@@ -212,9 +209,7 @@ const selectSensor = (key: string, closeFn?: () => void) => {
 const formatSensorValue = (val?: number) => formatValue(val)
 const formattedValue = computed(() => formatSensorValue(activeSensor.value?.value))
 
-const activeSensorLabel = computed(() => 
-  activeSensor.value?.label === props.label ? activeSensor.value?.model || 'Principal' : activeSensor.value?.label
-)
+
 
 const valueColorClass = computed(() => {
   const map: Record<string, string> = {
@@ -247,13 +242,23 @@ const timeAgo = useTimeAgo(() => {
 
 const currentTitle = computed(() => {
   if (props.sensors.length <= 1) return props.label
+  // If sensor label is different from group label (e.g. PM1.0 vs Particules fines), show group config (sensor)
+  if (activeSensor.value?.label && activeSensor.value.label !== props.label) {
+      return `${props.label} (${activeSensor.value.label})`
+  }
   return activeSensor.value?.label || props.label
 })
 
+const activeSensorLabel = computed(() => {
+    // Priority: Model > Label > 'Principal'
+    return activeSensor.value?.model || activeSensor.value?.label || 'Principal'
+})
+
 // Unit deduction
-const unit = computed(() => {
-  if (!activeSensor.value) return ''
-  const k = activeSensor.value.key.toLowerCase()
+// Unit deduction helper
+const getUnit = (sensorKey: string) => {
+  if (!sensorKey) return ''
+  const k = sensorKey.toLowerCase()
   
   if (k.includes('temp')) return '°C'
   if (k.includes('hum')) return '%'
@@ -264,7 +269,9 @@ const unit = computed(() => {
   if (k.includes('pm')) return 'µg/m³'
   
   return ''
-})
+}
+
+const unit = computed(() => activeSensor.value ? getUnit(activeSensor.value.key) : '')
 
 // Status Logic
 const getSensorStatus = (sensor: SensorItem) => {

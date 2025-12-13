@@ -135,9 +135,22 @@ export function mergeSensorsStatus(
  * @param metadata - Incoming sensors config metadata
  */
 export function mergeSensorsConfig(status: DeviceStatus, metadata: SensorsConfigData): void {
-  status.sensorsConfig = {
-    ...status.sensorsConfig,
-    ...metadata,
+  if (!status.sensorsConfig) status.sensorsConfig = { sensors: {} }
+  if (!status.sensorsConfig.sensors) status.sensorsConfig.sensors = {}
+
+  if (metadata.sensors) {
+    Object.entries(metadata.sensors).forEach(([sensorName, sensorConfig]) => {
+      // Create nested object if it doesn't exist
+      if (!status.sensorsConfig!.sensors![sensorName]) {
+        status.sensorsConfig!.sensors![sensorName] = {}
+      }
+
+      // Merge properties individually to preserve existing ones (like model)
+      status.sensorsConfig!.sensors![sensorName] = {
+        ...status.sensorsConfig!.sensors![sensorName],
+        ...sensorConfig,
+      }
+    })
   }
 }
 

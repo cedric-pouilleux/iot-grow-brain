@@ -49,18 +49,7 @@
         </div>
       </div>
 
-      <!-- Bouton Sauvegarder -->
-      <div class="flex justify-end pt-1">
-        <button
-          :disabled="saving"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-900/20"
-          @click="handleSave(close)"
-        >
-          <Icon v-if="saving" name="tabler:loader-2" class="w-3.5 h-3.5 animate-spin" />
-          <Icon v-else name="tabler:device-floppy" class="w-3.5 h-3.5" />
-          {{ saving ? '...' : 'OK' }}
-        </button>
-      </div>
+
     </template>
   </AppDropdown>
 </template>
@@ -69,6 +58,7 @@
 import { ref, watch, computed } from 'vue'
 import { formatSize } from '../utils/format'
 import AppDropdown from './AppDropdown.vue'
+import { useSnackbar } from '../composables/useSnackbar'
 
 const props = defineProps({
   initialInterval: { type: Number, default: 60 },
@@ -77,6 +67,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['save', 'update:interval'])
+const { showSnackbar } = useSnackbar()
 
 const localInterval = ref(props.initialInterval)
 const saving = ref(false)
@@ -105,7 +96,9 @@ const calculateStorage = (years, compressed) => {
   return compressed ? totalBytes * 0.1 : totalBytes
 }
 
-const handleSave = async (closeFn) => {
+let debounceTimer = null
+
+const handleSave = async () => {
   if (!props.moduleId || props.sensorKeys.length === 0) return
 
   saving.value = true
@@ -124,13 +117,20 @@ const handleSave = async (closeFn) => {
       body: payload,
     })
 
-    if (closeFn) closeFn()
     emit('save', localInterval.value)
+    showSnackbar('Intervalle mis à jour', 'success')
   } catch (err) {
     console.error('Erreur sauvegarde config:', err)
-    alert('Erreur lors de la sauvegarde: ' + err.message)
+    showSnackbar('Erreur lors de la sauvegarde', 'error')
   } finally {
     saving.value = false
   }
 }
+
+watch(localInterval, (newVal) => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    handleSave()
+  }, 1000)
+})
 </script>
