@@ -26,6 +26,7 @@ export const deviceSystemStatus = pgTable('device_system_status', {
   heapFreeKb: integer('heap_free_kb'),
   heapMinFreeKb: integer('heap_min_free_kb'),
   updatedAt: timestamp('updated_at').defaultNow(),
+  preferences: jsonb('preferences'),
 })
 
 export const deviceHardware = pgTable('device_hardware', {

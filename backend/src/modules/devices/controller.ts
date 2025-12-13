@@ -103,6 +103,29 @@ export class DeviceController {
     }
   }
 
+  updatePreferences = async (
+    req: FastifyRequest<{ Params: ModuleParams; Body: Record<string, any> }>,
+    reply: FastifyReply
+  ) => {
+    const { id } = req.params
+    const preferences = req.body
+
+    try {
+      await this.deviceRepo.updatePreferences(id, preferences)
+      
+      // Return the updated preferences (we could fetch again to return the full set)
+      return {
+        success: true,
+        message: 'Preferences updated',
+        preferences: preferences,
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      this.fastify.log.error(`Error updating preferences: ${errorMessage}`)
+      throw this.fastify.httpErrors.internalServerError(errorMessage)
+    }
+  }
+
   // GET /modules/:id/status - Status only
   getModuleStatus = async (
     req: FastifyRequest<{ Params: ModuleParams }>,
@@ -193,6 +216,7 @@ export class DeviceController {
             cores: statusRow.cores,
           },
         }
+        status.preferences = statusRow.preferences || {}
       }
     }
 

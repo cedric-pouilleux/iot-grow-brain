@@ -21,6 +21,15 @@ export const SensorResetSchema = z.object({
   sensor: z.enum(['co2', 'temp', 'humidity', 'voc', 'pressure', 'temperature_bmp', 'pm1', 'pm25', 'pm4', 'pm10', 'all']),
 })
 
+
+export const PreferencesSchema = z.record(z.any())
+
+export const UpdatePreferencesResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  preferences: z.record(z.any()),
+})
+
 // --- Modules ---
 export const ModuleListResponseSchema = z.array(
   z.object({
@@ -92,6 +101,7 @@ const DeviceStatusSchema = z.object({
       ),
     })
     .optional(),
+  preferences: z.record(z.any()).optional(),
 })
 
 export const ModuleDataResponseSchema = z.object({

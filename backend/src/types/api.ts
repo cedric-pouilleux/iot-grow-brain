@@ -64,6 +64,7 @@ export interface DeviceStatus {
   sensorsConfig?: {
     sensors: Record<string, SensorConfigInfo> 
   }
+  preferences?: Record<string, any>
 }
 
 export interface SensorDataPoint {
@@ -80,6 +81,14 @@ export interface ModuleDataResponse {
     voc: SensorDataPoint[] 
     pressure: SensorDataPoint[]
     temperature_bmp: SensorDataPoint[]
+    pm1: SensorDataPoint[]
+    pm25: SensorDataPoint[]
+    pm4: SensorDataPoint[]
+    pm10: SensorDataPoint[]
+    eco2: SensorDataPoint[]
+    tvoc: SensorDataPoint[]
+    temp_sht: SensorDataPoint[]
+    hum_sht: SensorDataPoint[]
   }  
 }
 

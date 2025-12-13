@@ -31,6 +31,7 @@ export class DeviceRepository {
         cpuFreqMhz: schema.deviceHardware.cpuFreqMhz,
         flashKb: schema.deviceHardware.flashKb,
         cores: schema.deviceHardware.cores,
+        preferences: schema.deviceSystemStatus.preferences,
       })
       .from(schema.deviceSystemStatus)
       .leftJoin(
@@ -104,5 +105,19 @@ export class DeviceRepository {
           updatedAt: new Date(),
         },
       })
+  }
+
+  async updatePreferences(moduleId: string, preferences: Record<string, any>) {
+    // Merge new preferences with existing ones using jsonb_concat or simple update if fetching first
+    // Since we're using Drizzle, we can fetch, merge, and update, or use SQL for atomic merge.
+    // Simple approach: atomic merge using || operator for jsonb in Postgres
+    
+    return this.db
+      .update(schema.deviceSystemStatus)
+      .set({
+        preferences: sql`COALESCE(preferences, '{}'::jsonb) || ${JSON.stringify(preferences)}::jsonb`,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.deviceSystemStatus.moduleId, moduleId))
   }
 }

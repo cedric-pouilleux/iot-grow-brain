@@ -12,6 +12,8 @@ import {
   ModuleStatusResponseSchema,
   ModuleHistoryQuerySchema,
   ModuleHistoryResponseSchema,
+  PreferencesSchema,
+  UpdatePreferencesResponseSchema,
 } from './schema'
 
 const devicesRoutes: FastifyPluginAsync = async fastify => {
@@ -65,6 +67,23 @@ const devicesRoutes: FastifyPluginAsync = async fastify => {
       },
     },
     controller.resetSensor
+  )
+
+  // PATCH /modules/:id/preferences - Update module preferences
+  app.patch(
+    '/modules/:id/preferences',
+    {
+      schema: {
+        tags: ['Devices'],
+        summary: 'Update module preferences',
+        params: ModuleParamsSchema,
+        body: PreferencesSchema,
+        response: {
+          200: UpdatePreferencesResponseSchema,
+        },
+      },
+    },
+    controller.updatePreferences
   )
 
   // GET /modules/:id/status - Get module status only
