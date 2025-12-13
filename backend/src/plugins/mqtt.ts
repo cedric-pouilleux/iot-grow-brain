@@ -180,8 +180,8 @@ export default fp(async (fastify: FastifyInstance) => {
     const topic = `${moduleId}/sensors/reset`
     const payload = JSON.stringify({ sensor })
     client.publish(topic, payload, { qos: 1 })
-    fastify.log.info({ 
-      msg: `📤 [MQTT] Published reset command to ${moduleId}`, 
+    fastify.log.success({ 
+      msg: `✓ [MQTT] Reset sent to ${moduleId}: ${sensor}`, 
       moduleId, 
       sensor 
     })

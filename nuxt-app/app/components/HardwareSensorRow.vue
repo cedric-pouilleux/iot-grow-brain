@@ -2,7 +2,7 @@
   <!--
     HardwareSensorRow.vue
     =====================
-    Compact row for hardware sensor with measurements and interval control.
+    Compact row for hardware sensor with measurements, interval control, and reset button.
     All elements on a single line for maximum density.
   -->
   <div class="px-3 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2">
@@ -39,6 +39,17 @@
       {{ timeAgo || '--' }}
     </span>
     
+    <!-- Reset Button -->
+    <button
+      @click="resetSensor"
+      :disabled="resetting"
+      class="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+      :class="{ 'animate-spin': resetting }"
+      title="Redémarrer le capteur"
+    >
+      <Icon :name="resetting ? 'tabler:loader' : 'tabler:refresh'" class="w-3.5 h-3.5" />
+    </button>
+    
     <!-- Interval Control (discreet rectangle) -->
     <div class="flex items-center gap-1 bg-gray-100 rounded px-2 py-1 flex-shrink-0">
       <input
@@ -60,6 +71,7 @@
 <script setup lang="ts">
 /**
  * HardwareSensorRow - Compact single-line row for hardware sensor
+ * Includes reset button for hard reset of stuck sensors
  */
 import { ref, computed, watch } from 'vue'
 import { useTimeAgo } from '../composables/useTimeAgo'
@@ -101,6 +113,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const localInterval = ref(props.hardware.interval)
 const saving = ref(false)
+const resetting = ref(false)
 const { showSnackbar } = useSnackbar()
 
 // ============================================================================
@@ -146,7 +159,7 @@ const timeAgo = useTimeAgo(() => {
 })
 
 // ============================================================================
-// Sync & Save
+// Sync & Save Interval
 // ============================================================================
 
 watch(() => props.hardware.interval, (newVal) => {
@@ -181,5 +194,45 @@ const saveInterval = async () => {
       saving.value = false
     }
   }, 500)
+}
+
+// ============================================================================
+// Reset Sensor
+// ============================================================================
+
+const resetSensor = async () => {
+  if (resetting.value) return
+  resetting.value = true
+  
+  // Use first measurement key as the sensor identifier
+  const sensorKey = props.hardware.measurements[0]?.key
+  if (!sensorKey) {
+    showSnackbar('Aucun capteur à reset', 'error')
+    resetting.value = false
+    return
+  }
+  
+  showSnackbar(`Reset ${props.hardware.name}...`, 'info')
+  
+  try {
+    const response = await $fetch<{ success: boolean; message: string }>(
+      `/api/modules/${encodeURIComponent(props.moduleId)}/reset-sensor`,
+      {
+        method: 'POST',
+        body: { sensor: sensorKey }
+      }
+    )
+    
+    if (response.success) {
+      showSnackbar(`✓ ${props.hardware.name} reset envoyé`, 'success')
+    } else {
+      showSnackbar(`Erreur reset: ${response.message}`, 'error')
+    }
+  } catch (err) {
+    console.error('Failed to reset sensor:', err)
+    showSnackbar(`Erreur reset ${props.hardware.name}`, 'error')
+  } finally {
+    resetting.value = false
+  }
 }
 </script>

@@ -13,9 +13,9 @@
   <Transition name="slide">
     <div 
       v-if="isOpen" 
-      class="overflow-hidden"
+      class="overflow-hidden"   
     >
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         
         <!-- LEFT SECTION: Device Info (all in one block) -->
         <div class="space-y-3">
