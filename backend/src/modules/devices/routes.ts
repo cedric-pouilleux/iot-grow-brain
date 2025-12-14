@@ -86,6 +86,22 @@ const devicesRoutes: FastifyPluginAsync = async fastify => {
     controller.updatePreferences
   )
 
+  // DELETE /modules/:id/zone - Remove device from zone
+  app.delete(
+    '/modules/:id/zone',
+    {
+      schema: {
+        tags: ['Devices'],
+        summary: 'Remove device from its zone',
+        params: ModuleParamsSchema,
+        response: {
+          200: ConfigUpdateResponseSchema,
+        },
+      },
+    },
+    controller.removeFromZone
+  )
+
   // GET /modules/:id/status - Get module status only
   app.get(
     '/modules/:id/status',

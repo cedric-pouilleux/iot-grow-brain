@@ -11,14 +11,27 @@
   <div class="py-2 border-b border-gray-100">
     <div class="flex flex-wrap justify-between items-center gap-3">
       
-      <!-- Left: Zone Name (no icon) -->
-      <div class="flex items-center gap-2">
-        <h2
-          class="font-normal text-lg text-gray-500 leading-none"
-          style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
-        >
-          {{ zoneName || 'Sans zone' }}
-        </h2>
+      <!-- Left: Zone Name OR Module Name (if no zone) -->
+      <div 
+        class="flex items-center gap-2 cursor-pointer group"
+        @click="$emit('toggle-options')"
+        title="Ouvrir les options"
+      >
+        <div class="flex flex-col">
+          <h2
+            class="font-medium text-base text-gray-800 leading-tight capitalize"
+            style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
+          >
+            {{ displayTitle }}
+          </h2>
+          <span 
+            v-if="!currentZoneName"
+            class="text-xs text-gray-400 group-hover:text-gray-600 transition-colors italic"
+            style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
+          >
+            (pas de zone)
+          </span>
+        </div>
       </div>
 
       <!-- Right: Controls -->
@@ -118,6 +131,7 @@ import AppDropdown from './AppDropdown.vue'
 
 const props = defineProps<{
   moduleName: string
+  moduleId: string
   zoneName?: string | null
   rssi: number | null | undefined
   deviceStatus: DeviceStatus | null
@@ -136,12 +150,36 @@ const emit = defineEmits<{
 }>()
 
 // ============================================================================
+// Composables
+// ============================================================================
+
+import { useZones } from '../composables/useZones'
+const { zones } = useZones()
+
+// ============================================================================
 // Computed
 // ============================================================================
 
 const capitalizedModuleName = computed(() => {
   if (!props.moduleName) return ''
   return props.moduleName.charAt(0).toUpperCase() + props.moduleName.slice(1)
+})
+
+// Reactive zone name - looks up from zones composable if device is assigned
+const currentZoneName = computed(() => {
+  // Find which zone contains this moduleId
+  for (const zone of zones.value) {
+    if (zone.devices?.some(d => d.moduleId === props.moduleId)) {
+      return zone.name
+    }
+  }
+  // Fallback to prop (from deviceStatus) if zones not loaded yet
+  return props.zoneName || null
+})
+
+// Display title: zone name if has zone, otherwise module name
+const displayTitle = computed(() => {
+  return currentZoneName.value || capitalizedModuleName.value
 })
 
 const rssiClass = computed(() => getWifiClass(props.rssi))

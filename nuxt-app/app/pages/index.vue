@@ -1,5 +1,13 @@
 <template>
   <div class="min-h-screen bg-gray-100 text-gray-800 p-4 sm:p-8">
+    <!-- Zone Drawer -->
+    <ZoneDrawer 
+      :is-open="isZoneDrawerOpen"
+      :current-device-id="activeDeviceForZone"
+      @close="isZoneDrawerOpen = false"
+      @zone-changed="handleZoneChanged"
+    />
+
     <div class="max-w-7xl mx-auto">
 
       <main>
@@ -35,6 +43,8 @@
               :device-status="getModuleDeviceStatus(module.id)"
               :sensor-data="getModuleSensorData(module.id)"
               :is-history-loading="isHistoryLoading"
+              @zone-changed="handleZoneChanged"
+              @open-zone-drawer="openZoneDrawer"
             />
           </div>
 
@@ -54,6 +64,7 @@ import type { MqttMessage } from '../types'
 // Components
 import ModulePanel from '../components/ModulePanel.vue'
 import TimeRangeSelector from '../components/TimeRangeSelector.vue'
+import ZoneDrawer from '../components/ZoneDrawer.vue'
 
 // Composables
 import { useDatabase } from '../composables/useDatabase'
@@ -61,6 +72,7 @@ import { useModules } from '../composables/useModules'
 import { useModulesData } from '../composables/useModulesData'
 import { useDashboard } from '../composables/useDashboard'
 import { useMqtt } from '../composables/useMqtt'
+import { useZones } from '../composables/useZones'
 
 // Database
 const { loadDbSize } = useDatabase()
@@ -86,6 +98,29 @@ const isHistoryLoading = ref(false)
 const isLoading = computed(() => isInitialLoading.value || dashboardLoading.value)
 const error = computed(() => modulesError.value || dashboardError.value)
 const selectedRange = ref(1) // Défaut: 24h
+
+// Zone drawer state
+const isZoneDrawerOpen = ref(false)
+const activeDeviceForZone = ref<string | null>(null)
+
+// Zones composable for refresh
+const { fetchZones } = useZones()
+
+/**
+ * Open zone drawer for a specific device
+ */
+const openZoneDrawer = (moduleId: string) => {
+  activeDeviceForZone.value = moduleId
+  isZoneDrawerOpen.value = true
+}
+
+/**
+ * Handle zone changes - refresh zones list only (status will update via MQTT/next refresh)
+ */
+const handleZoneChanged = async () => {
+  // Refresh zones list only - avoid reloading all module data
+  await fetchZones()
+}
 
 /**
  * Handle incoming MQTT message

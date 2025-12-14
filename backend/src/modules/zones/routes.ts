@@ -14,17 +14,20 @@ import * as schema from '../../db/schema'
 const ZoneSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
+  description: z.string().nullable(),
   createdAt: z.string().nullable()
 })
 
 const ZoneListSchema = z.array(ZoneSchema)
 
 const CreateZoneSchema = z.object({
-  name: z.string().min(1, 'Name is required')
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().optional().nullable()
 })
 
 const UpdateZoneSchema = z.object({
-  name: z.string().min(1, 'Name is required')
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().optional().nullable()
 })
 
 const ZoneParamsSchema = z.object({
@@ -59,6 +62,7 @@ const zonesRoutes: FastifyPluginAsync = async fastify => {
       return zones.map(z => ({
         id: z.id,
         name: z.name,
+        description: z.description || null,
         createdAt: z.createdAt?.toISOString() || null
       }))
     }
@@ -99,6 +103,7 @@ const zonesRoutes: FastifyPluginAsync = async fastify => {
       return {
         id: zone.id,
         name: zone.name,
+        description: zone.description || null,
         createdAt: zone.createdAt?.toISOString() || null,
         devices
       }
@@ -117,17 +122,20 @@ const zonesRoutes: FastifyPluginAsync = async fastify => {
       }
     },
     async (request, reply) => {
-      const { name } = request.body
+      const { name, description } = request.body
       
       const [zone] = await fastify.db
         .insert(schema.zones)
-        .values({ name })
+        .values({ name, description: description || null })
         .returning()
+      
+      fastify.log.info(`[ZONES] Zone créée: "${name}" (${zone.id})`)
       
       reply.status(201)
       return {
         id: zone.id,
         name: zone.name,
+        description: zone.description || null,
         createdAt: zone.createdAt?.toISOString() || null
       }
     }
@@ -147,11 +155,11 @@ const zonesRoutes: FastifyPluginAsync = async fastify => {
     },
     async (request, reply) => {
       const { id } = request.params
-      const { name } = request.body
+      const { name, description } = request.body
       
       const [zone] = await fastify.db
         .update(schema.zones)
-        .set({ name })
+        .set({ name, description: description ?? undefined })
         .where(eq(schema.zones.id, id))
         .returning()
       
@@ -159,9 +167,12 @@ const zonesRoutes: FastifyPluginAsync = async fastify => {
         throw fastify.httpErrors.notFound(`Zone '${id}' not found`)
       }
       
+      fastify.log.info(`[ZONES] Zone mise à jour: "${name}" (${id})`)
+      
       return {
         id: zone.id,
         name: zone.name,
+        description: zone.description || null,
         createdAt: zone.createdAt?.toISOString() || null
       }
     }
@@ -180,6 +191,12 @@ const zonesRoutes: FastifyPluginAsync = async fastify => {
     async (request, reply) => {
       const { id } = request.params
       
+      // Get zone name for logging
+      const [zoneToDelete] = await fastify.db
+        .select({ name: schema.zones.name })
+        .from(schema.zones)
+        .where(eq(schema.zones.id, id))
+      
       // Unassign devices first
       await fastify.db
         .update(schema.deviceSystemStatus)
@@ -190,6 +207,8 @@ const zonesRoutes: FastifyPluginAsync = async fastify => {
       await fastify.db
         .delete(schema.zones)
         .where(eq(schema.zones.id, id))
+      
+      fastify.log.info(`[ZONES] Zone supprimée: "${zoneToDelete?.name}" (${id})`)
       
       reply.status(204)
     }
@@ -211,10 +230,25 @@ const zonesRoutes: FastifyPluginAsync = async fastify => {
     async (request, reply) => {
       const { id, deviceId } = request.params
       
+      // Get zone name and device name for logging
+      const [zone] = await fastify.db
+        .select({ name: schema.zones.name })
+        .from(schema.zones)
+        .where(eq(schema.zones.id, id))
+      
+      const [device] = await fastify.db
+        .select({ preferences: schema.deviceSystemStatus.preferences })
+        .from(schema.deviceSystemStatus)
+        .where(eq(schema.deviceSystemStatus.moduleId, deviceId))
+      
+      const deviceName = (device?.preferences as any)?.name || deviceId
+      
       await fastify.db
         .update(schema.deviceSystemStatus)
         .set({ zoneId: id })
         .where(eq(schema.deviceSystemStatus.moduleId, deviceId))
+      
+      fastify.log.info(`[ZONES] Le module ${deviceName} a été assigné à la zone "${zone?.name}"`)
       
       return { success: true, message: `Device ${deviceId} assigned to zone ${id}` }
     }

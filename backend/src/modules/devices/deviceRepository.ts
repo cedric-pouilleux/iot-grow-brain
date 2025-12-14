@@ -126,4 +126,14 @@ export class DeviceRepository {
       })
       .where(eq(schema.deviceSystemStatus.moduleId, moduleId))
   }
+
+  async removeFromZone(moduleId: string) {
+    return this.db
+      .update(schema.deviceSystemStatus)
+      .set({
+        zoneId: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.deviceSystemStatus.moduleId, moduleId))
+  }
 }

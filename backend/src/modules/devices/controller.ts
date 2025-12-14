@@ -126,6 +126,26 @@ export class DeviceController {
     }
   }
 
+  removeFromZone = async (
+    req: FastifyRequest<{ Params: ModuleParams }>,
+    reply: FastifyReply
+  ) => {
+    const { id } = req.params
+
+    try {
+      await this.deviceRepo.removeFromZone(id)
+      this.fastify.log.info(`[ZONES] Device "${id}" retir\u00e9 de sa zone`)
+      return {
+        success: true,
+        message: 'Device removed from zone',
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      this.fastify.log.error(`Error removing from zone: ${errorMessage}`)
+      throw this.fastify.httpErrors.internalServerError(errorMessage)
+    }
+  }
+
   // GET /modules/:id/status - Status only
   getModuleStatus = async (
     req: FastifyRequest<{ Params: ModuleParams }>,

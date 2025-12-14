@@ -154,7 +154,7 @@ export default fp(async (fastify: FastifyInstance) => {
     await messageHandler.handleMessage(topic, message)
   })
 
-  fastify.decorate('mqtt', client)
+  fastify.decorate('mqtt', client) 
     fastify.decorate('publishConfig', (moduleId: string, config: ModuleConfig) => {
     if (!client) return false
     const topic = `${moduleId}/sensors/config`

@@ -17,6 +17,7 @@ import crypto from 'node:crypto'
 export const zones = pgTable('zones', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
+  description: text('description'),
   createdAt: timestamp('created_at').defaultNow(),
 })
 

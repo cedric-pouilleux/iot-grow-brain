@@ -24,6 +24,7 @@
       <!-- Header with options toggle -->
       <ModuleHeader
         :module-name="moduleName"
+        :module-id="moduleId"
         :zone-name="deviceStatus?.zoneName"
         :rssi="deviceStatus?.system?.rssi" 
         :device-status="deviceStatus"
@@ -40,6 +41,8 @@
         :module-id="moduleId"
         :formatted-uptime="formatUptime(calculatedUptime)"
         :sensor-history-map="sensorHistoryMap"
+        @zone-changed="$emit('zone-changed')"
+        @open-zone-drawer="$emit('open-zone-drawer', moduleId)"
       />
 
       <!-- Sensor Cards Grid -->
@@ -107,6 +110,11 @@ interface Props {
   sensorData: SensorData
   isHistoryLoading?: boolean
 }
+
+const emit = defineEmits<{
+  (e: 'zone-changed'): void
+  (e: 'open-zone-drawer', moduleId: string): void
+}>()
 
 const props = withDefaults(defineProps<Props>(), {
   sensorData: () => ({ 
@@ -303,10 +311,14 @@ const calculatedUptime = computed(() => {
   if (!props.deviceStatus?.system?.uptimeStart) return null
   const now = Math.floor(Date.now() / 1000)
   const system = props.deviceStatus.system
-  if (system._configReceivedAt && system._uptimeStartOffset !== undefined) {
-    const elapsedSinceConfig = now - system._configReceivedAt
-    return system._uptimeStartOffset + elapsedSinceConfig
+  
+  // Initialize tracking properties if not set (happens when loading from API)
+  if (!system._configReceivedAt) {
+    system._configReceivedAt = now
+    system._uptimeStartOffset = system.uptimeStart
   }
-  return system.uptimeStart
+  
+  const elapsedSinceConfig = now - system._configReceivedAt
+  return (system._uptimeStartOffset ?? 0) + elapsedSinceConfig
 })
 </script>
