@@ -31,6 +31,7 @@ export const deviceSystemStatus = pgTable('device_system_status', {
   ip: text('ip'),
   mac: text('mac'),
   uptimeStart: integer('uptime_start'),
+  bootedAt: timestamp('booted_at', { withTimezone: true }),
   rssi: integer('rssi'),
   flashUsedKb: integer('flash_used_kb'),
   flashFreeKb: integer('flash_free_kb'),

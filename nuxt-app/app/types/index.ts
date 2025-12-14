@@ -94,14 +94,11 @@ export interface SystemMemory {
 export interface SystemInfo {
   ip?: string
   mac?: string
-  uptimeStart?: number
+  /** ISO timestamp when ESP32 last booted (persistent) */
+  bootedAt?: string | null
   flash?: FlashInfo
   memory?: SystemMemory
   rssi?: number
-  /** Internal: timestamp when config was received (seconds) */
-  _configReceivedAt?: number
-  /** Internal: uptime start offset for calculation */
-  _uptimeStartOffset?: number
 }
 
 // ============================================================================

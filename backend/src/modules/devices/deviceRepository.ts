@@ -18,7 +18,7 @@ export class DeviceRepository {
         moduleId: schema.deviceSystemStatus.moduleId,
         ip: schema.deviceSystemStatus.ip,
         mac: schema.deviceSystemStatus.mac,
-        uptimeStart: schema.deviceSystemStatus.uptimeStart,
+        bootedAt: schema.deviceSystemStatus.bootedAt,
         rssi: schema.deviceSystemStatus.rssi,
         flashUsedKb: schema.deviceSystemStatus.flashUsedKb,
         flashFreeKb: schema.deviceSystemStatus.flashFreeKb,

@@ -215,7 +215,7 @@ export class DeviceController {
       status.system = {
         ip: statusRow.ip,
         mac: statusRow.mac,
-        uptimeStart: statusRow.uptimeStart,
+        bootedAt: statusRow.bootedAt?.toISOString() ?? null,
         rssi: statusRow.rssi,
         flash: {
           usedKb: statusRow.flashUsedKb,

@@ -23,7 +23,7 @@ export type MeasurementRow = InferSelectModel<typeof measurements>
 export interface SystemInfo {
   ip: DeviceSystemStatusRow['ip']
   mac: DeviceSystemStatusRow['mac']
-  uptimeStart: DeviceSystemStatusRow['uptimeStart']
+  bootedAt: string | null  // ISO timestamp when ESP32 last booted
   rssi: DeviceSystemStatusRow['rssi']
   flash: {
     usedKb: DeviceSystemStatusRow['flashUsedKb']

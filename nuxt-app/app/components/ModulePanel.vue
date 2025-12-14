@@ -308,17 +308,12 @@ const toggleGraph = (sensorType: string) => {
 // ============================================================================
 
 const calculatedUptime = computed(() => {
-  if (!props.deviceStatus?.system?.uptimeStart) return null
-  const now = Math.floor(Date.now() / 1000)
-  const system = props.deviceStatus.system
+  const bootedAt = props.deviceStatus?.system?.bootedAt
+  if (!bootedAt) return null
   
-  // Initialize tracking properties if not set (happens when loading from API)
-  if (!system._configReceivedAt) {
-    system._configReceivedAt = now
-    system._uptimeStartOffset = system.uptimeStart
-  }
-  
-  const elapsedSinceConfig = now - system._configReceivedAt
-  return (system._uptimeStartOffset ?? 0) + elapsedSinceConfig
+  // Calculate uptime as seconds since boot
+  const bootTime = new Date(bootedAt).getTime()
+  const now = Date.now()
+  return Math.floor((now - bootTime) / 1000)
 })
 </script>

@@ -85,18 +85,25 @@ export class MqttRepository {
 
   /**
    * Update system configuration (static data: ip, mac, flash, etc.)
+   * Note: bootedAt is only set on first insert, never overwritten
    */
   async updateSystemConfig(moduleId: string, data: SystemConfigData): Promise<void> {
+    // Calculate bootedAt from uptimeStart (absolute timestamp when ESP32 booted)
+    const uptimeSeconds = typeof data.uptimeStart === 'string'
+      ? parseInt(data.uptimeStart, 10)
+      : (data.uptimeStart ?? null)
+    
+    const bootedAt = uptimeSeconds !== null
+      ? new Date(Date.now() - uptimeSeconds * 1000)
+      : null
+
     await this.db
       .insert(schema.deviceSystemStatus)
       .values({
         moduleId,
         ip: data.ip ?? null,
         mac: data.mac ?? null,
-        uptimeStart:
-          typeof data.uptimeStart === 'string'
-            ? parseInt(data.uptimeStart, 10)
-            : (data.uptimeStart ?? null),
+        bootedAt: bootedAt,
         flashUsedKb: data.flash?.usedKb ?? null,
         flashFreeKb: data.flash?.freeKb ?? null,
         flashSystemKb: data.flash?.systemKb ?? null,
@@ -108,7 +115,8 @@ export class MqttRepository {
         set: {
           ip: sql`COALESCE(EXCLUDED.ip, device_system_status.ip)`,
           mac: sql`COALESCE(EXCLUDED.mac, device_system_status.mac)`,
-          uptimeStart: sql`COALESCE(EXCLUDED.uptime_start, device_system_status.uptime_start)`,
+          // bootedAt: always update (on reboot, uptimeStart resets so bootedAt updates correctly)
+          bootedAt: sql`EXCLUDED.booted_at`,
           flashUsedKb: sql`COALESCE(EXCLUDED.flash_used_kb, device_system_status.flash_used_kb)`,
           flashFreeKb: sql`COALESCE(EXCLUDED.flash_free_kb, device_system_status.flash_free_kb)`,
           flashSystemKb: sql`COALESCE(EXCLUDED.flash_system_kb, device_system_status.flash_system_kb)`,

@@ -57,7 +57,7 @@ const SensorDataPointSchema = z.object({
 const SystemInfoSchema = z.object({
   ip: z.string().nullable(),
   mac: z.string().nullable(),
-  uptimeStart: z.number().nullable(),
+  bootedAt: z.string().nullable(),
   rssi: z.number().nullable(),
   flash: z.object({
     usedKb: z.number().nullable(),
