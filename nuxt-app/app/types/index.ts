@@ -112,6 +112,7 @@ export interface DeviceStatus {
   hardware?: HardwareInfo
   preferences?: Record<string, any>
   zoneName?: string | null
+  moduleType?: string | null
 }
 
 // ============================================================================

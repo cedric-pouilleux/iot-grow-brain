@@ -246,6 +246,11 @@ export class DeviceController {
       if (statusRow.zoneName) {
         status.zoneName = statusRow.zoneName
       }
+      
+      // Add module type
+      if (statusRow.moduleType) {
+        status.moduleType = statusRow.moduleType
+      }
     }
 
     status.sensors = {}

@@ -101,6 +101,7 @@ export class MqttRepository {
       .insert(schema.deviceSystemStatus)
       .values({
         moduleId,
+        moduleType: data.moduleType ?? null,
         ip: data.ip ?? null,
         mac: data.mac ?? null,
         bootedAt: bootedAt,
@@ -113,6 +114,7 @@ export class MqttRepository {
       .onConflictDoUpdate({
         target: schema.deviceSystemStatus.moduleId,
         set: {
+          moduleType: sql`COALESCE(EXCLUDED.module_type, device_system_status.module_type)`,
           ip: sql`COALESCE(EXCLUDED.ip, device_system_status.ip)`,
           mac: sql`COALESCE(EXCLUDED.mac, device_system_status.mac)`,
           // bootedAt: always update (on reboot, uptimeStart resets so bootedAt updates correctly)

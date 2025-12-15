@@ -16,6 +16,7 @@ export class DeviceRepository {
     const result = await this.db
       .select({
         moduleId: schema.deviceSystemStatus.moduleId,
+        moduleType: schema.deviceSystemStatus.moduleType,
         ip: schema.deviceSystemStatus.ip,
         mac: schema.deviceSystemStatus.mac,
         bootedAt: schema.deviceSystemStatus.bootedAt,

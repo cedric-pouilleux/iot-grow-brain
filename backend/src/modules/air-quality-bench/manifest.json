@@ -1,0 +1,38 @@
+{
+  "id": "air-quality-bench",
+  "name": "Bench Qualité d'air",
+  "version": "1.0.0",
+  "icon": "tabler:microscope",
+  
+  "hardware": [
+    { "key": "mhz14a", "name": "MH-Z14A", "type": "sensor", "sensors": ["co2"] },
+    { "key": "dht22", "name": "DHT22", "type": "sensor", "sensors": ["temperature", "humidity"] },
+    { "key": "bmp280", "name": "BMP280", "type": "sensor", "sensors": ["pressure", "temperature_bmp"] },
+    { "key": "sgp40", "name": "SGP40", "type": "sensor", "sensors": ["voc"] },
+    { "key": "sgp30", "name": "SGP30", "type": "sensor", "sensors": ["eco2", "tvoc"] },
+    { "key": "sht30", "name": "SHT30", "type": "sensor", "sensors": ["temp_sht", "hum_sht"] },
+    { "key": "sps30", "name": "SPS30", "type": "sensor", "sensors": ["pm1", "pm25", "pm4", "pm10"] }
+  ],
+  
+  "sensors": [
+    { "key": "co2", "label": "CO2", "unit": "ppm", "range": [0, 10000] },
+    { "key": "temperature", "label": "Température", "unit": "°C", "range": [-40, 85] },
+    { "key": "humidity", "label": "Humidité", "unit": "%", "range": [0, 100] },
+    { "key": "voc", "label": "COV", "unit": "index", "range": [0, 500] },
+    { "key": "pressure", "label": "Pression", "unit": "hPa", "range": [300, 1200] },
+    { "key": "temperature_bmp", "label": "Temp. BMP", "unit": "°C", "range": [-40, 85] },
+    { "key": "eco2", "label": "eCO2", "unit": "ppm", "range": [400, 60000] },
+    { "key": "tvoc", "label": "TCOV", "unit": "ppb", "range": [0, 60000] },
+    { "key": "temp_sht", "label": "Temp. SHT", "unit": "°C", "range": [-40, 125] },
+    { "key": "hum_sht", "label": "Hum. SHT", "unit": "%", "range": [0, 100] },
+    { "key": "pm1", "label": "PM1.0", "unit": "µg/m³", "range": [0, 10000] },
+    { "key": "pm25", "label": "PM2.5", "unit": "µg/m³", "range": [0, 10000] },
+    { "key": "pm4", "label": "PM4.0", "unit": "µg/m³", "range": [0, 10000] },
+    { "key": "pm10", "label": "PM10", "unit": "µg/m³", "range": [0, 10000] }
+  ],
+  
+  "actions": [
+    { "id": "reset", "label": "Redémarrer", "icon": "refresh", "scope": "hardware" },
+    { "id": "setInterval", "label": "Intervalle", "icon": "clock", "scope": "hardware" }
+  ]
+}

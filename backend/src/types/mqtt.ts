@@ -37,6 +37,7 @@ export interface SystemData {
 export interface SystemConfigData {
   ip?: string
   mac?: string
+  moduleType?: string  // e.g. "air-quality-bench"
   uptimeStart?: string | number
   flash?: {
     usedKb?: number

@@ -11,27 +11,24 @@
   <div class="py-2 border-b border-gray-100">
     <div class="flex flex-wrap justify-between items-center gap-3">
       
-      <!-- Left: Zone Name OR Module Name (if no zone) -->
+      <!-- Left: Module Type with Icon -->
       <div 
         class="flex items-center gap-2 cursor-pointer group"
         @click="$emit('toggle-options')"
         title="Ouvrir les options"
       >
-        <div class="flex flex-col">
-          <h2
-            class="font-medium text-base text-gray-800 leading-tight capitalize"
-            style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
-          >
-            {{ displayTitle }}
-          </h2>
-          <span 
-            v-if="!currentZoneName"
-            class="text-xs text-gray-400 group-hover:text-gray-600 transition-colors italic"
-            style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
-          >
-            (pas de zone)
-          </span>
-        </div>
+        <!-- Module Type Icon -->
+        <Icon 
+          v-if="moduleTypeIcon"
+          :name="moduleTypeIcon" 
+          class="w-5 h-5 text-gray-600 group-hover:text-gray-800 transition-colors"
+        />
+        <h2
+          class="font-medium text-base text-gray-800 leading-tight"
+          style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
+        >
+          {{ moduleTypeLabel }}
+        </h2>
       </div>
 
       <!-- Right: Controls -->
@@ -180,6 +177,34 @@ const currentZoneName = computed(() => {
 // Display title: zone name if has zone, otherwise module name
 const displayTitle = computed(() => {
   return currentZoneName.value || capitalizedModuleName.value
+})
+
+// Module type icon mapping
+const MODULE_TYPE_ICONS: Record<string, string> = {
+  'air-quality': 'tabler:wind',
+  'air-quality-bench': 'tabler:microscope',
+  'lighting': 'tabler:bulb',
+  'climate': 'tabler:temperature',
+}
+
+// Module type labels mapping (human-readable)
+const MODULE_TYPE_LABELS: Record<string, string> = {
+  'air-quality': 'Qualité d\'air',
+  'air-quality-bench': 'Bench Qualité d\'air',
+  'lighting': 'Éclairage',
+  'climate': 'Climat',
+}
+
+const moduleTypeIcon = computed(() => {
+  const type = props.deviceStatus?.moduleType
+  if (!type) return 'tabler:device-unknown'
+  return MODULE_TYPE_ICONS[type] || 'tabler:device-unknown'
+})
+
+const moduleTypeLabel = computed(() => {
+  const type = props.deviceStatus?.moduleType
+  if (!type) return 'Module inconnu'
+  return MODULE_TYPE_LABELS[type] || type
 })
 
 const rssiClass = computed(() => getWifiClass(props.rssi))

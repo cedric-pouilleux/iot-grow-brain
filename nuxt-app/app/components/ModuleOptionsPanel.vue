@@ -15,25 +15,30 @@
       v-if="isOpen" 
       class="overflow-hidden"   
     >
-      <div class="grid grid-cols-6 gap-4 mb-4">
+      <div class="grid grid-cols-6 gap-4 mb-4 items-stretch">
         
         <!-- LEFT: Informations (1 col) -->
-        <div class="col-span-6 lg:col-span-1 space-y-3">
+        <div class="col-span-6 lg:col-span-1 flex flex-col space-y-3">
           <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
             Informations
           </h3>
           
-          <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-3 space-y-3">
-            <!-- Header: Module Name + Uptime -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-3 flex flex-col justify-between flex-grow">
+            <!-- Hardware Section -->
             <div>
-              <div class="text-sm font-semibold text-gray-800 capitalize">{{ moduleId }}</div>
-              <div class="text-[10px] text-gray-400">uptime : {{ formattedUptime }}</div>
-            </div>
-            
-            <!-- Model + CPU -->
-            <div class="text-xs space-y-0.5">
-              <div class="text-gray-700 font-medium">{{ hardwareModel }}</div>
-              <div class="text-gray-500">CPU : {{ cpuFreq }} MHz</div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-[10px] font-medium text-gray-500 uppercase">Hardware</span>
+                <div 
+                  class="w-2.5 h-2.5 rounded-full cursor-help"
+                  :class="isOnline ? 'bg-green-500' : 'bg-red-500'"
+                  :title="'Uptime: ' + formattedUptime"
+                ></div>
+              </div>
+              <div class="text-xs space-y-0.5">
+                <div class="text-gray-800 capitalize">{{ moduleId }}</div>
+                <div class="text-gray-600">{{ hardwareModel }}</div>
+                <div class="text-gray-500">CPU : {{ cpuFreq }} MHz</div>
+              </div>
             </div>
             
             <!-- Network Section -->
@@ -41,12 +46,12 @@
               <div class="text-[10px] font-medium text-gray-500 uppercase mb-1">Réseau</div>
               <div class="text-xs space-y-0.5">
                 <div class="flex justify-between">
-                  <span class="text-gray-400">IP</span>
-                  <span class="text-gray-700 font-mono text-[10px]">{{ deviceStatus?.system?.ip || '--' }}</span>
+                  <span class="text-gray-500">IP</span>
+                  <span class="text-gray-600 font-mono text-[10px]">{{ deviceStatus?.system?.ip || '--' }}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-gray-400">MAC</span>
-                  <span class="text-gray-700 font-mono text-[10px]">{{ deviceStatus?.system?.mac || '--' }}</span>
+                  <span class="text-gray-500">MAC</span>
+                  <span class="text-gray-600 font-mono text-[10px]">{{ deviceStatus?.system?.mac || '--' }}</span>
                 </div>
               </div>
             </div>
@@ -56,85 +61,44 @@
               <div class="text-[10px] font-medium text-gray-500 uppercase mb-1">Mémoire</div>
               <div class="space-y-2">
                 <!-- Flash Bar -->
-                <div class="text-xs">
-                  <div class="flex justify-between mb-0.5">
-                    <span class="text-gray-400">Flash</span>
-                    <span class="text-gray-500 text-[9px]">{{ formatKb(flashPercentages.totalUsedKb) }} / {{ formatKb(flashTotalKb) }}</span>
-                  </div>
-                  <div class="h-5 bg-gray-100 rounded-sm overflow-hidden flex">
-                    <div 
-                      v-if="flashPercentages.sketchPercent > 0"
-                      class="bg-gray-300 h-full flex items-center justify-center cursor-help" 
-                      :style="{ width: flashPercentages.sketchPercent + '%' }"
-                      :title="sketchTooltip"
-                    >
-                      <span v-if="flashPercentages.sketchPercent > 12" class="text-[9px] font-medium text-gray-600">Sketch</span>
-                    </div>
-                    <div 
-                      v-if="flashPercentages.otaPercent > 0"
-                      class="bg-gray-400 h-full flex items-center justify-center cursor-help" 
-                      :style="{ width: flashPercentages.otaPercent + '%' }"
-                      :title="otaTooltip"
-                    >
-                      <span v-if="flashPercentages.otaPercent > 8" class="text-[9px] font-medium text-gray-100">OTA</span>
-                    </div>
-                    <div 
-                      v-if="flashPercentages.systemPercent > 0"
-                      class="bg-gray-500 h-full flex items-center justify-center cursor-help" 
-                      :style="{ width: flashPercentages.systemPercent + '%' }"
-                      :title="sysTooltip"
-                    >
-                      <span v-if="flashPercentages.systemPercent > 6" class="text-[9px] font-medium text-gray-100">Sys</span>
-                    </div>
-                  </div>
-                </div>
+                <MemoryBar
+                  label="Flash"
+                  :used-formatted="formatKb(flashPercentages.totalUsedKb)"
+                  :total-formatted="formatKb(flashTotalKb)"
+                  :segments="flashSegments"
+                />
                 <!-- RAM Bar -->
-                <div class="text-xs">
-                  <div class="flex justify-between mb-0.5">
-                    <span class="text-gray-400">RAM</span>
-                    <span class="text-gray-500 text-[9px]">{{ formatKb(ramPercentages.usedKb) }} / {{ formatKb(ramTotalKb) }}</span>
-                  </div>
-                  <div class="h-5 bg-gray-100 rounded-sm overflow-hidden cursor-help" :title="ramUsedTooltip">
-                    <div 
-                      class="bg-gray-400 h-full flex items-center justify-center" 
-                      :style="{ width: ramUsedPercent + '%' }"
-                    >
-                      <span v-if="ramUsedPercent > 12" class="text-[9px] font-medium text-gray-100">{{ Math.round(ramUsedPercent) }}%</span>
-                    </div>
-                  </div>
-                </div>
+                <MemoryBar
+                  label="RAM"
+                  :used-formatted="formatKb(ramPercentages.usedKb)"
+                  :total-formatted="formatKb(ramTotalKb)"
+                  :percent="ramUsedPercent"
+                  :tooltip="ramUsedTooltip"
+                  show-percent
+                />
               </div>
             </div>
           </div>
         </div>
 
         <!-- MIDDLE: Configuration du module (2 cols) -->
-        <div class="col-span-6 lg:col-span-2 space-y-3">
+        <div class="col-span-6 lg:col-span-2 flex flex-col space-y-3">
           <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
             Configuration
           </h3>
           
           <!-- Zone Selector -->
-          <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-3 space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-gray-600">Zone</span>
-              <button
-                @click="$emit('open-zone-drawer')"
-                class="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                title="Gérer les zones"
-              >
-                <Icon name="tabler:settings" class="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <div class="flex flex-wrap gap-1.5">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-3 flex-grow">
+            <span class="text-[10px] font-medium text-gray-500 uppercase mb-1 block">Zone associée</span>
+            <div class="flex flex-wrap gap-1.5 mt-2 items-center">
               <!-- Zone Tags (toggle on click) -->
               <button
                 v-for="zone in zones"
                 :key="zone.id"
                 @click="handleToggleZone(zone.id)"
-                class="px-2 py-0.5 text-xs rounded-full transition-colors"
+                class="px-2 py-0.5 text-xs rounded transition-colors"
                 :class="zone.id === currentZoneId 
-                  ? 'bg-gray-800 text-white' 
+                  ? 'bg-blue-500 text-white' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
               >
                 {{ zone.name }}
@@ -144,16 +108,23 @@
                 Aucune zone
               </span>
             </div>
+            <!-- Admin link -->
+            <button
+              @click="$emit('open-zone-drawer')"
+              class="text-[10px] text-gray-400 hover:text-blue-500 underline transition-colors mt-2"
+            >
+              Administration des zones
+            </button>
           </div>
         </div>
 
         <!-- RIGHT: Sensors (3 cols) -->
-        <div class="col-span-6 lg:col-span-3 space-y-3">
+        <div class="col-span-6 lg:col-span-3 flex flex-col space-y-3">
           <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
             Configuration des Capteurs
           </h3>
           
-          <div class="bg-white rounded-lg shadow-sm border border-gray-100 divide-y divide-gray-100">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-100 divide-y divide-gray-100 flex-grow">
             <HardwareSensorRow
               v-for="hw in hardwareSensorList"
               :key="hw.hardwareKey"
@@ -162,7 +133,7 @@
               :sensor-history-map="sensorHistoryMap"
             />
             
-            <!-- Empty State -->
+            <!-- Empty State --> 
             <div v-if="hardwareSensorList.length === 0" class="p-4 text-center text-xs text-gray-400">
               Aucun capteur détecté
             </div>
@@ -275,9 +246,45 @@ const cpuFreq = computed(() =>
   props.deviceStatus?.hardware?.chip?.cpuFreqMhz || '--'
 )
 
+// Online status based on bootedAt being set
+const isOnline = computed(() => 
+  !!props.deviceStatus?.system?.bootedAt
+)
+
 const flashUsedPercent = computed(() => {
   const { sketchPercent, otaPercent, systemPercent } = flashPercentages.value
   return Math.round(sketchPercent + otaPercent + systemPercent)
+})
+
+// Flash segments for MemoryBar component
+const flashSegments = computed(() => {
+  const { sketchPercent, otaPercent, systemPercent } = flashPercentages.value
+  return [
+    {
+      percent: sketchPercent,
+      color: 'bg-gray-300',
+      label: 'Sketch',
+      labelMinPercent: 12,
+      labelColor: 'text-gray-600',
+      tooltip: sketchTooltip.value,
+    },
+    {
+      percent: otaPercent,
+      color: 'bg-gray-400',
+      label: 'OTA',
+      labelMinPercent: 8,
+      labelColor: 'text-gray-100',
+      tooltip: otaTooltip.value,
+    },
+    {
+      percent: systemPercent,
+      color: 'bg-gray-500',
+      label: 'Sys',
+      labelMinPercent: 6,
+      labelColor: 'text-gray-100',
+      tooltip: sysTooltip.value,
+    },
+  ]
 })
 
 const ramUsedPercent = computed(() => 

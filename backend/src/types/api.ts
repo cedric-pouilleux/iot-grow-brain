@@ -66,6 +66,7 @@ export interface DeviceStatus {
   }
   preferences?: Record<string, any>
   zoneName?: string | null
+  moduleType?: string | null
 }
 
 export interface SensorDataPoint {
