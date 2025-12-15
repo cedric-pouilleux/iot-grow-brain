@@ -4,7 +4,7 @@
  * Composable providing health-based threshold evaluation for air quality sensors.
  * Thresholds are based on OMS/EPA guidelines for human health.
  * 
- * Supported sensors: CO2, TVOC, eCO2, PM2.5, PM10
+ * Supported sensors: CO2, TVOC, VOC, eCO2, PM2.5, PM10, Humidity
  */
 
 // ============================================================================
@@ -38,6 +38,15 @@ const THRESHOLDS: Record<string, ThresholdDefinition> = {
   
   // TVOC: German Federal Environment Agency (UBA)
   tvoc: { good: 220, moderate: 660, poor: 2200 },
+  
+  // VOC Index (SGP40): 0-500 scale, 100 = clean air reference
+  voc: { good: 150, moderate: 250, poor: 400 },
+  
+  // Humidity: optimal 30-60%, uncomfortable outside this range
+  // All humidity sensor aliases (DHT22: humidity/hum, SHT31: hum_sht)
+  humidity: { good: 60, moderate: 70, poor: 80 },
+  hum: { good: 60, moderate: 70, poor: 80 },
+  humsht: { good: 60, moderate: 70, poor: 80 },
   
   // PM2.5: EPA AQI breakpoints (µg/m³, 24h average)
   pm25: { good: 12, moderate: 35, poor: 55 },
@@ -119,8 +128,36 @@ export function useThresholds() {
     return key in THRESHOLDS
   }
   
+  /**
+   * Get threshold color for a sensor value (hex format for charts)
+   * Returns null if value is 'good' or no threshold defined
+   */
+  const getThresholdColor = (sensorKey: string, value?: number): string | null => {
+    const result = evaluateThreshold(sensorKey, value)
+    if (!result || result.level === 'good') return null
+    
+    // Return hex colors for chart rendering
+    const colors: Record<ThresholdLevel, string> = {
+      good: '#10b981',    // emerald-500
+      moderate: '#f59e0b', // amber-500
+      poor: '#f97316',     // orange-500
+      hazardous: '#ef4444', // red-500
+    }
+    return colors[result.level]
+  }
+  
+  /**
+   * Get threshold definition for a sensor
+   */
+  const getThresholdDefinition = (sensorKey: string): ThresholdDefinition | null => {
+    const key = sensorKey.toLowerCase().replace(/[_-]/g, '')
+    return THRESHOLDS[key] || null
+  }
+  
   return {
     evaluateThreshold,
     hasThreshold,
+    getThresholdColor,
+    getThresholdDefinition,
   }
 }

@@ -116,6 +116,53 @@
               Administration des zones
             </button>
           </div>
+
+          <!-- Chart Options -->
+          <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-3">
+            <span class="text-[10px] font-medium text-gray-500 uppercase mb-1 block">Graphiques</span>
+            
+            <!-- Show Charts Toggle -->
+            <div class="flex items-center justify-between mt-2">
+              <span class="text-xs text-gray-600">Afficher les graphiques</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  :checked="showCharts"
+                  @change="toggleShowCharts"
+                  class="sr-only peer"
+                >
+                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+              </label>
+            </div>
+            
+            <!-- Threshold Lines Toggle (only visible when charts enabled) -->
+            <div v-if="showCharts" class="flex items-center justify-between mt-2">
+              <span class="text-xs text-gray-600">Afficher les seuils</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  :checked="showThresholdLines"
+                  @change="toggleThresholdLines"
+                  class="sr-only peer"
+                >
+                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+              </label>
+            </div>
+            
+            <!-- Color Thresholds Toggle (only visible when charts enabled) -->
+            <div v-if="showCharts" class="flex items-center justify-between mt-2">
+              <span class="text-xs text-gray-600">Couleurs de seuil</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  :checked="colorThresholds"
+                  @change="toggleColorThresholds"
+                  class="sr-only peer"
+                >
+                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+              </label>
+            </div>
+          </div>
         </div>
 
         <!-- RIGHT: Sensors (3 cols) -->
@@ -184,6 +231,10 @@ const { zones, fetchZones, assignDevice, unassignDevice, getZoneIdByName } = use
 // Snackbar for feedback
 import { useSnackbar } from '../composables/useSnackbar'
 const { showSnackbar } = useSnackbar()
+
+// Chart settings
+import { useChartSettings } from '../composables/useChartSettings'
+const { showCharts, showThresholdLines, colorThresholds, toggleShowCharts, toggleThresholdLines, toggleColorThresholds } = useChartSettings()
 
 // Emit definition
 const emit = defineEmits<{

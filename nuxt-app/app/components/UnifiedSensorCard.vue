@@ -13,7 +13,7 @@
     class="relative rounded-lg group/card bg-white border border-gray-100 shadow-sm hover:shadow-md flex flex-col justify-between"
   >
     <!-- Header: Title + Sensor Selector -->
-    <div class="pl-2 pb-0">
+    <div class="pl-2" :class="showCharts ? 'pb-0' : 'pb-3'">
       <div class="flex justify-between items-center h-[30px]">
         <div class="flex items-center">
            <span class="text-gray-500 text-[12px]">{{ currentTitle }}</span>
@@ -97,8 +97,8 @@
       </div>
     </div>
 
-    <!-- Graph Area -->
-    <div class="h-[92px] w-full relative mt-2 rounded-b-lg overflow-hidden group-hover/card:bg-gray-50/30 transition-colors">
+    <!-- Graph Area (only when charts enabled) -->
+    <div v-if="showCharts" class="h-[92px] w-full relative mt-2 rounded-b-lg overflow-hidden group-hover/card:bg-gray-50/30 transition-colors">
       <!-- Loading overlay -->
       <div v-if="isLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
         <div class="animate-spin w-5 h-5 border-2 border-gray-300 border-t-emerald-500 rounded-full"></div>
@@ -153,13 +153,15 @@ import type { SensorDataPoint } from '../types'
 import { formatValue } from '../utils/format'
 import { useThresholds } from '../composables/useThresholds'
 import AppDropdown from './AppDropdown.vue'
+import { useChartSettings } from '../composables/useChartSettings'
+import annotationPlugin from 'chartjs-plugin-annotation'
 
 // ============================================================================
 // ChartJS Registration
 // ============================================================================
 
 if (process.client) {
-  ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Filler)
+  ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Filler, annotationPlugin)
 }
 
 // ============================================================================
@@ -324,7 +326,8 @@ const unit = computed(() => activeSensor.value ? getUnit(activeSensor.value.key)
 // Threshold Alert
 // ============================================================================
 
-const { evaluateThreshold } = useThresholds()
+const { evaluateThreshold, getThresholdColor, getThresholdDefinition } = useThresholds()
+const { showCharts, showThresholdLines, colorThresholds } = useChartSettings()
 
 const thresholdAlert = computed(() => {
   const sensor = activeSensor.value
@@ -410,6 +413,12 @@ const chartData = computed<ChartData<'line'> | null>(() => {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`
   }
 
+  // Generate segment colors based on thresholds (only if enabled)
+  const sensorKey = activeSensorKey.value
+  const segmentColors: (string | null)[] = colorThresholds.value
+    ? sortedData.map(d => getThresholdColor(sensorKey, d.value))
+    : []
+
   return {
     datasets: [{
       label: props.label,
@@ -422,20 +431,87 @@ const chartData = computed<ChartData<'line'> | null>(() => {
       pointRadius: 0,
       segment: {
         borderDash: (ctx: any) => gapIndices.has(ctx.p0DataIndex) ? [4, 4] : undefined,
-        borderColor: (ctx: any) => gapIndices.has(ctx.p0DataIndex) ? hexToRgba(strokeColor.value, 0.3) : undefined
+        borderColor: (ctx: any) => {
+          // Gap styling takes priority
+          if (gapIndices.has(ctx.p0DataIndex)) {
+            return hexToRgba(strokeColor.value, 0.3)
+          }
+          // Only apply threshold colors if enabled
+          if (colorThresholds.value) {
+            const startColor = segmentColors[ctx.p0DataIndex]
+            const endColor = segmentColors[ctx.p1DataIndex]
+            // Use the more severe color (end point takes priority)
+            return endColor || startColor || undefined
+          }
+          return undefined
+        }
       }
     }]
   }
 })
 
-const chartOptions = computed<ChartOptions<'line'>>(() => ({
-  responsive: true,
-  maintainAspectRatio: false,
-  interaction: { intersect: false },
-  scales: {
-    x: { type: 'time', display: false },
-    y: { display: false }
-  },
-  plugins: { legend: { display: false }, tooltip: { enabled: false } }
-}))
+
+const chartOptions = computed<ChartOptions<'line'>>(() => {
+  // Build threshold annotations if enabled
+  const annotations: Record<string, any> = {}
+  
+  if (showThresholdLines.value) {
+    const thresholds = getThresholdDefinition(activeSensorKey.value)
+    if (thresholds) {
+      // Moderate threshold line (amber)
+      annotations.moderateLine = {
+        type: 'line',
+        yMin: thresholds.good,
+        yMax: thresholds.good,
+        borderColor: 'rgba(245, 158, 11, 0.6)',
+        borderWidth: 1,
+        borderDash: [4, 4],
+        label: {
+          display: false
+        }
+      }
+      // Poor threshold line (orange)
+      annotations.poorLine = {
+        type: 'line',
+        yMin: thresholds.moderate,
+        yMax: thresholds.moderate,
+        borderColor: 'rgba(249, 115, 22, 0.6)',
+        borderWidth: 1,
+        borderDash: [4, 4],
+        label: {
+          display: false
+        }
+      }
+      // Hazardous threshold line (red)
+      annotations.hazardousLine = {
+        type: 'line',
+        yMin: thresholds.poor,
+        yMax: thresholds.poor,
+        borderColor: 'rgba(239, 68, 68, 0.6)',
+        borderWidth: 1,
+        borderDash: [4, 4],
+        label: {
+          display: false
+        }
+      }
+    }
+  }
+
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { intersect: false },
+    scales: {
+      x: { type: 'time', display: false },
+      y: { display: false }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: false },
+      annotation: {
+        annotations
+      }
+    }
+  }
+})
 </script>
