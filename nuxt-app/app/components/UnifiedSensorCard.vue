@@ -84,6 +84,17 @@
           />
         </div>
       </div>
+      
+      <!-- Threshold Alert (below value, only when not "good") -->
+      <div class="h-[18px] flex items-center">
+        <span 
+          v-if="thresholdAlert && thresholdAlert.level !== 'good'" 
+          class="px-2 py-0.5 rounded-full text-[10px] font-medium"
+          :class="[thresholdAlert.bgClass, thresholdAlert.textClass]"
+        >
+          {{ thresholdAlert.label }}
+        </span>
+      </div>
     </div>
 
     <!-- Graph Area -->
@@ -140,6 +151,7 @@ import 'chartjs-adapter-date-fns'
 import type { ChartData, ChartOptions } from 'chart.js'
 import type { SensorDataPoint } from '../types'
 import { formatValue } from '../utils/format'
+import { useThresholds } from '../composables/useThresholds'
 import AppDropdown from './AppDropdown.vue'
 
 // ============================================================================
@@ -307,6 +319,18 @@ const getUnit = (sensorKey: string) => {
 }
 
 const unit = computed(() => activeSensor.value ? getUnit(activeSensor.value.key) : '')
+
+// ============================================================================
+// Threshold Alert
+// ============================================================================
+
+const { evaluateThreshold } = useThresholds()
+
+const thresholdAlert = computed(() => {
+  const sensor = activeSensor.value
+  if (!sensor) return null
+  return evaluateThreshold(sensor.key, sensor.value)
+})
 
 // ============================================================================
 // Status Display
