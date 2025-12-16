@@ -15,8 +15,15 @@
     <!-- Header: Title + Sensor Selector -->
     <div class="pl-2" :class="showCharts ? 'pb-0' : 'pb-3'">
       <div class="flex justify-between items-center h-[30px]">
-        <div class="flex items-center">
+        <div class="flex items-center gap-1">
            <span class="text-gray-500 text-[12px]">{{ currentTitle }}</span>
+           <!-- Status Indicator (in header) -->
+           <Icon
+             :name="statusIcon"
+             class="w-2.5 h-2.5"
+             :class="statusColor"
+             :title="statusTooltip"
+           />
         </div>
 
         <div class="flex items-center">
@@ -66,22 +73,27 @@
       </div>
 
       <!-- Main Value Display -->
-      <div class="flex items-baseline gap-1">
+      <div class="flex items-center">
+        <!-- Value -->
         <span class="text-3xl font-bold tracking-tight" :class="valueColorClass">
           {{ formattedValue }}
         </span>
-        <span class="text-sm font-medium text-gray-400">{{ unit }}</span>
         
-        <!-- Status Indicator -->
-        <div 
-          class="ml-auto p-1 cursor-help"
-          :title="statusTooltip"
-        >
+        <!-- Trend + Unit stacked vertically -->
+        <div class="flex flex-col items-start ml-1 -mb-0.5">
+          <!-- Trend Arrow (above unit) -->
           <Icon
-            :name="statusIcon"
-            class="w-3 h-3"
-            :class="statusColor"
+            v-if="trend !== 'stable'"
+            :name="trend === 'up' ? 'tabler:triangle-filled' : 'tabler:triangle-inverted-filled'"
+            class="w-2 h-2 "
+            :class="trendColorClass"
+            :title="trendTooltip"
           />
+          <!-- Empty space if no trend to maintain alignment -->
+          <div v-else class="w-2.5 h-2.5 -mb-0.5"></div>
+          
+          <!-- Unit -->
+          <span class="text-sm font-medium text-gray-400">{{ unit }}</span>
         </div>
       </div>
       
@@ -146,6 +158,7 @@ import {
   LineElement,
   TimeScale,
   Filler,
+  Tooltip,
 } from 'chart.js'
 import 'chartjs-adapter-date-fns'
 import type { ChartData, ChartOptions } from 'chart.js'
@@ -161,7 +174,7 @@ import annotationPlugin from 'chartjs-plugin-annotation'
 // ============================================================================
 
 if (process.client) {
-  ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Filler, annotationPlugin)
+  ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Filler, Tooltip, annotationPlugin)
 }
 
 // ============================================================================
@@ -239,6 +252,50 @@ const activeHistory = computed(() =>
   props.historyMap[activeSensorKey.value] || []
 )
 
+// Trend calculation: compare average of last 3 values vs previous 3 values
+const trend = computed<'up' | 'down' | 'stable'>(() => {
+  const history = activeHistory.value
+  if (!history || history.length < 6) return 'stable'
+  
+  // Get last 6 values sorted by time
+  const sorted = [...history]
+    .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+    .slice(0, 6)
+  
+  // Recent 3 values vs older 3 values
+  const recentAvg = (sorted[0].value + sorted[1].value + sorted[2].value) / 3
+  const olderAvg = (sorted[3].value + sorted[4].value + sorted[5].value) / 3
+  
+  // Threshold: change must be significant (>1% of older value)
+  const threshold = Math.abs(olderAvg) * 0.01 || 0.5
+  const diff = recentAvg - olderAvg
+  
+  if (diff > threshold) return 'up'
+  if (diff < -threshold) return 'down'
+  return 'stable'
+})
+
+// Trend color and tooltip based on whether trend is good or bad
+const trendColorClass = computed(() => {
+  if (trend.value === 'stable') return 'text-gray-400'
+  
+  const isPositive = isTrendPositive(activeSensorKey.value, trend.value)
+  if (isPositive === true) return 'text-emerald-500'
+  if (isPositive === false) return 'text-red-500'
+  return 'text-gray-400' // neutral
+})
+
+const trendTooltip = computed(() => {
+  if (trend.value === 'stable') return ''
+  
+  const direction = trend.value === 'up' ? 'En hausse' : 'En baisse'
+  const isPositive = isTrendPositive(activeSensorKey.value, trend.value)
+  
+  if (isPositive === true) return `${direction} (positif)`
+  if (isPositive === false) return `${direction} (négatif)`
+  return direction
+})
+
 // ============================================================================
 // Actions
 // ============================================================================
@@ -281,6 +338,11 @@ const valueColorClass = computed(() => {
 // ============================================================================
 
 const currentTitle = computed(() => {
+  // PM group: show selected sensor label (PM2.5, PM10, etc.)
+  if (props.label === 'Particules fines' && activeSensor.value?.label) {
+    return activeSensor.value.label
+  }
+  
   if (props.sensors.length <= 1) return props.label
   
   // COV group: show sensor label directly
@@ -328,7 +390,7 @@ const getUnit = (sensorKey: string) => {
   if (k === 'co2' || k === 'eco2') return 'ppm'
   if (k === 'co') return 'ppm'
   if (k === 'tvoc') return 'ppb'
-  if (k === 'voc') return ''
+  if (k === 'voc') return '/500'
   if (k.includes('pm')) return 'µg/m³'
   
   return ''
@@ -340,7 +402,7 @@ const unit = computed(() => activeSensor.value ? getUnit(activeSensor.value.key)
 // Threshold Alert
 // ============================================================================
 
-const { evaluateThreshold, getThresholdColor, getThresholdDefinition } = useThresholds()
+const { evaluateThreshold, getThresholdColor, getThresholdDefinition, isTrendPositive } = useThresholds()
 const { showCharts, showThresholdLines, colorThresholds } = useChartSettings()
 
 const thresholdAlert = computed(() => {

@@ -157,10 +157,39 @@ export function useThresholds() {
     return THRESHOLDS[key] || null
   }
   
+  /**
+   * Determine if an upward trend is positive (good) or negative (bad)
+   * Returns: true = going up is good, false = going up is bad, null = neutral
+   * 
+   * Logic: For sensors with thresholds (CO2, PM, etc), going UP is BAD
+   * For sensors without thresholds (temp, pressure), it's neutral
+   */
+  const isTrendPositive = (sensorKey: string, trend: 'up' | 'down' | 'stable'): boolean | null => {
+    if (trend === 'stable') return null
+    
+    const key = sensorKey.toLowerCase().replace(/[_-]/g, '')
+    
+    // Sensors where LOWER is better (all threshold-based sensors)
+    const lowerIsBetter = ['co2', 'eco2', 'co', 'tvoc', 'voc', 'pm25', 'pm10', 'pm1', 'pm4']
+    
+    // Humidity has an optimal range (30-60%), so we don't colorize it
+    const neutralSensors = ['humidity', 'hum', 'humsht', 'temperature', 'temp', 'tempsht', 'temperaturebmp', 'pressure']
+    
+    if (neutralSensors.includes(key)) return null
+    
+    if (lowerIsBetter.includes(key)) {
+      // For these sensors: up = bad, down = good
+      return trend === 'down'
+    }
+    
+    return null
+  }
+  
   return {
     evaluateThreshold,
     hasThreshold,
     getThresholdColor,
     getThresholdDefinition,
+    isTrendPositive,
   }
 }
