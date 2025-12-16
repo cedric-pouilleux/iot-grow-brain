@@ -408,6 +408,12 @@ const HARDWARE_SENSORS = [
     measurementLabels: { co2: 'CO2' }
   },
   {
+    hardwareKey: 'sc16co',
+    name: 'SC16-CO',
+    measurements: ['co'],
+    measurementLabels: { co: 'CO' }
+  },
+  {
     hardwareKey: 'dht22',
     name: 'DHT22',
     measurements: ['temperature', 'humidity'],

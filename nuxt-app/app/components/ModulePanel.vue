@@ -46,7 +46,7 @@
       />
 
       <!-- Sensor Cards Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+      <div class="flex gap-4">
         <UnifiedSensorCard
           v-for="group in activeGroups"
           :key="group.type"
@@ -119,6 +119,7 @@ const emit = defineEmits<{
 const props = withDefaults(defineProps<Props>(), {
   sensorData: () => ({ 
     co2: [], 
+    co: [],
     temp: [], 
     hum: [], 
     voc: [], 
@@ -163,6 +164,7 @@ const sensorGroupsDefinition = [
     keys: ['humidity', 'hum_sht', 'hum']
   },
   { type: 'co2', label: 'CO2', color: 'emerald', keys: ['co2', 'eco2'] },
+  { type: 'co', label: 'CO', color: 'amber', keys: ['co'] },
   { type: 'voc', label: 'COV', color: 'pink', keys: ['voc', 'tvoc'] },
   { type: 'pressure', label: 'Pression', color: 'cyan', keys: ['pressure'] },
   { 
@@ -194,6 +196,7 @@ const getSensorData = (sensorName: string) => {
 const sensorHistoryMap = computed<Record<string, SensorDataPoint[]>>(() => {
   return {
     co2: props.sensorData.co2,
+    co: props.sensorData.co,
     temp: props.sensorData.temp,
     temperature: props.sensorData.temp,
     hum: props.sensorData.hum,
@@ -261,6 +264,7 @@ const getSensorHistory = (type: string) => {
   const normalizedType = normalizeSensorType(type)
   const map: Record<string, SensorDataPoint[]> = {
     co2: props.sensorData.co2,
+    co: props.sensorData.co,
     temp: props.sensorData.temp,
     hum: props.sensorData.hum,
     voc: props.sensorData.voc,

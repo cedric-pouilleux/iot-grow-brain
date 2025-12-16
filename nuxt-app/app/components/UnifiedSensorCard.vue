@@ -10,7 +10,7 @@
     Interval config and time counter moved to ModuleOptionsPanel.
   -->
   <div
-    class="relative rounded-lg group/card bg-white border border-gray-100 shadow-sm hover:shadow-md flex flex-col justify-between"
+    class="relative rounded-lg group/card bg-white border border-gray-100 shadow-sm hover:shadow-md flex flex-col justify-between flex-1 min-w-0"
   >
     <!-- Header: Title + Sensor Selector -->
     <div class="pl-2" :class="showCharts ? 'pb-0' : 'pb-3'">
@@ -253,12 +253,20 @@ const selectSensor = (key: string, closeFn?: () => void) => {
 // ============================================================================
 
 const formatSensorValue = (val?: number) => formatValue(val)
-const formattedValue = computed(() => formatSensorValue(activeSensor.value?.value))
+const formattedValue = computed(() => {
+  const sensor = activeSensor.value
+  // Show '--' if sensor is missing or has no value
+  if (!sensor || sensor.status === 'missing' || sensor.value === undefined || sensor.value === null) {
+    return '--'
+  }
+  return formatSensorValue(sensor.value)
+})
 
 const valueColorClass = computed(() => {
   const map: Record<string, string> = {
     emerald: 'text-emerald-600',
     orange: 'text-orange-500',
+    amber: 'text-amber-500',
     blue: 'text-blue-500',
     violet: 'text-violet-500',
     pink: 'text-pink-500',
@@ -294,11 +302,16 @@ const currentTitle = computed(() => {
 })
 
 const getDropdownItemLabel = (sensor: SensorItem) => {
+  // PM sensors: just show the PM size label (PM1, PM2.5, etc.)
   if (props.label === 'Particules fines') return sensor.label
-  if (props.label === 'Température' || props.label === 'Humidité') {
-    return sensor.model || sensor.label
+  
+  // COV group: show model with sensor type in parentheses
+  if (props.label === 'COV' && sensor.model) {
+    return `${sensor.model} (${sensor.label})`
   }
-  return sensor.label + (sensor.model ? ` (${sensor.model})` : '')
+  
+  // For all other groups, show just the model name
+  return sensor.model || sensor.label
 }
 
 // ============================================================================
@@ -313,6 +326,7 @@ const getUnit = (sensorKey: string) => {
   if (k.includes('hum')) return '%'
   if (k.includes('pressure') || k.includes('pression')) return 'hPa'
   if (k === 'co2' || k === 'eco2') return 'ppm'
+  if (k === 'co') return 'ppm'
   if (k === 'tvoc') return 'ppb'
   if (k === 'voc') return ''
   if (k.includes('pm')) return 'µg/m³'
@@ -361,6 +375,7 @@ const statusTooltip = computed(() => {
 const colorMap: Record<string, string> = {
   emerald: '#10b981',
   orange: '#f97316',
+  amber: '#f59e0b',
   blue: '#3b82f6',
   violet: '#8b5cf6',
   pink: '#ec4899',
@@ -500,14 +515,38 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
   return {
     responsive: true,
     maintainAspectRatio: false,
-    interaction: { intersect: false },
+    interaction: { intersect: false, mode: 'index' as const },
     scales: {
       x: { type: 'time', display: false },
       y: { display: false }
     },
     plugins: {
       legend: { display: false },
-      tooltip: { enabled: false },
+      tooltip: { 
+        enabled: true,
+        backgroundColor: 'rgba(31, 41, 55, 0.95)',
+        titleColor: '#9ca3af',
+        bodyColor: '#fff',
+        padding: 8,
+        cornerRadius: 6,
+        displayColors: false,
+        titleFont: { size: 10, weight: 'normal' as const },
+        bodyFont: { size: 12, weight: 'bold' as const },
+        callbacks: {
+          title: (items: any[]) => {
+            if (!items.length) return ''
+            const date = new Date(items[0].raw.x)
+            return date.toLocaleString('fr-FR', { 
+              day: '2-digit', month: '2-digit', 
+              hour: '2-digit', minute: '2-digit' 
+            })
+          },
+          label: (item: any) => {
+            const val = item.raw.y
+            return `${formatValue(val)} ${unit.value}`
+          }
+        }
+      },
       annotation: {
         annotations
       }

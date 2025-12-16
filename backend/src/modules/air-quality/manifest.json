@@ -10,11 +10,13 @@
     { "key": "sgp40", "name": "SGP40", "type": "sensor", "sensors": ["voc"] },
     { "key": "sgp30", "name": "SGP30", "type": "sensor", "sensors": ["eco2", "tvoc"] },
     { "key": "sht30", "name": "SHT30", "type": "sensor", "sensors": ["temp_sht", "hum_sht"] },
-    { "key": "sps30", "name": "SPS30", "type": "sensor", "sensors": ["pm1", "pm25", "pm4", "pm10"] }
+    { "key": "sps30", "name": "SPS30", "type": "sensor", "sensors": ["pm1", "pm25", "pm4", "pm10"] },
+    { "key": "sc16co", "name": "SC16-CO", "type": "sensor", "sensors": ["co"] }
   ],
   
   "sensors": [
     { "key": "co2", "label": "CO2", "unit": "ppm", "range": [0, 10000] },
+    { "key": "co", "label": "CO", "unit": "ppm", "range": [0, 1000] },
     { "key": "temperature", "label": "Température", "unit": "°C", "range": [-40, 85] },
     { "key": "humidity", "label": "Humidité", "unit": "%", "range": [0, 100] },
     { "key": "voc", "label": "COV", "unit": "index", "range": [0, 500] },

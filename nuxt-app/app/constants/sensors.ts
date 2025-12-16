@@ -6,6 +6,7 @@ export interface SensorConfig {
 
 export const SENSOR_LIST: SensorConfig[] = [
   { key: 'co2', label: 'CO2', color: 'emerald' },
+  { key: 'co', label: 'CO', color: 'rose' },
   { key: 'temperature', label: 'Température', color: 'orange' },
   { key: 'humidity', label: 'Humidité', color: 'blue' },
   { key: 'pm25', label: 'PM2.5', color: 'violet' },

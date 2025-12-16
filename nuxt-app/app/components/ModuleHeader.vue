@@ -48,8 +48,9 @@
           />
         </button>
 
-        <!-- Graph Duration Selector -->
+        <!-- Graph Duration Selector (only visible when charts enabled) -->
         <AppDropdown
+          v-if="showCharts"
           id="graph-duration"
           position="relative"
           dropdown-class="top-full right-0 w-32 bg-gray-800 rounded-b-lg rounded-tl-lg shadow-xl z-50 overflow-hidden"
@@ -152,6 +153,9 @@ const emit = defineEmits<{
 
 import { useZones } from '../composables/useZones'
 const { zones } = useZones()
+
+import { useChartSettings } from '../composables/useChartSettings'
+const { showCharts } = useChartSettings()
 
 // ============================================================================
 // Computed

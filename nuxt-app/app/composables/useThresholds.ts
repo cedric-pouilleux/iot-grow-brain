@@ -36,6 +36,9 @@ const THRESHOLDS: Record<string, ThresholdDefinition> = {
   co2: { good: 800, moderate: 1000, poor: 1500 },
   eco2: { good: 800, moderate: 1000, poor: 1500 },
   
+  // CO: WHO guidelines for carbon monoxide (8h exposure)
+  co: { good: 9, moderate: 35, poor: 100 },
+  
   // TVOC: German Federal Environment Agency (UBA)
   tvoc: { good: 220, moderate: 660, poor: 2200 },
   
