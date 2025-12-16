@@ -20,40 +20,40 @@
     <Transition name="slide-left">
       <div 
         v-if="isOpen"
-        class="fixed top-0 left-0 h-full w-96 bg-white shadow-2xl z-50 flex flex-col"
+        class="fixed top-0 left-0 h-full w-96 bg-white dark:bg-gray-800 shadow-2xl z-50 flex flex-col"
       >
         <!-- Header -->
-        <div class="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 class="text-lg font-semibold text-gray-800">Gestion des Zones</h2>
+        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Gestion des Zones</h2>
           <button 
             @click="$emit('close')"
-            class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+            class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
           >
             <Icon name="tabler:x" class="w-5 h-5" />
           </button>
         </div>
         
         <!-- Create Zone -->
-        <div class="p-4 border-b border-gray-100">
+        <div class="p-4 border-b border-gray-100 dark:border-gray-700">
           <div class="space-y-2">
             <input
               v-model="newZoneName"
               type="text"
               placeholder="Nom de la zone..."
-              class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent"
               @keyup.enter="handleCreateZone"
             />
             <input
               v-model="newZoneDescription"
               type="text"
               placeholder="Description (optionnel)..."
-              class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-gray-900 dark:focus:ring-gray-400 focus:border-transparent"
               @keyup.enter="handleCreateZone"
             />
             <button
               @click="handleCreateZone"
               :disabled="!newZoneName.trim()"
-              class="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
+              class="w-full px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1"
             >
               <Icon name="tabler:plus" class="w-4 h-4" />
               <span class="text-sm">Créer la zone</span>
@@ -77,7 +77,7 @@
             v-else
             v-for="zone in zones"
             :key="zone.id"
-            class="bg-gray-50 rounded-lg border border-gray-100"
+            class="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-700"
           >
             <!-- Zone Header -->
             <div class="flex items-center justify-between p-3">
@@ -116,10 +116,10 @@
                 <!-- View Mode -->
                 <template v-else>
                   <div class="flex-1 min-w-0">
-                    <span class="font-medium text-gray-800 truncate block">{{ zone.name }}</span>
-                    <span v-if="zone.description" class="text-xs text-gray-400 truncate block">{{ zone.description }}</span>
+                    <span class="font-medium text-gray-800 dark:text-gray-100 truncate block">{{ zone.name }}</span>
+                    <span v-if="zone.description" class="text-xs text-gray-400 dark:text-gray-500 truncate block">{{ zone.description }}</span>
                   </div>
-                  <span class="text-xs text-gray-400 flex-shrink-0">
+                  <span class="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
                     {{ zone.devices?.length || 0 }} device{{ (zone.devices?.length || 0) !== 1 ? 's' : '' }}
                   </span>
                 </template>
@@ -129,14 +129,14 @@
               <div v-if="editingZoneId !== zone.id" class="flex items-center gap-1 flex-shrink-0">
                 <button 
                   @click="startEdit(zone)"
-                  class="p-1.5 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
+                  class="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                   title="Renommer"
                 >
                   <Icon name="tabler:edit" class="w-3.5 h-3.5" />
                 </button>
                 <button 
                   @click="handleDeleteZone(zone)"
-                  class="p-1.5 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
+                  class="p-1.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                   title="Supprimer"
                 >
                   <Icon name="tabler:trash" class="w-3.5 h-3.5" />
@@ -150,9 +150,9 @@
                 <div 
                   v-for="device in zone.devices"
                   :key="device.moduleId"
-                  class="flex items-center justify-between py-1.5 px-2 bg-white rounded text-sm border border-gray-100"
+                  class="flex items-center justify-between py-1.5 px-2 bg-white dark:bg-gray-800 rounded text-sm border border-gray-100 dark:border-gray-700"
                 >
-                  <span class="text-gray-700 truncate">{{ device.name || device.moduleId }}</span>
+                  <span class="text-gray-700 dark:text-gray-200 truncate">{{ device.name || device.moduleId }}</span>
                   <button 
                     @click="handleUnassignDevice(device.moduleId)"
                     class="p-0.5 text-gray-400 hover:text-red-500 transition-colors"

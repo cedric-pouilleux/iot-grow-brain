@@ -51,12 +51,12 @@ const isMultiSegment = computed(() => props.segments && props.segments.length > 
   <div class="text-xs">
     <!-- Header: Label and Usage -->
     <div class="flex justify-between mb-0.5">
-      <span class="text-gray-400">{{ label }}</span>
-      <span class="text-gray-500 text-[9px]">{{ usedFormatted }} / {{ totalFormatted }}</span>
+      <span class="text-gray-400 dark:text-gray-500">{{ label }}</span>
+      <span class="text-gray-500 dark:text-gray-400 text-[9px]">{{ usedFormatted }} / {{ totalFormatted }}</span>
     </div>
     
     <!-- Bar Container -->
-    <div class="h-4 bg-gray-100 rounded overflow-hidden flex" :class="{ 'cursor-help': !isMultiSegment && tooltip }">
+    <div class="h-4 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden flex" :class="{ 'cursor-help': !isMultiSegment && tooltip }">
       <!-- Multi-segment mode (Flash) -->
       <template v-if="isMultiSegment">
         <div

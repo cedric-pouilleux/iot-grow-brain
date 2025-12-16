@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@nuxt/icon": "^2.1.0",
+    "@nuxtjs/color-mode": "^4.0.0",
     "@types/uuid": "^10.0.0",
     "chart.js": "^4.4.0",
     "chartjs-adapter-date-fns": "^3.0.0",

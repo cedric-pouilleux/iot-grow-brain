@@ -8,7 +8,7 @@
     - Graph duration selector
     - WiFi signal indicator
   -->
-  <div class="py-2 border-b border-gray-100">
+  <div class="py-2">
     <div class="flex flex-wrap justify-between items-center gap-3">
       
       <!-- Left: Module Type with Icon -->
@@ -21,10 +21,10 @@
         <Icon 
           v-if="moduleTypeIcon"
           :name="moduleTypeIcon" 
-          class="w-5 h-5 text-gray-600 group-hover:text-gray-800 transition-colors"
+          class="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors"
         />
         <h2
-          class="font-medium text-base text-gray-800 leading-tight"
+          class="font-medium text-base text-gray-800 dark:text-gray-100 leading-tight"
           style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
         >
           {{ moduleTypeLabel }}
@@ -87,6 +87,18 @@
             </div>
           </template>
         </AppDropdown>
+
+        <!-- Dark Mode Toggle -->
+        <button
+          class="p-1.5 rounded-lg transition-colors flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
+          title="Basculer le thème"
+          @click="toggleColorMode"
+        >
+          <Icon 
+            :name="$colorMode.value === 'dark' ? 'tabler:sun' : 'tabler:moon'" 
+            class="w-4 h-4"
+          />
+        </button>
 
         <!-- WiFi Signal Indicator -->
         <div class="relative group/rssi cursor-help flex items-center justify-center">
@@ -212,6 +224,16 @@ const moduleTypeLabel = computed(() => {
 })
 
 const rssiClass = computed(() => getWifiClass(props.rssi))
+
+// ============================================================================
+// Color Mode
+// ============================================================================
+
+const colorMode = useColorMode()
+
+const toggleColorMode = () => {
+  colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
+}
 
 // ============================================================================
 // Methods

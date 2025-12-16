@@ -5,7 +5,7 @@
     Compact row for hardware sensor with measurements, interval control, and reset button.
     All elements on a single line for maximum density.
   -->
-  <div class="px-3 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2">
+  <div class="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
     
     <!-- Status Indicator -->
     <div 
@@ -15,7 +15,7 @@
     />
     
     <!-- Hardware Name -->
-    <span class="text-xs font-semibold text-gray-700 flex-shrink-0">
+    <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 flex-shrink-0">
       {{ hardware.name }}
     </span>
     
@@ -35,7 +35,7 @@
     <div class="flex-1"></div>
     
     <!-- Time Counter (compact) -->
-    <span class="text-[10px] text-gray-400 flex-shrink-0">
+    <span class="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0">
       {{ timeAgo || '--' }}
     </span>
     
@@ -43,7 +43,7 @@
     <button
       @click="resetSensor"
       :disabled="resetting"
-      class="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+      class="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors flex-shrink-0"
       :class="{ 'animate-spin': resetting }"
       title="Redémarrer le capteur"
     >
@@ -51,17 +51,17 @@
     </button>
     
     <!-- Interval Control (discreet rectangle) -->
-    <div class="flex items-center gap-1 bg-gray-100 rounded px-2 py-1 flex-shrink-0">
+    <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded px-2 py-1 flex-shrink-0">
       <input
         v-model.number="localInterval"
         type="range"
         min="10"
         max="300"
         step="10"
-        class="w-16 h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-gray-500"
+        class="w-16 h-1 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-gray-500 dark:accent-gray-400"
         @change="saveInterval"
       />
-      <span class="text-[10px] text-gray-600 font-mono w-7 text-right">
+      <span class="text-[10px] text-gray-600 dark:text-gray-300 font-mono w-7 text-right">
         {{ localInterval }}s
       </span>
     </div>
@@ -140,9 +140,9 @@ const statusLabel = computed(() => {
 
 const getMeasurementClass = (status: string) => {
   switch (status) {
-    case 'ok': return 'bg-green-100 text-green-700'
-    case 'missing': return 'bg-red-100 text-red-700'
-    default: return 'bg-gray-100 text-gray-500'
+    case 'ok': return 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400'
+    case 'missing': return 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400'
+    default: return 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
   }
 }
 

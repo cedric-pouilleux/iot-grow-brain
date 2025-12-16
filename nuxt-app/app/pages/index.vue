@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-100 text-gray-800 p-4 sm:p-8">
+  <div class="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 p-4 sm:p-8">
     <!-- Zone Drawer -->
     <ZoneDrawer 
       :is-open="isZoneDrawerOpen"

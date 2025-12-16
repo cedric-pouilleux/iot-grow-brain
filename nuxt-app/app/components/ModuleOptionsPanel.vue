@@ -19,15 +19,15 @@
         
         <!-- LEFT: Informations (1 col) -->
         <div class="col-span-6 lg:col-span-1 flex flex-col space-y-3">
-          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
             Informations
           </h3>
           
-          <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-3 flex flex-col justify-between flex-grow">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-3 flex flex-col justify-between flex-grow">
             <!-- Hardware Section -->
             <div>
               <div class="flex items-center justify-between mb-1">
-                <span class="text-[10px] font-medium text-gray-500 uppercase">Hardware</span>
+                <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">Hardware</span>
                 <div 
                   class="w-2.5 h-2.5 rounded-full cursor-help"
                   :class="isOnline ? 'bg-green-500' : 'bg-red-500'"
@@ -35,30 +35,29 @@
                 ></div>
               </div>
               <div class="text-xs space-y-0.5">
-                <div class="text-gray-800 capitalize">{{ moduleId }}</div>
-                <div class="text-gray-600">{{ hardwareModel }}</div>
-                <div class="text-gray-500">CPU : {{ cpuFreq }} MHz</div>
+                <div class="text-gray-800 dark:text-gray-200 capitalize">{{ moduleId }}</div>
+                <div class="text-gray-600 dark:text-gray-400">{{ hardwareModel }}</div>
+                <div class="text-gray-500 dark:text-gray-500">CPU : {{ cpuFreq }} MHz</div>
               </div>
             </div>
             
-            <!-- Network Section -->
-            <div class="pt-2 border-t border-gray-100">
-              <div class="text-[10px] font-medium text-gray-500 uppercase mb-1">Réseau</div>
+            <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
+              <div class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Réseau</div>
               <div class="text-xs space-y-0.5">
                 <div class="flex justify-between">
-                  <span class="text-gray-500">IP</span>
-                  <span class="text-gray-600 font-mono text-[10px]">{{ deviceStatus?.system?.ip || '--' }}</span>
+                  <span class="text-gray-500 dark:text-gray-400">IP</span>
+                  <span class="text-gray-600 dark:text-gray-300 font-mono text-[10px]">{{ deviceStatus?.system?.ip || '--' }}</span>
                 </div>
                 <div class="flex justify-between">
-                  <span class="text-gray-500">MAC</span>
-                  <span class="text-gray-600 font-mono text-[10px]">{{ deviceStatus?.system?.mac || '--' }}</span>
+                  <span class="text-gray-500 dark:text-gray-400">MAC</span>
+                  <span class="text-gray-600 dark:text-gray-300 font-mono text-[10px]">{{ deviceStatus?.system?.mac || '--' }}</span>
                 </div>
               </div>
             </div>
             
             <!-- Memory Section -->
-            <div class="pt-2 border-t border-gray-100">
-              <div class="text-[10px] font-medium text-gray-500 uppercase mb-1">Mémoire</div>
+            <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
+              <div class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Mémoire</div>
               <div class="space-y-2">
                 <!-- Flash Bar -->
                 <MemoryBar
@@ -83,13 +82,13 @@
 
         <!-- MIDDLE: Configuration du module (2 cols) -->
         <div class="col-span-6 lg:col-span-2 flex flex-col space-y-3">
-          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
             Configuration
           </h3>
           
           <!-- Zone Selector -->
-          <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-3 flex-grow">
-            <span class="text-[10px] font-medium text-gray-500 uppercase mb-1 block">Zone associée</span>
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-3 flex-grow">
+            <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1 block">Zone associée</span>
             <div class="flex flex-wrap gap-1.5 mt-2 items-center">
               <!-- Zone Tags (toggle on click) -->
               <button
@@ -99,7 +98,7 @@
                 class="px-2 py-0.5 text-xs rounded transition-colors"
                 :class="zone.id === currentZoneId 
                   ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'"
               >
                 {{ zone.name }}
               </button>
@@ -118,12 +117,12 @@
           </div>
 
           <!-- Chart Options -->
-          <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-3">
-            <span class="text-[10px] font-medium text-gray-500 uppercase mb-1 block">Graphiques</span>
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-3">
+            <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1 block">Graphiques</span>
             
             <!-- Show Charts Toggle -->
             <div class="flex items-center justify-between mt-2">
-              <span class="text-xs text-gray-600">Afficher les graphiques</span>
+              <span class="text-xs text-gray-600 dark:text-gray-300">Afficher les graphiques</span>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input 
                   type="checkbox" 
@@ -137,7 +136,7 @@
             
             <!-- Threshold Lines Toggle (only visible when charts enabled) -->
             <div v-if="showCharts" class="flex items-center justify-between mt-2">
-              <span class="text-xs text-gray-600">Afficher les seuils</span>
+              <span class="text-xs text-gray-600 dark:text-gray-300">Afficher les seuils</span>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input 
                   type="checkbox" 
@@ -151,7 +150,7 @@
             
             <!-- Color Thresholds Toggle (only visible when charts enabled) -->
             <div v-if="showCharts" class="flex items-center justify-between mt-2">
-              <span class="text-xs text-gray-600">Couleurs de seuil</span>
+              <span class="text-xs text-gray-600 dark:text-gray-300">Couleurs de seuil</span>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input 
                   type="checkbox" 
@@ -167,11 +166,11 @@
 
         <!-- RIGHT: Sensors (3 cols) -->
         <div class="col-span-6 lg:col-span-3 flex flex-col space-y-3">
-          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
             Configuration des Capteurs
           </h3>
           
-          <div class="bg-white rounded-lg shadow-sm border border-gray-100 divide-y divide-gray-100 flex-grow">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700 flex-grow">
             <HardwareSensorRow
               v-for="hw in hardwareSensorList"
               :key="hw.hardwareKey"

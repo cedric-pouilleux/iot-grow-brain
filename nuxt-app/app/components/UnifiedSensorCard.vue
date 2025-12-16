@@ -10,13 +10,13 @@
     Interval config and time counter moved to ModuleOptionsPanel.
   -->
   <div
-    class="relative rounded-lg group/card bg-white border border-gray-100 shadow-sm hover:shadow-md flex flex-col justify-between flex-1 min-w-0"
+    class="relative rounded-lg group/card bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md flex flex-col justify-between flex-1 min-w-0"
   >
     <!-- Header: Title + Sensor Selector -->
     <div class="pl-2" :class="showCharts ? 'pb-0' : 'pb-3'">
       <div class="flex justify-between items-center h-[30px]">
         <div class="flex items-center gap-1">
-           <span class="text-gray-500 text-[12px]">{{ currentTitle }}</span>
+           <span class="text-gray-500 dark:text-gray-400 text-[12px]">{{ currentTitle }}</span>
            <!-- Status Indicator (in header) -->
            <Icon
              :name="statusIcon"
@@ -93,7 +93,7 @@
           <div v-else class="w-2.5 h-2.5 -mb-0.5"></div>
           
           <!-- Unit -->
-          <span class="text-sm font-medium text-gray-400">{{ unit }}</span>
+          <span class="text-sm font-medium text-gray-400 dark:text-gray-500">{{ unit }}</span>
         </div>
       </div>
       

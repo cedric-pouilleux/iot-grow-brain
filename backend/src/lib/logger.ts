@@ -12,12 +12,68 @@ const levelMap: Record<number, string> = {
   60: 'fatal',
 }
 
+// ============================================================================
+// Batched Logger - Accumulates logs and flushes every 5 seconds
+// ============================================================================
+
+interface LogEntry {
+  category: string
+  level: string
+  msg: string
+  time: Date
+  details: Record<string, unknown>
+}
+
+const logBuffer: LogEntry[] = []
+const FLUSH_INTERVAL_MS = 5000 // Flush every 5 seconds
+const MAX_BUFFER_SIZE = 100    // Or when buffer reaches 100 entries
+
+let flushTimer: ReturnType<typeof setInterval> | null = null
+
+/**
+ * Flush buffered logs to database in a single batch insert
+ */
+async function flushLogs() {
+  if (logBuffer.length === 0) return
+
+  const logsToInsert = logBuffer.splice(0, logBuffer.length)
+  
+  try {
+    await db.insert(systemLogs).values(logsToInsert)
+  } catch (err) {
+    process.stderr.write(`Failed to batch insert logs: ${(err as Error).message}\n`)
+  }
+}
+
+/**
+ * Start the flush timer
+ */
+function startFlushTimer() {
+  if (flushTimer) return
+  flushTimer = setInterval(flushLogs, FLUSH_INTERVAL_MS)
+  // Don't block process exit
+  flushTimer.unref()
+}
+
+/**
+ * Stop the flush timer and flush remaining logs
+ */
+export async function stopLogger() {
+  if (flushTimer) {
+    clearInterval(flushTimer)
+    flushTimer = null
+  }
+  await flushLogs()
+}
+
+// ============================================================================
+// Writable Stream for Fastify
+// ============================================================================
+
 export const dbLoggerStream = new Writable({
   write(chunk, encoding, callback) {
-    // Write to stdout as well (to keep console logs)
-    process.stdout.write(chunk)
-
     const logEntry = chunk.toString()
+    
     try {
       const parsed = JSON.parse(logEntry)
       const { level, msg, time, ...details } = parsed
@@ -28,7 +84,7 @@ export const dbLoggerStream = new Writable({
       let category = 'SYSTEM'
       let cleanMsg = msg || ''
 
-      // Filter out generic Fastify logs (not useful, we have our own)
+      // Filter out generic Fastify logs (not useful)
       if (
         cleanMsg === 'incoming request' ||
         cleanMsg === 'request completed' ||
@@ -41,29 +97,28 @@ export const dbLoggerStream = new Writable({
       const categoryMatch = cleanMsg.match(/^\[([A-Z0-9]+)\]\s*/)
       if (categoryMatch) {
         category = categoryMatch[1]
-        cleanMsg = cleanMsg.replace(/^\[([A-Z0-9→/]+)\]\s*/, '') // Remove category prefix
+        cleanMsg = cleanMsg.replace(/^\[([A-Z0-9→/]+)\]\s*/, '')
       }
 
-      // Insert into DB asynchronously
-      db.insert(systemLogs)
-        .values({
-          category,
-          level: levelStr,
-          msg: cleanMsg,
-          time: new Date(time || Date.now()),
-          details: details,
-        })
-        .then(() => {
-          // No more debug logging
-          callback()
-        })
-        .catch(err => {
-          // We write to stderr directly to avoid infinite loop if we used logger
-          process.stderr.write(`Failed to write log to DB: ${err.message}\n`)
-          callback()
-        })
+      // Add to buffer instead of immediate insert
+      logBuffer.push({
+        category,
+        level: levelStr,
+        msg: cleanMsg,
+        time: new Date(time || Date.now()),
+        details: details,
+      })
+
+      // Start timer on first log
+      startFlushTimer()
+
+      // Force flush if buffer is full
+      if (logBuffer.length >= MAX_BUFFER_SIZE) {
+        flushLogs()
+      }
+
+      callback()
     } catch (err) {
-      // console.error(`Failed to parse log entry:`, err)
       process.stderr.write(`Failed to parse log entry: ${err}\n`)
       callback()
     }
