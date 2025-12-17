@@ -1,11 +1,10 @@
 <template>
-  <div class="relative" :class="{ 'opacity-40': disabled }">
-    <!-- Track with value inside -->
+  <div class="relative" :class="{ 'opacity-40': disabled }"> 
     <div class="relative w-20 h-3.5 rounded-full
-      bg-gradient-to-r from-gray-700 to-gray-500
-      dark:from-gray-800 dark:to-gray-600">
-      
-      <!-- Value label inside track -->
+      bg-gradient-to-b from-gray-100 to-gray-300
+      dark:from-gray-900 dark:to-gray-800
+      border-t border-blue-400/50
+      dark:shadow-[0_0_2px_rgba(0,0,0,0.9)]">
       <span 
         v-if="showValue"
         class="absolute top-0 h-full flex items-center text-[9px] font-medium text-white/80 pointer-events-none select-none"
@@ -14,8 +13,6 @@
         {{ modelValue }}{{ suffix }}
       </span>
     </div>
-    
-    <!-- Invisible range input on top -->
     <input
       :value="modelValue"
       @input="emit('update:modelValue', Number(($event.target as HTMLInputElement).value))"
@@ -25,9 +22,7 @@
       :max="max"
       :step="step"
       :disabled="disabled"
-      class="slider absolute inset-0 w-full h-full rounded-full outline-none
-        bg-transparent
-        focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+      class="slider absolute inset-0 w-[calc(100%-4px)] left-0.5 h-full rounded-full outline-none bg-transparent"
       :class="disabled ? 'cursor-not-allowed' : 'cursor-pointer'"
     />
   </div>
@@ -74,11 +69,11 @@ const thumbPosition = computed(() => {
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 10px;
-  height: 10px;
-  border-radius: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   background: linear-gradient(180deg, #fff 0%, #e5e7eb 50%, #d1d5db 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4), 0 0 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   cursor: pointer;
   transition: transform 0.15s ease;
 }
@@ -89,21 +84,21 @@ const thumbPosition = computed(() => {
 
 :global(.dark) .slider::-webkit-slider-thumb {
   background: linear-gradient(180deg, #e5e7eb 0%, #9ca3af 50%, #6b7280 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6), 0 0 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .slider::-moz-range-thumb {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border: none;
-  border-radius: 4px;
+  border-radius: 50%;
   background: linear-gradient(180deg, #fff 0%, #e5e7eb 50%, #d1d5db 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4), 0 0 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   cursor: pointer;
 }
 
 :global(.dark) .slider::-moz-range-thumb {
   background: linear-gradient(180deg, #e5e7eb 0%, #9ca3af 50%, #6b7280 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6), 0 0 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 </style>

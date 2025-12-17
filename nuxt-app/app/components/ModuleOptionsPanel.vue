@@ -106,12 +106,13 @@
                 v-for="zone in zones"
                 :key="zone.id"
                 @click="handleToggleZone(zone.id)"
-                class="px-2 py-0.5 text-xs rounded transition-colors"
-                :class="zone.id === currentZoneId 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'"
               >
-                {{ zone.name }}
+                <UITag 
+                  :label="zone.name" 
+                  size="large"
+                  :variant="zone.id === currentZoneId ? 'blue' : 'gray'"
+                  clickable
+                />
               </button>
               <!-- Empty state -->
               <span v-if="zones.length === 0" class="text-xs text-gray-400 italic">
@@ -191,6 +192,7 @@ import { getHardwareModel } from '../utils/hardware'
 import { useStorageCalculations } from '../composables/useStorageCalculations'
 import HardwareSensorRow from './HardwareSensorRow.vue'
 import UIToggle from './ui/UIToggle.vue'
+import UITag from './ui/UITag.vue'
 import { Doughnut } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip } from 'chart.js'
 

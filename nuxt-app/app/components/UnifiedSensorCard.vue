@@ -100,13 +100,11 @@
       
       <!-- Threshold Alert (below value, only when not good) -->
       <div class="h-[18px] flex items-center">
-        <span 
+        <UITag 
           v-if="thresholdAlert && thresholdAlert.level !== 'good'" 
-          class="px-2 py-0.5 rounded-full text-[10px] font-medium"
-          :class="[thresholdAlert.bgClass, thresholdAlert.textClass]"
-        >
-          {{ thresholdAlert.label }}
-        </span>
+          :label="thresholdAlert.label"
+          :variant="thresholdAlert.tagVariant"
+        />
       </div>
     </div>
 
@@ -167,6 +165,7 @@ import type { SensorDataPoint } from '../types'
 import { formatValue } from '../utils/format'
 import { useThresholds } from '../composables/useThresholds'
 import AppDropdown from './AppDropdown.vue'
+import UITag from './ui/UITag.vue'
 import { useChartSettings } from '../composables/useChartSettings'
 import annotationPlugin from 'chartjs-plugin-annotation'
 
