@@ -69,7 +69,7 @@
               <div class="text-[12px] font-medium text-gray-500 dark:text-gray-200 mb-2">Mémoire</div>
               <div class="flex gap-4 justify-center">
                 <!-- Flash Doughnut -->
-                <div class="w-16 h-16 relative cursor-help" :title="flashTooltip">
+                <div class="w-16 h-16 relative">
                   <ClientOnly>
                     <Doughnut :data="flashChartData" :options="doughnutOptions" />
                   </ClientOnly>
@@ -78,7 +78,7 @@
                   </div>
                 </div>
                 <!-- RAM Doughnut -->
-                <div class="w-16 h-16 relative cursor-help" :title="ramTooltip">
+                <div class="w-16 h-16 relative">
                   <ClientOnly>
                     <Doughnut :data="ramChartData" :options="doughnutOptions" />
                   </ClientOnly>

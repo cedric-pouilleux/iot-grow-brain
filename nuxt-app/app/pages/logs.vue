@@ -195,6 +195,7 @@
                 <tr>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Heure</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Catégorie</th>
+                  <th v-if="filters.categories.includes('HARDWARE')" class="px-3 py-2 text-left text-xs font-medium text-gray-500">Module</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Niveau</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Message</th>
                 </tr>
@@ -215,6 +216,9 @@
                     >
                       {{ formatCategory(log.category) }}
                     </span>
+                  </td>
+                  <td v-if="filters.categories.includes('HARDWARE')" class="px-3 py-1 whitespace-nowrap text-xs text-indigo-600 font-medium">
+                    {{ log.details?.moduleId || '-' }}
                   </td>
                   <td class="px-3 py-1 whitespace-nowrap">
                     <span
@@ -363,7 +367,7 @@ const toggleLevel = (value: string) => {
 }
 
 const categories = [
-  { value: 'ESP32', label: 'ESP32', color: '#4f46e5' },
+  { value: 'HARDWARE', label: 'Hardware', color: '#4f46e5' },
   { value: 'MQTT', label: 'MQTT', color: '#ea580c' },
   { value: 'DB', label: 'DB', color: '#0891b2' },
   { value: 'API', label: 'API', color: '#db2777' },
@@ -485,7 +489,7 @@ const getTooltipText = (log: LogEntry) => {
 }
 
 const formatCategory = (category: string) => {
-  if (category === 'ESP32') return 'ESP32'
+  if (category === 'HARDWARE') return 'Hardware'
   if (category === 'MQTT') return 'MQTT'
   if (category === 'DB') return 'DB'
   if (category === 'API') return 'API'
@@ -509,7 +513,7 @@ const getLevelClass = (level: string) => {
 
 const getCategoryClass = (category: string) => {
   const classes = {
-    ESP32: 'text-indigo-600',
+    HARDWARE: 'text-indigo-600',
     MQTT: 'text-orange-600',
     DB: 'text-cyan-600',
     API: 'text-pink-600',
@@ -564,11 +568,13 @@ const handleSelectionUpdate = (selection: { start: string; end: string } | null)
 watch(timeRange, () => {
   timeSelection.value = null
   offset.value = 0
+  syncFiltersToUrl()
   loadLogs()
 })
 
 watch(() => [filters.value.categories, filters.value.levels, filters.value.limit], () => {
   offset.value = 0
+  syncFiltersToUrl()
   loadLogs()
 }, { deep: true })
 
@@ -578,11 +584,73 @@ watch(() => filters.value.search, () => {
   if (searchDebounce) clearTimeout(searchDebounce)
   searchDebounce = setTimeout(() => {
     offset.value = 0
+    syncFiltersToUrl()
     loadLogs()
   }, 300)
 })
 
+// ============================================================================
+// URL Query Params Sync
+// ============================================================================
+
+const route = useRoute()
+const router = useRouter()
+
+// Sync filters to URL (called on every filter change)
+const syncFiltersToUrl = () => {
+  const query: Record<string, string | string[]> = {}
+  
+  if (filters.value.search) query.search = filters.value.search
+  if (filters.value.categories.length > 0) query.category = filters.value.categories
+  if (filters.value.levels.length > 0) query.level = filters.value.levels
+  if (filters.value.limit !== '100') query.limit = filters.value.limit
+  if (timeRange.value !== '24h') query.timeRange = timeRange.value
+  
+  router.replace({ query })
+}
+
+// Read URL params and initialize filters
+const initFiltersFromUrl = () => {
+  // Search
+  if (route.query.search) {
+    filters.value.search = String(route.query.search)
+  }
+  
+  // Categories (can be string or array)
+  if (route.query.category) {
+    const cats = Array.isArray(route.query.category) 
+      ? route.query.category.map(String) 
+      : [String(route.query.category)]
+    filters.value.categories = cats.filter(c => categories.some(cat => cat.value === c))
+  }
+  
+  // Levels (can be string or array)
+  if (route.query.level) {
+    const lvls = Array.isArray(route.query.level) 
+      ? route.query.level.map(String) 
+      : [String(route.query.level)]
+    filters.value.levels = lvls.filter(l => levels.some(lv => lv.value === l))
+  }
+  
+  // Limit
+  if (route.query.limit) {
+    const lim = String(route.query.limit)
+    if (limits.includes(Number(lim))) {
+      filters.value.limit = lim
+    }
+  }
+  
+  // Time range
+  if (route.query.timeRange) {
+    const tr = String(route.query.timeRange)
+    if (periods.some(p => p.value === tr)) {
+      timeRange.value = tr
+    }
+  }
+}
+
 onMounted(() => {
+  initFiltersFromUrl()
   loadLogs()
 })
 </script>

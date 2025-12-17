@@ -142,7 +142,7 @@ export class MqttMessageHandler {
       // console.log(\`[MQTT DEBUG] ...\`)
 
       const logData = {
-        msg: `[ESP32] ${msg}`,
+        msg: `[HARDWARE:${moduleId}] ${msg}`,
         moduleId,
         deviceTime: time,
         source: 'esp32',

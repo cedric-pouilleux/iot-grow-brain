@@ -121,7 +121,7 @@
       <!-- Maximize Graph Button -->
       <button 
         @click.stop="$emit('toggle-graph')"
-        class="absolute bottom-1 right-1 p-1.5 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded transition-colors z-20 opacity-0 group-hover/card:opacity-100"
+        class="absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-900 rounded transition-colors z-20 opacity-0 group-hover/card:opacity-100"
         title="Agrandir le graphique"
       >
         <Icon name="tabler:arrows-maximize" class="w-4 h-4" />

@@ -48,6 +48,15 @@
           />
         </button>
 
+        <!-- Logs Button -->
+        <NuxtLink
+          :to="`/logs?search=${moduleId}&category=HARDWARE`"
+          class="p-1.5 rounded-lg transition-colors flex items-center justify-center hover:bg-gray-100 text-gray-600 hover:text-gray-800 dark:hover:bg-gray-700 dark:text-gray-300 dark:hover:text-white"
+          title="Voir les logs du module"
+        >
+          <Icon name="tabler:notes" class="w-4 h-4" />
+        </NuxtLink>
+
         <!-- Graph Duration Selector (only visible when charts enabled) -->
         <AppDropdown
           v-if="showCharts"

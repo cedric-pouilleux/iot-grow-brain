@@ -123,7 +123,7 @@ export const systemLogs = pgTable('system_logs', {
   id: text('id')
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  category: text('category').notNull(), // ESP32, MQTT, DB, API, SYSTEM
+  category: text('category').notNull(), // HARDWARE, MQTT, DB, API, SYSTEM
   level: text('level').notNull(),
   msg: text('msg').notNull(),
   time: timestamp('time').notNull(),

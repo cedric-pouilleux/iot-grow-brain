@@ -94,10 +94,11 @@ export const dbLoggerStream = new Writable({
         return
       }
 
-      const categoryMatch = cleanMsg.match(/^\[([A-Z0-9]+)\]\s*/)
+      // Match [CATEGORY] or [CATEGORY:extra] format
+      const categoryMatch = cleanMsg.match(/^\[([A-Z0-9]+)(?::[^\]]+)?\]\s*/)
       if (categoryMatch) {
         category = categoryMatch[1]
-        cleanMsg = cleanMsg.replace(/^\[([A-Z0-9→/]+)\]\s*/, '')
+        cleanMsg = cleanMsg.replace(/^\[[A-Z0-9]+(?::[^\]]+)?\]\s*/, '')
       }
 
       // Add to buffer instead of immediate insert

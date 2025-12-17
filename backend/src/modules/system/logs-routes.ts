@@ -6,8 +6,8 @@ import { systemLogs } from '../../db/schema'
 
 const LogsQuerySchema = z.object({
   category: z.union([
-    z.enum(['ESP32', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']),
-    z.array(z.enum(['ESP32', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']))
+    z.enum(['HARDWARE', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']),
+    z.array(z.enum(['HARDWARE', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']))
   ]).optional(),
   level: z.union([
     z.enum(['trace', 'debug', 'success', 'info', 'warn', 'error', 'fatal']),
@@ -70,7 +70,11 @@ const logsRoutes: FastifyPluginAsync = async fastify => {
       }
       if (search) {
         conditions.push(
-          or(like(systemLogs.msg, `%${search}%`), like(systemLogs.level, `%${search}%`))
+          or(
+            like(systemLogs.msg, `%${search}%`), 
+            like(systemLogs.level, `%${search}%`),
+            sql`${systemLogs.details}::text ILIKE ${'%' + search + '%'}`
+          )
         )
       }
       if (startDate) {
@@ -122,8 +126,8 @@ const logsRoutes: FastifyPluginAsync = async fastify => {
           startDate: z.string().datetime().optional(),
           endDate: z.string().datetime().optional(),
           category: z.union([
-            z.enum(['ESP32', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']),
-            z.array(z.enum(['ESP32', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']))
+            z.enum(['HARDWARE', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']),
+            z.array(z.enum(['HARDWARE', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']))
           ]).optional(),
           level: z.union([
             z.enum(['trace', 'debug', 'success', 'info', 'warn', 'error', 'fatal']),
