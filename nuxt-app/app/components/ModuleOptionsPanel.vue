@@ -133,15 +133,7 @@
             <!-- Show Charts Toggle (Parent option) -->
             <div class="flex items-center justify-between">
               <span class="text-xs text-gray-600 dark:text-gray-300">Afficher les graphiques</span>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  :checked="showCharts"
-                  @change="toggleShowCharts"
-                  class="sr-only peer"
-                >
-                <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-500"></div>
-              </label>
+              <UIToggle v-model="showCharts" />
             </div>
             
             <!-- Dependent options container (indented with border-left) -->
@@ -149,29 +141,13 @@
               <!-- Threshold Lines Toggle -->
               <div class="flex items-center justify-between">
                 <span class="text-xs text-gray-500 dark:text-gray-400">Afficher les seuils</span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    :checked="showThresholdLines"
-                    @change="toggleThresholdLines"
-                    class="sr-only peer"
-                  >
-                  <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-500"></div>
-                </label>
+                <UIToggle v-model="showThresholdLines" />
               </div>
               
               <!-- Color Thresholds Toggle -->
               <div class="flex items-center justify-between">
                 <span class="text-xs text-gray-500 dark:text-gray-400">Couleurs de seuil</span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    :checked="colorThresholds"
-                    @change="toggleColorThresholds"
-                    class="sr-only peer"
-                  >
-                  <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-500"></div>
-                </label>
+                <UIToggle v-model="colorThresholds" />
               </div>
             </div>
           </div>
@@ -214,6 +190,7 @@ import type { DeviceStatus, SensorDataPoint } from '../types'
 import { getHardwareModel } from '../utils/hardware'
 import { useStorageCalculations } from '../composables/useStorageCalculations'
 import HardwareSensorRow from './HardwareSensorRow.vue'
+import UIToggle from './ui/UIToggle.vue'
 import { Doughnut } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip } from 'chart.js'
 

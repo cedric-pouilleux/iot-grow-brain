@@ -51,22 +51,15 @@
     </button>
     
     <!-- Interval Control (glossy slider) -->
-    <div class="flex items-center gap-2 flex-shrink-0" :class="{ 'opacity-40': hardware.status === 'missing' }">
-      <input
-        v-model.number="localInterval"
-        type="range"
-        min="10"
-        max="300"
-        step="10"
-        :disabled="hardware.status === 'missing'"
-        class="interval-slider w-20 h-2 rounded-full"
-        :class="hardware.status === 'missing' ? 'cursor-not-allowed' : 'cursor-pointer'"
-        @change="saveInterval"
-      />
-      <span class="text-[11px] w-8 text-right font-medium" :class="hardware.status === 'missing' ? 'text-gray-400 dark:text-gray-600' : 'text-gray-600 dark:text-gray-300'">
-        {{ localInterval }}s
-      </span>
-    </div>
+    <UISlider
+      v-model="localInterval"
+      :min="10"
+      :max="300"
+      :step="10"
+      suffix="s"
+      :disabled="hardware.status === 'missing'"
+      @change="saveInterval"
+    />
   </div>
 </template>
 
@@ -79,6 +72,7 @@ import { ref, computed, watch } from 'vue'
 import { useTimeAgo } from '../composables/useTimeAgo'
 import { useSnackbar } from '../composables/useSnackbar'
 import type { SensorDataPoint } from '../types'
+import UISlider from './ui/UISlider.vue'
 
 // ============================================================================
 // Types
@@ -239,56 +233,4 @@ const resetSensor = async () => {
 }
 </script>
 
-<style scoped>
-/* Glossy Slider Styles */
-.interval-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  background: linear-gradient(to right, #374151 0%, #6b7280 100%);
-  border-radius: 999px;
-  outline: none;
-}
 
-/* Dark mode track */
-:global(.dark) .interval-slider {
-  background: linear-gradient(to right, #1f2937 0%, #4b5563 100%);
-}
-
-/* Webkit (Chrome, Safari) thumb */
-.interval-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 10px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, #fff 0%, #e5e7eb 50%, #d1d5db 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-
-.interval-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-}
-
-:global(.dark) .interval-slider::-webkit-slider-thumb {
-  background: linear-gradient(180deg, #e5e7eb 0%, #9ca3af 50%, #6b7280 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-/* Firefox thumb */
-.interval-slider::-moz-range-thumb {
-  width: 14px;
-  height: 10px;
-  border: none;
-  border-radius: 3px;
-  background: linear-gradient(180deg, #fff 0%, #e5e7eb 50%, #d1d5db 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  cursor: pointer;
-}
-
-:global(.dark) .interval-slider::-moz-range-thumb {
-  background: linear-gradient(180deg, #e5e7eb 0%, #9ca3af 50%, #6b7280 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-</style>
