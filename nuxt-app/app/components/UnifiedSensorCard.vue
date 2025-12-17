@@ -485,13 +485,15 @@ const chartData = computed<ChartData<'line'> | null>(() => {
   )
 
   // Gap detection for dashed lines
+  // Use higher threshold to handle historical data which may be aggregated hourly
   const gapIndices = new Set<number>()
   const timeGaps = []
   for (let i = 1; i < sortedData.length; i++) {
     timeGaps.push(new Date(sortedData[i].time).getTime() - new Date(sortedData[i-1].time).getTime())
   }
   const medianGap = timeGaps.length ? timeGaps.sort((a,b) => a-b)[Math.floor(timeGaps.length/2)] : 60000
-  const gapThreshold = Math.max(medianGap * 5, 10 * 60 * 1000)
+  // Minimum 2 hours threshold to avoid marking hourly historical data as gaps
+  const gapThreshold = Math.max(medianGap * 5, 2 * 60 * 60 * 1000)
 
   for (let i = 1; i < sortedData.length; i++) {
     if (new Date(sortedData[i].time).getTime() - new Date(sortedData[i-1].time).getTime() > gapThreshold) {
@@ -593,6 +595,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
   return {
     responsive: true,
     maintainAspectRatio: false,
+    animation: false,
     interaction: { intersect: false, mode: 'index' as const },
     scales: {
       x: { type: 'time', display: false },

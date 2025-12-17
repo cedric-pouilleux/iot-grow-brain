@@ -110,7 +110,7 @@ const isInitialLoading = ref(true)
 const isHistoryLoading = ref(false)
 const isLoading = computed(() => isInitialLoading.value || dashboardLoading.value)
 const error = computed(() => modulesError.value || dashboardError.value)
-const selectedRange = ref(1) // Défaut: 24h
+const selectedRange = ref(7) // Défaut: 7 jours pour supporter toutes les durées de graphe
 
 // Zone drawer state
 const isZoneDrawerOpen = ref(false)
