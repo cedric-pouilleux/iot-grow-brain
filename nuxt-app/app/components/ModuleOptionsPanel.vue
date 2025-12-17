@@ -119,7 +119,7 @@
           <!-- Chart Options -->
           <h3 class="text-[13px] text-gray-500 dark:text-white">Configuration des graphiques</h3>
           <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3">
-            <!-- Show Charts Toggle -->
+            <!-- Show Charts Toggle (Parent option) -->
             <div class="flex items-center justify-between">
               <span class="text-xs text-gray-600 dark:text-gray-300">Afficher les graphiques</span>
               <label class="relative inline-flex items-center cursor-pointer">
@@ -129,36 +129,39 @@
                   @change="toggleShowCharts"
                   class="sr-only peer"
                 >
-                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+                <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-500"></div>
               </label>
             </div>
             
-            <!-- Threshold Lines Toggle (only visible when charts enabled) -->
-            <div v-if="showCharts" class="flex items-center justify-between mt-2">
-              <span class="text-xs text-gray-600 dark:text-gray-300">Afficher les seuils</span>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  :checked="showThresholdLines"
-                  @change="toggleThresholdLines"
-                  class="sr-only peer"
-                >
-                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
-              </label>
-            </div>
-            
-            <!-- Color Thresholds Toggle (only visible when charts enabled) -->
-            <div v-if="showCharts" class="flex items-center justify-between mt-2">
-              <span class="text-xs text-gray-600 dark:text-gray-300">Couleurs de seuil</span>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  :checked="colorThresholds"
-                  @change="toggleColorThresholds"
-                  class="sr-only peer"
-                >
-                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
-              </label>
+            <!-- Dependent options container (indented with border-left) -->
+            <div v-if="showCharts" class="mt-2 ml-2 pl-2 border-l-2 border-gray-200 dark:border-gray-600 space-y-2">
+              <!-- Threshold Lines Toggle -->
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-gray-500 dark:text-gray-400">Afficher les seuils</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    :checked="showThresholdLines"
+                    @change="toggleThresholdLines"
+                    class="sr-only peer"
+                  >
+                  <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-500"></div>
+                </label>
+              </div>
+              
+              <!-- Color Thresholds Toggle -->
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-gray-500 dark:text-gray-400">Couleurs de seuil</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    :checked="colorThresholds"
+                    @change="toggleColorThresholds"
+                    class="sr-only peer"
+                  >
+                  <div class="w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-500"></div>
+                </label>
+              </div>
             </div>
           </div>
         </div>
