@@ -18,7 +18,7 @@ export interface ThresholdResult {
   label: string
   textClass: string
   bgClass: string
-  tagVariant: 'gray' | 'green' | 'amber' | 'red'
+  tagVariant: 'gray' | 'green' | 'yellow' | 'orange' | 'red'
 }
 
 interface ThresholdDefinition {
@@ -74,14 +74,14 @@ const LEVEL_CONFIG: Record<ThresholdLevel, Omit<ThresholdResult, 'level'>> = {
   moderate: {
     label: 'Modéré',
     textClass: 'text-white',
-    bgClass: 'bg-amber-500',
-    tagVariant: 'amber',
+    bgClass: 'bg-yellow-500',
+    tagVariant: 'yellow',
   },
   poor: {
     label: 'Élevé',
     textClass: 'text-white',
     bgClass: 'bg-orange-500',
-    tagVariant: 'amber',
+    tagVariant: 'orange',
   },
   hazardous: {
     label: 'Dangereux',

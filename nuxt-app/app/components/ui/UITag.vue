@@ -1,6 +1,6 @@
 <template>
   <span 
-    class="inline-flex items-center rounded-full font-medium border-t relative overflow-hidden"
+    class="inline-flex items-center rounded-full dark:border-t relative overflow-hidden tracking-wide"
     :class="[variantClasses, sizeClasses, clickable ? 'tag-clickable' : '']"
   >
     <span class="relative z-10"><slot>{{ label }}</slot></span>
@@ -10,7 +10,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-type Variant = 'gray' | 'red' | 'amber' | 'green' | 'blue'
+type Variant = 'gray' | 'red' | 'orange' | 'yellow' | 'green' | 'blue'
 type Size = 'small' | 'middle' | 'large'
 
 interface Props {
@@ -39,24 +39,28 @@ const sizeClasses = computed(() => {
 const variantClasses = computed(() => {
   const variants: Record<Variant, string> = {
     gray: `
-      bg-gradient-to-b from-gray-300 to-gray-100 border-blue-400/50 text-gray-700
-      dark:from-gray-900 dark:to-gray-800 dark:text-gray-300
+      bg-gray-500 text-white
+      dark:bg-gradient-to-b dark:from-gray-900 dark:to-gray-800 dark:border-blue-400/50 dark:text-white
     `,
     red: `
-      bg-gradient-to-b from-red-300 to-red-100 border-red-500/50 text-red-700
-      dark:from-red-950 dark:to-red-900 dark:text-red-300
+      bg-red-500 text-white
+      dark:bg-gradient-to-b dark:from-red-950 dark:to-red-900 dark:border-red-500/50 dark:text-white
     `,
-    amber: `
-      bg-gradient-to-b from-amber-300 to-amber-100 border-amber-500/50 text-amber-700
-      dark:from-amber-950 dark:to-amber-900 dark:text-amber-300
+    orange: `
+      bg-orange-500 text-white
+      dark:bg-gradient-to-b dark:from-orange-950 dark:to-orange-900 dark:border-orange-500/50 dark:text-white
+    `,
+    yellow: `
+      bg-yellow-500 text-white
+      dark:bg-gradient-to-b dark:from-yellow-900 dark:to-yellow-800 dark:border-yellow-500/50 dark:text-white
     `,
     green: `
-      bg-gradient-to-b from-green-300 to-green-100 border-green-500/50 text-green-700
-      dark:from-green-950 dark:to-green-900 dark:text-green-300
+      bg-green-500 text-white
+      dark:bg-gradient-to-b dark:from-green-950 dark:to-green-900 dark:border-green-500/50 dark:text-white
     `,
     blue: `
-      bg-gradient-to-b from-blue-300 to-blue-100 border-blue-500/50 text-blue-700
-      dark:from-blue-950 dark:to-blue-900 dark:text-blue-300
+      bg-blue-500 text-white
+      dark:bg-gradient-to-b dark:from-blue-950 dark:to-blue-900 dark:border-blue-500/50 dark:text-white
     `,
   }
   return variants[props.variant]

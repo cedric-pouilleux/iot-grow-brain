@@ -34,7 +34,7 @@
         @toggle-options="optionsPanelOpen = !optionsPanelOpen"
       />
 
-      <!-- Options Panel (slides open) -->
+      <!-- Options Panel (slides open with delay) -->
       <ModuleOptionsPanel
         :is-open="optionsPanelOpen"
         :device-status="deviceStatus"
@@ -43,10 +43,15 @@
         :sensor-history-map="sensorHistoryMap"
         @zone-changed="$emit('zone-changed')"
         @open-zone-drawer="$emit('open-zone-drawer', moduleId)"
+        class="options-panel-transition"
+        :class="{ 'options-panel-open': optionsPanelOpen }"
       />
 
-      <!-- Sensor Cards Grid -->
-      <div class="flex gap-4">
+      <!-- Sensor Cards Grid with slide animation -->
+      <div 
+        class="flex gap-4 cards-transition"
+        :class="{ 'cards-pushed': optionsPanelOpen }"
+      >
         <UnifiedSensorCard
           v-for="group in activeGroups"
           :key="group.type"
@@ -321,3 +326,17 @@ const calculatedUptime = computed(() => {
   return Math.floor((now - bootTime) / 1000)
 })
 </script>
+
+<style scoped>
+/* Cards slide down first (fast, snappy) */
+.cards-transition {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Options panel slides with delay and bounce */
+.options-panel-transition {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition-delay: 0.1s;
+}
+</style>
+

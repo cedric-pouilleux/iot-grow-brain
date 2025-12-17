@@ -13,7 +13,7 @@
   <Transition name="slide">
     <div 
       v-if="isOpen" 
-      class="overflow-hidden"
+      class="overflow-visible"
     >
       <div class="grid grid-cols-6 gap-4 mb-4 items-stretch">
         
@@ -377,13 +377,49 @@ const ramChartData = computed(() => ({
   }]
 }))
 
-// Doughnut chart options (tooltips disabled, using native title attribute instead)
+// External tooltip handler for doughnut charts
+const getOrCreateTooltip = () => {
+  let tooltipEl = document.getElementById('chartjs-tooltip')
+  if (!tooltipEl) {
+    tooltipEl = document.createElement('div')
+    tooltipEl.id = 'chartjs-tooltip'
+    tooltipEl.style.cssText = 'position:fixed;pointer-events:none;background:rgba(0,0,0,0.8);color:#fff;padding:4px 8px;border-radius:4px;font-size:11px;z-index:9999;transition:opacity 0.1s;white-space:nowrap;'
+    document.body.appendChild(tooltipEl)
+  }
+  return tooltipEl
+}
+
+const externalTooltipHandler = (context: any) => {
+  const { chart, tooltip } = context
+  const tooltipEl = getOrCreateTooltip()
+  
+  if (tooltip.opacity === 0) {
+    tooltipEl.style.opacity = '0'
+    return
+  }
+  
+  if (tooltip.body) {
+    const label = tooltip.dataPoints[0]?.label || ''
+    const value = tooltip.dataPoints[0]?.raw || 0
+    tooltipEl.textContent = `${label}: ${Math.round(value)}%`
+  }
+  
+  const { left, top } = chart.canvas.getBoundingClientRect()
+  tooltipEl.style.opacity = '1'
+  tooltipEl.style.left = left + tooltip.caretX + 'px'
+  tooltipEl.style.top = top + tooltip.caretY - 30 + 'px'
+}
+
+// Doughnut chart options with external tooltip
 const doughnutOptions = {
   responsive: true,
   maintainAspectRatio: true,
   plugins: {
     legend: { display: false },
-    tooltip: { enabled: false }
+    tooltip: { 
+      enabled: false,
+      external: externalTooltipHandler
+    }
   }
 }
 
@@ -566,9 +602,15 @@ const hardwareSensorList = computed<HardwareSensorItem[]>(() => {
 </script>
 
 <style scoped>
-.slide-enter-active,
+/* Panel slides with elastic bounce */
+.slide-enter-active {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition-delay: 0.15s;
+  max-height: 500px;
+}
+
 .slide-leave-active {
-  transition: all 0.3s ease-out;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   max-height: 500px;
 }
 

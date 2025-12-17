@@ -17,7 +17,6 @@
     <div class="pl-2" :class="showCharts ? 'pb-0' : 'pb-3'">
       <div class="flex justify-between">
         <div class="flex items-center gap-1">
-           <span class="text-gray-500 dark:text-white text-[12px]">{{ currentTitle }}</span>
            <!-- Status Indicator (in header) -->
            <Icon
              :name="statusIcon"
@@ -25,6 +24,7 @@
              :class="statusColor"
              :title="statusTooltip"
            />
+           <span class="text-gray-500 dark:text-white text-[13px]">{{ currentTitle }}</span>
         </div>
 
         <div class="flex">
@@ -38,7 +38,7 @@
              <template #trigger="{ isOpen, toggle }">
                <button 
                  @click.stop="toggle"
-                 class="p-1 rounded-tr-lg text-white hover:bg-gray-950 transition-colors flex items-center"
+                 class="p-1 rounded-tr-lg text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-950 transition-colors flex items-center"
                  :class="{'bg-gray-950': isOpen}"
                  title="Changer de capteur"
                >
@@ -47,13 +47,14 @@
              </template>
 
              <template #content="{ close }">
-               <div class="max-h-48 overflow-y-auto">  
+               <div class="max-h-48 overflow-hidden">  
                  <button
-                   v-for="sensor in sensors"
+                   v-for="(sensor, index) in sensors"
                    :key="sensor.key"
                    @click="selectSensor(sensor.key, close)"
-                   class="w-full text-left p-2 flex items-center justify-between transition-colors"
+                   class="w-full text-left p-2 flex items-center justify-between transition-colors dropdown-item-animate"
                    :class="activeSensorKey === sensor.key ? valueColorClass : 'text-gray-400 hover:bg-gray-900 hover:text-white'"
+                   :style="{ animationDelay: `${index * 50}ms` }"
                  >
                    <span class="text-xs">
                      {{ getDropdownItemLabel(sensor) }}
@@ -70,6 +71,8 @@
                </div>
              </template>
            </AppDropdown>
+           <!-- Placeholder to maintain alignment when no dropdown -->
+           <div v-else class="w-6 h-6"></div>
         </div>
       </div>
 
@@ -634,3 +637,20 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
   }
 })
 </script>
+
+<style scoped>
+/* Staggered dropdown item animation - slides up from bottom */
+.dropdown-item-animate {
+  animation: slideUpFadeIn 0.2s ease-out forwards;
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+@keyframes slideUpFadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>
+

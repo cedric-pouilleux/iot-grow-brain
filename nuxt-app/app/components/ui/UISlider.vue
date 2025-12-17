@@ -1,9 +1,9 @@
 <template>
   <div class="relative" :class="{ 'opacity-40': disabled }"> 
     <div class="relative w-20 h-3.5 rounded-full
-      bg-gradient-to-b from-gray-100 to-gray-300
-      dark:from-gray-900 dark:to-gray-800
-      border-t border-blue-400/50
+      bg-gray-700
+      dark:bg-gradient-to-b dark:from-gray-900 dark:to-gray-800
+      dark:border-t dark:border-blue-400/50
       dark:shadow-[0_0_2px_rgba(0,0,0,0.9)]">
       <span 
         v-if="showValue"
