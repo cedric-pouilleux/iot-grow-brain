@@ -10,13 +10,14 @@
     Interval config and time counter moved to ModuleOptionsPanel.
   -->
   <div
-    class="relative rounded-lg group/card bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md flex flex-col justify-between flex-1 min-w-0"
+    class="relative rounded-lg group/card bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-between flex-1 min-w-0"
+    :style="{ '--shadow-color': hoverShadowColor }"
   >
     <!-- Header: Title + Sensor Selector -->
     <div class="pl-2" :class="showCharts ? 'pb-0' : 'pb-3'">
       <div class="flex justify-between items-center h-[30px]">
         <div class="flex items-center gap-1">
-           <span class="text-gray-500 dark:text-gray-400 text-[12px]">{{ currentTitle }}</span>
+           <span class="text-gray-500 dark:text-white text-[12px]">{{ currentTitle }}</span>
            <!-- Status Indicator (in header) -->
            <Icon
              :name="statusIcon"
@@ -32,13 +33,13 @@
              v-if="sensors.length > 1"
              :id="`sensor-list-${moduleId}-${sensors[0]?.key || 'default'}`"
              position="static"
-             dropdown-class="top-[30px] left-0 w-full bg-gray-800 rounded-b-lg rounded-t-none shadow-xl overflow-hidden text-sm"
+             dropdown-class="top-[30px] left-0 w-full bg-gray-900 rounded-b-lg rounded-t-none shadow-xl overflow-hidden text-sm"
            >
              <template #trigger="{ isOpen, toggle }">
                <button 
                  @click.stop="toggle"
-                 class="p-1 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                 :class="{'text-white bg-gray-800 hover:bg-gray-800 hover:text-white rounded-tr-lg': isOpen}"
+                 class="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white hover:text-white dark:hover:text-white transition-colors"
+                 :class="{'text-white bg-gray-900 hover:bg-gray-900 hover:text-white rounded-tr-lg': isOpen}"
                  title="Changer de capteur"
                >
                  <Icon name="tabler:list" class="w-4 h-4" />
@@ -92,12 +93,12 @@
           <!-- Empty space if no trend to maintain alignment -->
           <div v-else class="w-2.5 h-2.5 -mb-0.5"></div>
           
-          <!-- Unit -->
-          <span class="text-sm font-medium text-gray-400 dark:text-gray-500">{{ unit }}</span>
+          <!-- Unit -->  
+          <span class="text-sm font-medium text-gray-400 dark:text-gray-400">{{ unit }}</span>
         </div>
       </div>
       
-      <!-- Threshold Alert (below value, only when not "good") -->
+      <!-- Threshold Alert (below value, only when not good) -->
       <div class="h-[18px] flex items-center">
         <span 
           v-if="thresholdAlert && thresholdAlert.level !== 'good'" 
@@ -110,16 +111,16 @@
     </div>
 
     <!-- Graph Area (only when charts enabled) -->
-    <div v-if="showCharts" class="h-[92px] w-full relative mt-2 rounded-b-lg overflow-hidden group-hover/card:bg-gray-50/30 transition-colors">
+    <div v-if="showCharts" class="h-[92px] w-full relative mt-2 rounded-b-lg overflow-hidden">
       <!-- Loading overlay -->
-      <div v-if="isLoading" class="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+      <div v-if="isLoading" class="absolute inset-0 bg-white/80 dark:bg-gray-800/80 flex items-center justify-center z-10">
         <div class="animate-spin w-5 h-5 border-2 border-gray-300 border-t-emerald-500 rounded-full"></div>
       </div>
 
       <!-- Maximize Graph Button -->
       <button 
         @click.stop="$emit('toggle-graph')"
-        class="absolute bottom-1 right-1 p-1.5 text-gray-600 hover:text-blue-600 hover:bg-white/80 rounded transition-colors z-20 opacity-0 group-hover/card:opacity-100"
+        class="absolute bottom-1 right-1 p-1.5 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded transition-colors z-20 opacity-0 group-hover/card:opacity-100"
         title="Agrandir le graphique"
       >
         <Icon name="tabler:arrows-maximize" class="w-4 h-4" />
@@ -331,6 +332,21 @@ const valueColorClass = computed(() => {
     gray: 'text-gray-400',
   }
   return map[props.color] || 'text-gray-800'
+})
+
+// Shadow color for hover effect (colored glow)
+const hoverShadowColor = computed(() => {
+  const map: Record<string, string> = {
+    emerald: 'rgba(16, 185, 129, 0.4)',  // emerald-500
+    orange: 'rgba(249, 115, 22, 0.4)',   // orange-500
+    amber: 'rgba(245, 158, 11, 0.4)',    // amber-500
+    blue: 'rgba(59, 130, 246, 0.4)',     // blue-500
+    violet: 'rgba(139, 92, 246, 0.4)',   // violet-500
+    pink: 'rgba(236, 72, 153, 0.4)',     // pink-500
+    cyan: 'rgba(6, 182, 212, 0.4)',      // cyan-500
+    gray: 'rgba(156, 163, 175, 0.3)',    // gray-400
+  }
+  return map[props.color] || 'rgba(0, 0, 0, 0.2)'
 })
 
 // ============================================================================

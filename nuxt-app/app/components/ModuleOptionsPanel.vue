@@ -13,36 +13,36 @@
   <Transition name="slide">
     <div 
       v-if="isOpen" 
-      class="overflow-hidden"   
+      class="overflow-hidden"
     >
       <div class="grid grid-cols-6 gap-4 mb-4 items-stretch">
         
         <!-- LEFT: Informations (1 col) -->
         <div class="col-span-6 lg:col-span-1 flex flex-col space-y-3">
-          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+          <h3 class="text-[13px] text-gray-500 dark:text-white">
             Informations
           </h3>
           
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-3 flex flex-col justify-between flex-grow">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 flex flex-col justify-between flex-grow">
             <!-- Hardware Section -->
             <div>
-              <div class="flex items-center justify-between mb-1">
-                <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">Hardware</span>
+              <div class="flex items-center justify-between mb-1"> 
+                <span class="text-[12px] font-medium text-gray-500 dark:text-gray-200">Hardware</span>
                 <div 
                   class="w-2.5 h-2.5 rounded-full cursor-help"
                   :class="isOnline ? 'bg-green-500' : 'bg-red-500'"
                   :title="'Uptime: ' + formattedUptime"
-                ></div>
+                ></div> 
               </div>
-              <div class="text-xs space-y-0.5">
-                <div class="text-gray-800 dark:text-gray-200 capitalize">{{ moduleId }}</div>
-                <div class="text-gray-600 dark:text-gray-400">{{ hardwareModel }}</div>
-                <div class="text-gray-500 dark:text-gray-500">CPU : {{ cpuFreq }} MHz</div>
+              <div class="text-xs space-y-0.5 text-gray-500 dark:text-gray-400">
+                <div>{{ moduleId }}</div>
+                <div>{{ hardwareModel }}</div>
+                <div>Cpu {{ cpuFreq }} MHz</div>
               </div>
             </div>
             
             <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
-              <div class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Réseau</div>
+              <div class="text-[12px] font-medium text-gray-500 dark:text-gray-200 mb-1">Réseau</div>
               <div class="text-xs space-y-0.5">
                 <div class="flex justify-between">
                   <span class="text-gray-500 dark:text-gray-400">IP</span>
@@ -57,7 +57,7 @@
             
             <!-- Memory Section -->
             <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
-              <div class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Mémoire</div>
+              <div class="text-[12px] font-medium text-gray-500 dark:text-gray-200 mb-1">Mémoire</div>
               <div class="space-y-2">
                 <!-- Flash Bar -->
                 <MemoryBar
@@ -82,13 +82,13 @@
 
         <!-- MIDDLE: Configuration du module (2 cols) -->
         <div class="col-span-6 lg:col-span-2 flex flex-col space-y-3">
-          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            Configuration
+          <h3 class="text-[13px] text-gray-500 dark:text-white">
+            Configuration du module
           </h3>
           
           <!-- Zone Selector -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-3 flex-grow">
-            <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1 block">Zone associée</span>
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 flex-grow">
+            <h3 class="text-[12px] text-gray-500 dark:text-gray-200 mb-1 block">Zone associée</h3>
             <div class="flex flex-wrap gap-1.5 mt-2 items-center">
               <!-- Zone Tags (toggle on click) -->
               <button
@@ -117,11 +117,10 @@
           </div>
 
           <!-- Chart Options -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-3">
-            <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase mb-1 block">Graphiques</span>
-            
+          <h3 class="text-[13px] text-gray-500 dark:text-white">Configuration des graphiques</h3>
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3">
             <!-- Show Charts Toggle -->
-            <div class="flex items-center justify-between mt-2">
+            <div class="flex items-center justify-between">
               <span class="text-xs text-gray-600 dark:text-gray-300">Afficher les graphiques</span>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input 
@@ -166,11 +165,10 @@
 
         <!-- RIGHT: Sensors (3 cols) -->
         <div class="col-span-6 lg:col-span-3 flex flex-col space-y-3">
-          <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            Configuration des Capteurs
-          </h3>
+
+          <h3 class="text-[13px] text-gray-500 dark:text-white">Configuration des Capteurs</h3>
           
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700 flex-grow">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm divide-y divide-gray-100 dark:divide-gray-900 flex-grow">
             <HardwareSensorRow
               v-for="hw in hardwareSensorList"
               :key="hw.hardwareKey"

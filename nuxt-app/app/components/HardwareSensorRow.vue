@@ -5,7 +5,7 @@
     Compact row for hardware sensor with measurements, interval control, and reset button.
     All elements on a single line for maximum density.
   -->
-  <div class="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
+  <div class="px-3 py-2 flex items-center gap-2">
     
     <!-- Status Indicator -->
     <div 
@@ -35,7 +35,7 @@
     <div class="flex-1"></div>
     
     <!-- Time Counter (compact) -->
-    <span class="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0">
+    <span class="text-[10px] text-gray-400 dark:text-gray-300 flex-shrink-0">
       {{ timeAgo || '--' }}
     </span>
     
@@ -50,18 +50,20 @@
       <Icon :name="resetting ? 'tabler:loader' : 'tabler:refresh'" class="w-3.5 h-3.5" />
     </button>
     
-    <!-- Interval Control (discreet rectangle) -->
-    <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded px-2 py-1 flex-shrink-0">
+    <!-- Interval Control (glossy slider) -->
+    <div class="flex items-center gap-2 flex-shrink-0" :class="{ 'opacity-40': hardware.status === 'missing' }">
       <input
         v-model.number="localInterval"
         type="range"
         min="10"
         max="300"
         step="10"
-        class="w-16 h-1 bg-gray-300 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-gray-500 dark:accent-gray-400"
+        :disabled="hardware.status === 'missing'"
+        class="interval-slider w-20 h-2 rounded-full"
+        :class="hardware.status === 'missing' ? 'cursor-not-allowed' : 'cursor-pointer'"
         @change="saveInterval"
       />
-      <span class="text-[10px] text-gray-600 dark:text-gray-300 font-mono w-7 text-right">
+      <span class="text-[11px] w-8 text-right font-medium" :class="hardware.status === 'missing' ? 'text-gray-400 dark:text-gray-600' : 'text-gray-600 dark:text-gray-300'">
         {{ localInterval }}s
       </span>
     </div>
@@ -236,3 +238,57 @@ const resetSensor = async () => {
   }
 }
 </script>
+
+<style scoped>
+/* Glossy Slider Styles */
+.interval-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to right, #374151 0%, #6b7280 100%);
+  border-radius: 999px;
+  outline: none;
+}
+
+/* Dark mode track */
+:global(.dark) .interval-slider {
+  background: linear-gradient(to right, #1f2937 0%, #4b5563 100%);
+}
+
+/* Webkit (Chrome, Safari) thumb */
+.interval-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 10px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #fff 0%, #e5e7eb 50%, #d1d5db 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.interval-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+:global(.dark) .interval-slider::-webkit-slider-thumb {
+  background: linear-gradient(180deg, #e5e7eb 0%, #9ca3af 50%, #6b7280 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Firefox thumb */
+.interval-slider::-moz-range-thumb {
+  width: 14px;
+  height: 10px;
+  border: none;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #fff 0%, #e5e7eb 50%, #d1d5db 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+
+:global(.dark) .interval-slider::-moz-range-thumb {
+  background: linear-gradient(180deg, #e5e7eb 0%, #9ca3af 50%, #6b7280 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+</style>

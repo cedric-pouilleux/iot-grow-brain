@@ -34,18 +34,31 @@
             Aucun module trouvé
           </div>
 
-          <div v-else class="space-y-6">
-            <ModulePanel
-              v-for="module in modules"
-              :key="module.id"
-              :module-id="module.id"
-              :module-name="module.name"
-              :device-status="getModuleDeviceStatus(module.id)"
-              :sensor-data="getModuleSensorData(module.id)"
-              :is-history-loading="isHistoryLoading"
-              @zone-changed="handleZoneChanged"
-              @open-zone-drawer="openZoneDrawer"
-            />
+          <div v-else class="space-y-8">
+            <!-- Iterate over zone groups -->
+            <div v-for="group in modulesByZone" :key="group.zoneId ?? 'unassigned'" class="space-y-4">
+              <!-- Zone Header -->
+              <h2 class="text-lg font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                <Icon name="tabler:map-pin" class="w-5 h-5" />
+                {{ group.zoneName }}
+                <span class="text-sm font-normal text-gray-400">({{ group.modules.length }})</span>
+              </h2>
+              
+              <!-- Modules in this zone -->
+              <div class="space-y-6">
+                <ModulePanel
+                  v-for="module in group.modules"
+                  :key="module.id"
+                  :module-id="module.id"
+                  :module-name="module.name"
+                  :device-status="getModuleDeviceStatus(module.id)"
+                  :sensor-data="getModuleSensorData(module.id)"
+                  :is-history-loading="isHistoryLoading"
+                  @zone-changed="handleZoneChanged"
+                  @open-zone-drawer="openZoneDrawer"
+                />
+              </div>
+            </div>
           </div>
 
           <template #fallback>
@@ -104,7 +117,49 @@ const isZoneDrawerOpen = ref(false)
 const activeDeviceForZone = ref<string | null>(null)
 
 // Zones composable for refresh
-const { fetchZones } = useZones()
+const { zones, fetchZones } = useZones()
+
+// ============================================================================
+// Modules grouped by zones
+// ============================================================================
+
+interface ModuleGroup {
+  zoneId: string | null
+  zoneName: string
+  modules: typeof modules.value
+}
+
+const modulesByZone = computed<ModuleGroup[]>(() => {
+  const groups: ModuleGroup[] = []
+  const assignedModuleIds = new Set<string>()
+
+  // Group modules by zone
+  for (const zone of zones.value) {
+    const zoneModules = modules.value.filter(m => 
+      zone.devices?.some(d => d.moduleId === m.id)
+    )
+    if (zoneModules.length > 0) {
+      groups.push({
+        zoneId: zone.id,
+        zoneName: zone.name,
+        modules: zoneModules
+      })
+      zoneModules.forEach(m => assignedModuleIds.add(m.id))
+    }
+  }
+
+  // Add unassigned modules at the end
+  const unassigned = modules.value.filter(m => !assignedModuleIds.has(m.id))
+  if (unassigned.length > 0) {
+    groups.push({
+      zoneId: null,
+      zoneName: 'Non assignés',
+      modules: unassigned
+    })
+  }
+
+  return groups
+})
 
 /**
  * Open zone drawer for a specific device
@@ -190,8 +245,8 @@ const reloadPage = (): void => {
 onMounted(async () => {
   isInitialLoading.value = true
 
-  // Load modules and DB size in parallel
-  await Promise.all([loadModules(), loadDbSize()])
+  // Load modules, zones and DB size in parallel
+  await Promise.all([loadModules(), fetchZones(), loadDbSize()])
 
   // Connect to MQTT
   connectMqtt()
