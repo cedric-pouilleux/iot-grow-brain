@@ -15,7 +15,7 @@
   >
     <!-- Header: Title + Sensor Selector -->
     <div class="pl-2" :class="showCharts ? 'pb-0' : 'pb-3'">
-      <div class="flex justify-between items-center h-[30px]">
+      <div class="flex justify-between">
         <div class="flex items-center gap-1">
            <span class="text-gray-500 dark:text-white text-[12px]">{{ currentTitle }}</span>
            <!-- Status Indicator (in header) -->
@@ -27,22 +27,22 @@
            />
         </div>
 
-        <div class="flex items-center">
+        <div class="flex">
            <!-- Sensor Selection Dropdown (for multi-sensor groups) -->
            <AppDropdown
              v-if="sensors.length > 1"
              :id="`sensor-list-${moduleId}-${sensors[0]?.key || 'default'}`"
              position="static"
-             dropdown-class="top-[30px] left-0 w-full bg-gray-900 rounded-b-lg rounded-t-none shadow-xl overflow-hidden text-sm"
+             dropdown-class="left-0 w-full bg-gray-950 rounded-b-lg rounded-t-none shadow-xl overflow-hidden text-sm"
            >
              <template #trigger="{ isOpen, toggle }">
                <button 
                  @click.stop="toggle"
-                 class="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white hover:text-white dark:hover:text-white transition-colors"
-                 :class="{'text-white bg-gray-900 hover:bg-gray-900 hover:text-white rounded-tr-lg': isOpen}"
+                 class="p-1 rounded-tr-lg text-white hover:bg-gray-950 transition-colors flex items-center"
+                 :class="{'bg-gray-950': isOpen}"
                  title="Changer de capteur"
                >
-                 <Icon name="tabler:list" class="w-4 h-4" />
+                 <Icon name="tabler:cpu" class="w-4 h-4" />
                </button>
              </template>
 
@@ -52,14 +52,14 @@
                    v-for="sensor in sensors"
                    :key="sensor.key"
                    @click="selectSensor(sensor.key, close)"
-                   class="w-full text-left p-2 rounded flex items-center justify-between transition-colors"
-                   :class="activeSensorKey === sensor.key ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'"
+                   class="w-full text-left p-2 flex items-center justify-between transition-colors"
+                   :class="activeSensorKey === sensor.key ? valueColorClass : 'text-gray-400 hover:bg-gray-900 hover:text-white'"
                  >
                    <span class="text-xs">
                      {{ getDropdownItemLabel(sensor) }}
                    </span>
                    <div class="flex items-center gap-2">
-                      <span class="font-bold font-mono text-xs">{{ formatSensorValue(sensor.value) }}<span class="text-xs font-normal text-gray-400">{{ getUnit(sensor.key) }}</span></span>
+                      <span class="font-bold font-mono text-xs" :class="activeSensorKey === sensor.key ? valueColorClass : ''">{{ formatSensorValue(sensor.value) }}<span class="text-xs font-normal" :class="activeSensorKey === sensor.key ? 'opacity-70' : 'text-gray-500'">{{ getUnit(sensor.key) }}</span></span>
                       <Icon 
                         :name="getSensorStatus(sensor).icon"
                         class="w-3 h-3" 
@@ -82,9 +82,9 @@
         
         <!-- Trend + Unit stacked vertically -->
         <div class="flex flex-col items-start ml-1 -mb-0.5">
-          <!-- Trend Arrow (above unit) -->
+          <!-- Trend Arrow (above unit) - only show when sensor is active and trend exists -->
           <Icon
-            v-if="trend !== 'stable'"
+            v-if="activeSensor?.status !== 'missing' && trend !== 'stable'"
             :name="trend === 'up' ? 'tabler:triangle-filled' : 'tabler:triangle-inverted-filled'"
             class="w-2 h-2 "
             :class="trendColorClass"
