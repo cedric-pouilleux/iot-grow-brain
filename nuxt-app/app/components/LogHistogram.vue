@@ -1,16 +1,9 @@
 <template>
-  <div class="histogram-wrapper">
-    <div class="histogram-container" ref="containerRef">
-      <!-- Y Axis -->
-      <div class="y-axis">
-        <span>{{ formatNumber(maxCount) }}</span>
-        <span>{{ formatNumber(Math.round(maxCount / 2)) }}</span>
-        <span>0</span>
-      </div>
-
+  <div class="">
+    <div class="grid grid-cols-1 grid-rows-[100px_24px] gap-y-1">
       <!-- Chart Area -->
       <div 
-        class="chart-area" 
+        class="relative cursor-crosshair" 
         ref="chartRef"
         @mousedown="startDrag"
         @mousemove="onDrag"
@@ -23,6 +16,7 @@
           preserveAspectRatio="none"
           :viewBox="`0 0 ${bucketCount} 100`"
           shape-rendering="crispEdges"
+          class="block"
         >
           <!-- Bars with stacked category segments -->
           <g v-for="(bucket, i) in buckets" :key="i">
@@ -65,30 +59,35 @@
         <!-- Tooltip -->
         <div 
           v-if="tooltip.show" 
-          class="tooltip" 
+          class="absolute bg-gray-800 dark:bg-gray-900 text-white p-2 rounded-md text-[11px] pointer-events-none z-50 min-w-[120px] shadow-lg border border-gray-700" 
           :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
         >
-          <div class="tooltip-time">{{ tooltip.time }}</div>
-          <div v-for="cat in tooltip.categories" :key="cat.name" class="tooltip-row">
-            <span class="tooltip-dot" :style="{ background: cat.color }"></span>
+          <div class="font-medium mb-1 pb-1 border-b border-gray-700">{{ tooltip.time }}</div>
+          <div v-for="cat in tooltip.categories" :key="cat.name" class="flex items-center gap-1.5 my-0.5">
+            <span class="w-2 h-2 rounded-full" :style="{ background: cat.color }"></span>
             {{ cat.name }}: {{ cat.count }}
           </div>
-          <div class="tooltip-total">Total: {{ formatNumber(tooltip.total) }}</div>
+          <div class="mt-1 pt-1 border-t border-gray-700 font-medium">Total: {{ formatNumber(tooltip.total) }}</div>
         </div>
       </div>
 
       <!-- X Axis -->
-      <div class="x-axis">
-        <span v-for="label in timeLabels" :key="label.text" :style="{ left: label.position + '%' }">
+      <div class="relative h-5 text-[10px] text-gray-400 dark:text-gray-500">
+        <span 
+          v-for="label in timeLabels" 
+          :key="label.text" 
+          class="absolute -translate-x-1/2 whitespace-nowrap"
+          :style="{ left: label.position + '%' }"
+        >
           {{ label.text }}
         </span>
       </div>
     </div>
 
     <!-- Selection info bar -->
-    <div v-if="selection" class="selection-info">
+    <div v-if="selection" class="flex items-center justify-between px-4 py-1.5 bg-blue-50 dark:bg-blue-900/20 border-t border-blue-100 dark:border-blue-900/30 text-xs text-blue-800 dark:text-blue-200">
       <span>Sélection: {{ formatDateTime(selection.start) }} → {{ formatDateTime(selection.end) }}</span>
-      <button @click="clearSelection" class="clear-btn">✕ Effacer</button>
+      <button @click="clearSelection" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors">✕ Effacer</button>
     </div>
   </div>
 </template>
@@ -108,7 +107,7 @@ const emit = defineEmits<{
 
 // Category colors - must match logs.vue
 const CATEGORY_COLORS: Record<string, string> = {
-  'ESP32': '#4f46e5',
+  'HARDWARE': '#4f46e5',
   'MQTT': '#ea580c',
   'DB': '#0891b2',
   'API': '#db2777',

@@ -2,7 +2,7 @@
   <div :class="[position]" ref="containerRef">
     <!-- Trigger Slot -->
     <div @click.stop="toggle" class="cursor-pointer group w-fit">
-      <slot name="trigger" :is-open="isOpen" :toggle="toggle" :close="close"></slot>
+      <slot name="trigger" :isOpen="isOpen" :toggle="toggle" :close="close"></slot>
     </div>
 
     <!-- Dropdown Content -->
@@ -12,7 +12,7 @@
       :class="dropdownClasses"
       @click.stop
     >
-      <slot name="content" :is-open="isOpen" :close="close"></slot>
+      <slot name="content" :isOpen="isOpen" :close="close"></slot>
     </div>
   </div>
 </template>
