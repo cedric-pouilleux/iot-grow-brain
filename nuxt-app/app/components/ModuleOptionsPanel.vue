@@ -23,7 +23,7 @@
             Informations
           </h3>
           
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 flex flex-col justify-between flex-grow">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 flex flex-col justify-between flex-grow overflow-visible">
             <!-- Hardware Section -->
             <div>
               <div class="flex items-center justify-between mb-1"> 
@@ -42,7 +42,16 @@
             </div>
             
             <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
-              <div class="text-[12px] font-medium text-gray-500 dark:text-gray-200 mb-1">Réseau</div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-[12px] font-medium text-gray-500 dark:text-gray-200">Réseau</span>
+                <div class="cursor-help" :title="`Signal: ${rssi || '--'} dBm`">
+                  <Icon v-if="!rssi" name="tabler:wifi-off" class="w-5 h-5" :class="rssiClass" />
+                  <Icon v-else-if="rssi > -60" name="tabler:wifi" class="w-5 h-5" :class="rssiClass" />
+                  <Icon v-else-if="rssi > -75" name="tabler:wifi-2" class="w-5 h-5" :class="rssiClass" />
+                  <Icon v-else-if="rssi > -85" name="tabler:wifi-1" class="w-5 h-5" :class="rssiClass" />
+                  <Icon v-else name="tabler:wifi-0" class="w-5 h-5" :class="rssiClass" />
+                </div>
+              </div>
               <div class="text-xs space-y-0.5">
                 <div class="flex justify-between">
                   <span class="text-gray-500 dark:text-gray-400">IP</span>
@@ -57,24 +66,26 @@
             
             <!-- Memory Section -->
             <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
-              <div class="text-[12px] font-medium text-gray-500 dark:text-gray-200 mb-1">Mémoire</div>
-              <div class="space-y-2">
-                <!-- Flash Bar -->
-                <MemoryBar
-                  label="Flash"
-                  :used-formatted="formatKb(flashPercentages.totalUsedKb)"
-                  :total-formatted="formatKb(flashTotalKb)"
-                  :segments="flashSegments"
-                />
-                <!-- RAM Bar -->
-                <MemoryBar
-                  label="RAM"
-                  :used-formatted="formatKb(ramPercentages.usedKb)"
-                  :total-formatted="formatKb(ramTotalKb)"
-                  :percent="ramUsedPercent"
-                  :tooltip="ramUsedTooltip"
-                  show-percent
-                />
+              <div class="text-[12px] font-medium text-gray-500 dark:text-gray-200 mb-2">Mémoire</div>
+              <div class="flex gap-4 justify-center">
+                <!-- Flash Doughnut -->
+                <div class="w-16 h-16 relative cursor-help" :title="flashTooltip">
+                  <ClientOnly>
+                    <Doughnut :data="flashChartData" :options="doughnutOptions" />
+                  </ClientOnly>
+                  <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span class="text-[9px] font-medium text-gray-500 dark:text-gray-400">Flash</span>
+                  </div>
+                </div>
+                <!-- RAM Doughnut -->
+                <div class="w-16 h-16 relative cursor-help" :title="ramTooltip">
+                  <ClientOnly>
+                    <Doughnut :data="ramChartData" :options="doughnutOptions" />
+                  </ClientOnly>
+                  <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span class="text-[9px] font-medium text-gray-500 dark:text-gray-400">RAM</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -203,6 +214,13 @@ import type { DeviceStatus, SensorDataPoint } from '../types'
 import { getHardwareModel } from '../utils/hardware'
 import { useStorageCalculations } from '../composables/useStorageCalculations'
 import HardwareSensorRow from './HardwareSensorRow.vue'
+import { Doughnut } from 'vue-chartjs'
+import { Chart as ChartJS, ArcElement, Tooltip } from 'chart.js'
+
+// Register Chart.js components
+if (process.client) {
+  ChartJS.register(ArcElement, Tooltip)
+}
 
 // ============================================================================
 // Props
@@ -302,6 +320,19 @@ const isOnline = computed(() =>
   !!props.deviceStatus?.system?.bootedAt
 )
 
+// WiFi RSSI signal strength
+const rssi = computed(() => props.deviceStatus?.system?.rssi)
+
+// WiFi signal color class based on strength
+const rssiClass = computed(() => {
+  const r = rssi.value
+  if (!r) return 'text-gray-400'
+  if (r > -60) return 'text-green-500'
+  if (r > -75) return 'text-yellow-500'
+  if (r > -85) return 'text-orange-500'
+  return 'text-red-500'
+})
+
 const flashUsedPercent = computed(() => {
   const { sketchPercent, otaPercent, systemPercent } = flashPercentages.value
   return Math.round(sketchPercent + otaPercent + systemPercent)
@@ -341,6 +372,41 @@ const flashSegments = computed(() => {
 const ramUsedPercent = computed(() => 
   Math.round(ramPercentages.value.usedPercent)
 )
+
+// Doughnut chart data for Flash (3 segments: Sketch, OTA, System)
+const flashChartData = computed(() => {
+  const { sketchPercent, otaPercent, systemPercent, freePercent } = flashPercentages.value
+  return {
+    labels: ['Sketch', 'OTA', 'System', 'Libre'],
+    datasets: [{
+      data: [sketchPercent, otaPercent, systemPercent, freePercent],
+      backgroundColor: ['#9ca3af', '#6b7280', '#4b5563', '#e5e7eb'],
+      borderWidth: 0,
+      cutout: '70%',
+    }]
+  }
+})
+
+// Doughnut chart data for RAM  
+const ramChartData = computed(() => ({
+  labels: ['Utilisé', 'Libre'],
+  datasets: [{
+    data: [ramUsedPercent.value, 100 - ramUsedPercent.value],
+    backgroundColor: ['#3b82f6', '#e5e7eb'],
+    borderWidth: 0,
+    cutout: '70%',
+  }]
+}))
+
+// Doughnut chart options (tooltips disabled, using native title attribute instead)
+const doughnutOptions = {
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: {
+    legend: { display: false },
+    tooltip: { enabled: false }
+  }
+}
 
 const flashTooltip = computed(() => {
   const { sketchPercent, otaPercent, systemPercent, freePercent } = flashPercentages.value

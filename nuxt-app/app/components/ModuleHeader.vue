@@ -100,19 +100,6 @@
           />
         </button>
 
-        <!-- WiFi Signal Indicator -->
-        <div class="relative group/rssi cursor-help flex items-center justify-center">
-          <Icon v-if="!rssi" name="tabler:wifi-off" class="w-6 h-6" :class="rssiClass" />
-          <Icon v-else-if="rssi > -60" name="tabler:wifi" class="w-6 h-6" :class="rssiClass" />
-          <Icon v-else-if="rssi > -75" name="tabler:wifi-2" class="w-6 h-6" :class="rssiClass" />
-          <Icon v-else-if="rssi > -85" name="tabler:wifi-1" class="w-6 h-6" :class="rssiClass" />
-          <Icon v-else name="tabler:wifi-0" class="w-6 h-6" :class="rssiClass" />
-          <div
-            class="absolute top-full right-0 mt-1 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/rssi:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg"
-          >
-            Signal: {{ rssi || '--' }} dBm
-          </div>
-        </div>
       </div>
     </div>
   </div>
