@@ -57,7 +57,8 @@ const logsRoutes: FastifyPluginAsync = async fastify => {
       // Build conditions
       const conditions = []
       if (category) {
-        const cats = Array.isArray(category) ? category : [category]
+        const cats = Array.isArray(category) ? [...category] : [category]
+        if (cats.includes('HARDWARE') && !cats.includes('ESP32')) cats.push('ESP32')
         if (cats.length > 0) {
           conditions.push(inArray(systemLogs.category, cats))
         }
@@ -175,7 +176,8 @@ const logsRoutes: FastifyPluginAsync = async fastify => {
       `
 
       if (category) {
-        const cats = Array.isArray(category) ? category : [category]
+        const cats = Array.isArray(category) ? [...category] : [category]
+        if (cats.includes('HARDWARE') && !cats.includes('ESP32')) cats.push('ESP32')
         if (cats.length > 0) {
           query = sql`${query} AND category IN ${cats}`
         }
@@ -187,7 +189,11 @@ const logsRoutes: FastifyPluginAsync = async fastify => {
         }
       }
       if (search) {
-        query = sql`${query} AND (msg ILIKE ${`%${search}%`} OR level ILIKE ${`%${search}%`})`
+        query = sql`${query} AND (
+          msg ILIKE ${`%${search}%`} 
+          OR level ILIKE ${`%${search}%`}
+          OR details::text ILIKE ${`%${search}%`}
+        )`
       }
 
       query = sql`${query} GROUP BY bucket, category ORDER BY bucket ASC`

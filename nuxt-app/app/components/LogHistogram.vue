@@ -107,12 +107,15 @@ const emit = defineEmits<{
 
 // Category colors - must match logs.vue
 const CATEGORY_COLORS: Record<string, string> = {
-  'HARDWARE': '#4f46e5',
-  'MQTT': '#ea580c',
-  'DB': '#0891b2',
-  'API': '#db2777',
-  'SYSTEM': '#475569',
-  'WEBSOCKET': '#fb923c',
+  'HARDWARE': '#6366f1', // Indigo-500
+  'Hardware': '#6366f1', // Case variant
+  'hardware': '#6366f1', // Case variant
+  'ESP32': '#6366f1',    // Legacy
+  'MQTT': '#f97316',     // Orange-500
+  'DB': '#06b6d4',       // Cyan-500
+  'API': '#ec4899',      // Pink-500
+  'SYSTEM': '#94a3b8',   // Slate-400 (Much brighter than 600)
+  'WEBSOCKET': '#fb923c',// Orange-400
 }
 
 interface RawBucket { 
