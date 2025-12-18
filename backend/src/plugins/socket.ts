@@ -29,7 +29,8 @@ export default fp(async fastify => {
     }
 
     fastify.log.success({
-      msg: '✓ [WEBSOCKET] Client connected',
+      msg: `[WEBSOCKET] Client connected (${clientInfo.ip})`,
+      source: 'USER',
       socketId: clientInfo.id,
       ip: clientInfo.ip,
       userAgent: clientInfo.userAgent,
@@ -40,7 +41,8 @@ export default fp(async fastify => {
     socket.on('disconnect', (reason: string) => {
       connectedClients = Math.max(0, connectedClients - 1)
       fastify.log.info({
-        msg: '🔌 [WEBSOCKET] Client disconnected',
+        msg: '[WEBSOCKET] Client disconnected',
+        source: 'USER',
         socketId: clientInfo.id,
         reason,
         totalClients: connectedClients,

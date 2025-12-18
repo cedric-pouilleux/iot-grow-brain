@@ -124,6 +124,8 @@ export const systemLogs = pgTable('system_logs', {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   category: text('category').notNull(), // HARDWARE, MQTT, DB, API, SYSTEM
+  source: text('source').notNull().default('SYSTEM'), // SYSTEM or USER
+  direction: text('direction'), // IN, OUT, or null
   level: text('level').notNull(),
   msg: text('msg').notNull(),
   time: timestamp('time').notNull(),

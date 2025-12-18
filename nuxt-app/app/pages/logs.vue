@@ -107,6 +107,124 @@
             </template>
           </AppDropdown>
 
+          <!-- Source Dropdown -->
+          <AppDropdown
+            id="source-filter"
+            dropdown-class="top-full left-0 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-xl mt-1 overflow-hidden border border-gray-200 dark:border-gray-700"
+          >
+            <template #trigger="{ isOpen }">
+              <button
+                class="px-2.5 py-1.5 text-xs font-medium rounded border transition-colors flex items-center gap-1.5"
+                :class="isOpen || filters.source
+                  ? 'bg-gray-800 dark:bg-gray-700 text-white border-gray-800 dark:border-gray-600' 
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'"
+              >
+                <Icon :name="filters.source === 'USER' ? 'tabler:user' : 'tabler:settings'" class="w-3.5 h-3.5" />
+                {{ filters.source === 'USER' ? 'Utilisateur' : filters.source === 'SYSTEM' ? 'Système' : 'Source' }}
+                <Icon name="tabler:chevron-down" class="w-3 h-3" />
+              </button>
+            </template>
+            <template #content="{ close }">
+              <div class="py-1">
+                <button
+                  @click="filters.source = ''; close()"
+                  class="w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between"
+                  :class="!filters.source 
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium' 
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+                >
+                  <span class="flex items-center gap-2">Toutes</span>
+                  <Icon v-if="!filters.source" name="tabler:check" class="w-3.5 h-3.5 text-emerald-500" />
+                </button>
+                <button
+                  @click="filters.source = 'SYSTEM'; close()"
+                  class="w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between"
+                  :class="filters.source === 'SYSTEM' 
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium' 
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+                >
+                  <span class="flex items-center gap-2">
+                    <Icon name="tabler:settings" class="w-3.5 h-3.5 text-slate-500" />
+                    Système
+                  </span>
+                  <Icon v-if="filters.source === 'SYSTEM'" name="tabler:check" class="w-3.5 h-3.5 text-emerald-500" />
+                </button>
+                <button
+                  @click="filters.source = 'USER'; close()"
+                  class="w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between"
+                  :class="filters.source === 'USER' 
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium' 
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+                >
+                  <span class="flex items-center gap-2">
+                    <Icon name="tabler:user" class="w-3.5 h-3.5 text-indigo-500" />
+                    Utilisateur
+                  </span>
+                  <Icon v-if="filters.source === 'USER'" name="tabler:check" class="w-3.5 h-3.5 text-emerald-500" />
+                </button>
+              </div>
+            </template>
+          </AppDropdown>
+
+          <!-- Direction Dropdown -->
+          <AppDropdown
+            id="direction-filter"
+            dropdown-class="top-full left-0 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-xl mt-1 overflow-hidden border border-gray-200 dark:border-gray-700"
+          >
+            <template #trigger="{ isOpen }">
+              <button
+                class="px-2.5 py-1.5 text-xs font-medium rounded border transition-colors flex items-center gap-1.5"
+                :class="isOpen || filters.direction
+                  ? 'bg-gray-800 dark:bg-gray-700 text-white border-gray-800 dark:border-gray-600' 
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'"
+              >
+                <Icon :name="filters.direction === 'OUT' ? 'tabler:broadcast' : filters.direction === 'IN' ? 'tabler:antenna' : 'tabler:transfer'" class="w-3.5 h-3.5" />
+                {{ filters.direction === 'OUT' ? 'Envoi' : filters.direction === 'IN' ? 'Réception' : 'Direction' }}
+                <Icon name="tabler:chevron-down" class="w-3 h-3" />
+              </button>
+            </template>
+            <template #content="{ close }">
+              <div class="py-1">
+                <button
+                  @click="filters.direction = ''; close()"
+                  class="w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between"
+                  :class="!filters.direction 
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium' 
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+                >
+                  <span class="flex items-center gap-2">Toutes</span>
+                  <Icon v-if="!filters.direction" name="tabler:check" class="w-3.5 h-3.5 text-emerald-500" />
+                </button>
+                <button
+                  @click="filters.direction = 'OUT'; close()"
+                  class="w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between"
+                  :class="filters.direction === 'OUT' 
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium' 
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+                >
+                  <span class="flex items-center gap-2">
+                    <Icon name="tabler:broadcast" class="w-3.5 h-3.5 text-orange-500" />
+                    Envoi
+                  </span>
+                  <Icon v-if="filters.direction === 'OUT'" name="tabler:check" class="w-3.5 h-3.5 text-emerald-500" />
+                </button>
+                <button
+                  @click="filters.direction = 'IN'; close()"
+                  class="w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between"
+                  :class="filters.direction === 'IN' 
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium' 
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+                >
+                  <span class="flex items-center gap-2">
+                    <Icon name="tabler:antenna" class="w-3.5 h-3.5 text-cyan-500" />
+                    Réception
+                  </span>
+                  <Icon v-if="filters.direction === 'IN'" name="tabler:check" class="w-3.5 h-3.5 text-emerald-500" />
+                </button>
+              </div>
+            </template>
+          </AppDropdown>
+
           <!-- Level Dropdown (Multi-select) -->
           <AppDropdown
             id="level-filter"
@@ -216,8 +334,8 @@
     </div>
 
     <!-- Main Content (Table) -->
-    <div class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 w-full">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+    <div class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 w-full"> 
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow overflow-hidden">
         
         <!-- Loading State -->
         <div v-if="loading" class="p-8 text-center">
@@ -244,27 +362,33 @@
         <!-- Logs Table -->
         <div v-else>
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-900">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Heure</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Catégorie</th>
-                <th v-if="filters.categories.includes('HARDWARE')" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Module</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Niveau</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Message</th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-10"></th>
-              </tr>
-            </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
               <tr
-                v-for="log in logs"
+                v-for="log in logs" 
                 :key="log.id"
-                class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                 :class="{'bg-red-50 dark:bg-red-900/10': log.level === 'error' || log.level === 'fatal', 'bg-amber-50 dark:bg-amber-900/10': log.level === 'warn'}"
               >
-                <td class="px-4 py-2 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400 font-mono">
+                <td class="whitespace-nowrap text-xs text-gray-500 dark:text-gray-400 font-mono">
                   {{ formatTime(log.time) }}
                 </td>
-                <td class="px-4 py-2 whitespace-nowrap">
+                <td class="text-center">
+                  <Icon 
+                    :name="log.source === 'USER' ? 'tabler:user' : 'tabler:settings'" 
+                    class="w-4 h-4"
+                    :class="log.source === 'USER' ? 'text-indigo-500' : 'text-slate-400'"
+                    :title="log.source === 'USER' ? 'Action utilisateur' : 'Système'"
+                  />
+                </td>
+                <td class="text-center">
+                  <Icon 
+                    v-if="log.direction"
+                    :name="log.direction === 'OUT' ? 'tabler:broadcast' : 'tabler:antenna'" 
+                    class="w-4 h-4"
+                    :class="log.direction === 'OUT' ? 'text-orange-500' : 'text-cyan-500'"
+                    :title="log.direction === 'OUT' ? 'Envoi' : 'Réception'"
+                  />
+                </td>
+                <td class="whitespace-nowrap">
                   <span
                     :class="getCategoryClass(log.category)"
                     class="px-2 py-0.5 text-xs font-medium rounded"
@@ -272,21 +396,21 @@
                     {{ formatCategory(log.category) }}
                   </span>
                 </td>
-                <td v-if="filters.categories.includes('HARDWARE')" class="px-4 py-2 whitespace-nowrap text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+                <td v-if="filters.categories.includes('HARDWARE')" class="whitespace-nowrap text-xs text-indigo-600 dark:text-indigo-400 font-medium">
                   {{ log.details?.moduleId || '-' }}
                 </td>
-                <td class="px-4 py-2 whitespace-nowrap">
+                <td class="whitespace-nowrap">
                   <span
                     :class="getLevelClass(log.level)"
                     class="text-xs font-medium"
                   >
                     {{ log.level }}
-                  </span>
+                  </span> 
                 </td>
-                <td class="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 font-mono text-xs">
+                <td class="text-sm text-gray-900 dark:text-gray-300">
                   {{ log.msg }}
                 </td>
-                <td class="px-4 py-2 text-right whitespace-nowrap">
+                <td class="text-right">
                   <button
                     v-if="log.details && Object.keys(log.details).length > 0"
                     @click="openDetails(log)"
@@ -431,6 +555,8 @@
 interface LogEntry {
   id: string
   category: string
+  source: string
+  direction: string | null
   level: string
   msg: string
   time: string
@@ -474,6 +600,8 @@ const closeDetails = () => {
 
 const filters = ref({
   categories: [] as string[],
+  source: '' as '' | 'SYSTEM' | 'USER',
+  direction: '' as '' | 'IN' | 'OUT',
   levels: [] as string[],
   search: '',
   limit: '100',
@@ -510,7 +638,6 @@ const categories = [
   { value: 'MQTT', label: 'MQTT', color: '#f97316' },     // Orange-500
   { value: 'DB', label: 'DB', color: '#06b6d4' },       // Cyan-500
   { value: 'API', label: 'API', color: '#ec4899' },      // Pink-500
-  { value: 'SYSTEM', label: 'System', color: '#94a3b8' },   // Slate-400
   { value: 'WEBSOCKET', label: 'WebSocket', color: '#fb923c' },
 ]
 
@@ -521,7 +648,6 @@ const periods = [
 
 const levels = [
   { value: 'trace', label: 'Trace', color: '#6b7280' },
-  { value: 'debug', label: 'Debug', color: '#3b82f6' },
   { value: 'success', label: 'Success', color: '#22c55e' },
   { value: 'info', label: 'Info', color: '#10b981' },
   { value: 'warn', label: 'Warn', color: '#f59e0b' },
@@ -566,6 +692,12 @@ const loadLogs = async () => {
     filters.value.levels.forEach(lvl => {
       params.append('level', lvl)
     })
+    
+    // Add source filter
+    if (filters.value.source) params.append('source', filters.value.source)
+    
+    // Add direction filter
+    if (filters.value.direction) params.append('direction', filters.value.direction)
     
     if (filters.value.search) params.append('search', filters.value.search)
     
@@ -708,7 +840,7 @@ watch(timeRange, () => {
   loadLogs()
 })
 
-watch(() => [filters.value.categories, filters.value.levels, filters.value.limit], () => {
+watch(() => [filters.value.categories, filters.value.source, filters.value.direction, filters.value.levels, filters.value.limit], () => {
   offset.value = 0
   syncFiltersToUrl()
   loadLogs()
@@ -737,6 +869,8 @@ const syncFiltersToUrl = () => {
   const query: Record<string, string | string[]> = {}
   
   if (filters.value.search) query.search = filters.value.search
+  if (filters.value.source) query.source = filters.value.source
+  if (filters.value.direction) query.direction = filters.value.direction
   if (filters.value.categories.length > 0) query.category = filters.value.categories
   if (filters.value.levels.length > 0) query.level = filters.value.levels
   if (filters.value.limit !== '100') query.limit = filters.value.limit
@@ -781,6 +915,22 @@ const initFiltersFromUrl = () => {
     const tr = String(route.query.timeRange)
     if (periods.some(p => p.value === tr)) {
       timeRange.value = tr
+    }
+  }
+  
+  // Source
+  if (route.query.source) {
+    const src = String(route.query.source)
+    if (src === 'SYSTEM' || src === 'USER') {
+      filters.value.source = src
+    }
+  }
+  
+  // Direction
+  if (route.query.direction) {
+    const dir = String(route.query.direction)
+    if (dir === 'IN' || dir === 'OUT') {
+      filters.value.direction = dir
     }
   }
 }

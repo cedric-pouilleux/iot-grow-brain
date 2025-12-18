@@ -6,12 +6,15 @@ import { systemLogs } from '../../db/schema'
 
 const LogsQuerySchema = z.object({
   category: z.union([
-    z.enum(['HARDWARE', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']),
-    z.array(z.enum(['HARDWARE', 'MQTT', 'DB', 'API', 'SYSTEM', 'WEBSOCKET']))
+    z.enum(['HARDWARE', 'MQTT', 'DB', 'API', 'WEBSOCKET']),
+    z.array(z.enum(['HARDWARE', 'MQTT', 'DB', 'API', 'WEBSOCKET']))
   ]).optional(),
+  source: z.enum(['SYSTEM', 'USER']).optional(),
+  direction: z.enum(['IN', 'OUT']).optional(),
+  moduleId: z.string().optional(),
   level: z.union([
-    z.enum(['trace', 'debug', 'success', 'info', 'warn', 'error', 'fatal']),
-    z.array(z.enum(['trace', 'debug', 'success', 'info', 'warn', 'error', 'fatal']))
+    z.enum(['trace', 'success', 'info', 'warn', 'error', 'fatal']),
+    z.array(z.enum(['trace', 'success', 'info', 'warn', 'error', 'fatal']))
   ]).optional(),
   search: z.string().optional(),
   startDate: z.string().datetime().optional(),
@@ -23,6 +26,8 @@ const LogsQuerySchema = z.object({
 const LogEntrySchema = z.object({
   id: z.string(),
   category: z.string(),
+  source: z.string(),
+  direction: z.string().nullable(),
   level: z.string(),
   msg: z.string(),
   time: z.date(),
@@ -52,16 +57,25 @@ const logsRoutes: FastifyPluginAsync = async fastify => {
       },
     },
     async (request, reply) => {
-      const { category, level, search, startDate, endDate, limit, offset } = request.query
+      const { category, source, direction, moduleId, level, search, startDate, endDate, limit, offset } = request.query
 
       // Build conditions
       const conditions = []
       if (category) {
-        const cats = Array.isArray(category) ? [...category] : [category]
+        const cats: string[] = Array.isArray(category) ? [...category] : [category]
         if (cats.includes('HARDWARE') && !cats.includes('ESP32')) cats.push('ESP32')
         if (cats.length > 0) {
           conditions.push(inArray(systemLogs.category, cats))
         }
+      }
+      if (source) {
+        conditions.push(eq(systemLogs.source, source))
+      }
+      if (direction) {
+        conditions.push(eq(systemLogs.direction, direction))
+      }
+      if (moduleId) {
+        conditions.push(sql`${systemLogs.details}->>'moduleId' = ${moduleId}`)
       }
       if (level) {
         const lvls = Array.isArray(level) ? level : [level]
@@ -179,7 +193,7 @@ const logsRoutes: FastifyPluginAsync = async fastify => {
       `
 
       if (category) {
-        const cats = Array.isArray(category) ? [...category] : [category]
+        const cats: string[] = Array.isArray(category) ? [...category] : [category]
         if (cats.includes('HARDWARE') && !cats.includes('ESP32')) cats.push('ESP32')
         if (cats.length > 0) {
           query = sql`${query} AND category IN ${cats}`

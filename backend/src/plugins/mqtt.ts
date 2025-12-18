@@ -52,13 +52,6 @@ export default fp(async (fastify: FastifyInstance) => {
       return `${moduleId} (${measurements.length}: ${sensors})`
     })
 
-    fastify.log.info({
-      msg: `[DB] Flushing ${batch.length} measurements: ${deviceSummaries.join(' | ')}`,
-      count: batch.length,
-      devices: Object.keys(byDevice),
-      measurements: byDevice,
-    })
-
     try {
       await mqttRepo.insertMeasurementsBatch(batch)
       
@@ -160,18 +153,6 @@ export default fp(async (fastify: FastifyInstance) => {
     const topic = `${moduleId}/sensors/config`
     const payload = JSON.stringify(config)
     client.publish(topic, payload, { retain: true, qos: 1 })
-    
-    // Build detailed sensor config summary for logging
-    const sensorDetails = Object.entries(config.sensors || {})
-      .map(([key, cfg]) => `${key}=${cfg.interval}s`)
-      .join(', ')
-    
-    fastify.log.success({ 
-      msg: `✓ [MQTT] Config sent to ${moduleId}: ${sensorDetails || 'empty'}`, 
-      moduleId, 
-      sensorCount: Object.keys(config.sensors || {}).length,
-      sensors: config.sensors
-    })
     return true
   })
 
@@ -182,6 +163,7 @@ export default fp(async (fastify: FastifyInstance) => {
     client.publish(topic, payload, { qos: 1 })
     fastify.log.success({ 
       msg: `✓ [MQTT] Reset sent to ${moduleId}: ${sensor}`, 
+      direction: 'OUT',
       moduleId, 
       sensor 
     })

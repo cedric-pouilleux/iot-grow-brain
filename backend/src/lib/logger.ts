@@ -18,6 +18,8 @@ const levelMap: Record<number, string> = {
 
 interface LogEntry {
   category: string
+  source: string
+  direction: string | null
   level: string
   msg: string
   time: Date
@@ -76,12 +78,12 @@ export const dbLoggerStream = new Writable({
     
     try {
       const parsed = JSON.parse(logEntry)
-      const { level, msg, time, ...details } = parsed
+      const { level, msg, time, source, direction, ...details } = parsed
 
       const levelStr = typeof level === 'number' ? levelMap[level] || String(level) : String(level)
 
       // Extract category from message prefix
-      let category = 'SYSTEM'
+      let category = ''
       let cleanMsg = msg || ''
 
       // Filter out generic Fastify logs (not useful)
@@ -99,11 +101,17 @@ export const dbLoggerStream = new Writable({
       if (categoryMatch) {
         category = categoryMatch[1]
         cleanMsg = cleanMsg.replace(/^\[[A-Z0-9]+(?::[^\]]+)?\]\s*/, '')
+      } else {
+        // Skip logs without a category prefix (they would have been SYSTEM)
+        callback()
+        return
       }
 
       // Add to buffer instead of immediate insert
       logBuffer.push({
         category,
+        source: source || 'SYSTEM', // Default to SYSTEM if not specified
+        direction: direction || null, // IN, OUT, or null
         level: levelStr,
         msg: cleanMsg,
         time: new Date(time || Date.now()),

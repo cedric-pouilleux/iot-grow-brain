@@ -143,6 +143,7 @@ export class MqttMessageHandler {
 
       const logData = {
         msg: `[HARDWARE:${moduleId}] ${msg}`,
+        direction: 'IN',
         moduleId,
         deviceTime: time,
         source: 'esp32',
@@ -233,13 +234,6 @@ export class MqttMessageHandler {
       }
 
       this.measurementBuffer.push({ time: now, moduleId, sensorType, value })
-      this.fastify.log.debug({
-        msg: `[MQTT] 📥 ${sensorType}=${value} from ${moduleId}`,
-        moduleId,
-        sensorType,
-        value,
-        bufferSize: this.measurementBuffer.length,
-      })
 
       if (this.measurementBuffer.length >= 100) {
         void this.onMeasurementBufferFull()
@@ -267,13 +261,6 @@ export class MqttMessageHandler {
       }
 
       this.measurementBuffer.push({ time: now, moduleId, sensorType, value })
-      this.fastify.log.debug({
-        msg: `[MQTT] 📥 ${sensorType}=${value} from ${moduleId}`,
-        moduleId,
-        sensorType,
-        value,
-        bufferSize: this.measurementBuffer.length,
-      })
 
       if (this.measurementBuffer.length >= 100) {
         void this.onMeasurementBufferFull()

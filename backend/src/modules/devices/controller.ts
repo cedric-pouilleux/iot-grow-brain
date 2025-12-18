@@ -63,17 +63,23 @@ export class DeviceController {
       const published = this.fastify.publishConfig(id, config)
 
       if (published) {
+        // Build detailed changes summary for the log message
+        const changesSummary = Object.entries(config.sensors || {})
+          .map(([sensor, cfg]) => `${sensor}=${cfg.interval}s`)
+          .join(', ')
+        this.fastify.log.info({ msg: `[API] Config modifiée [${id}]: ${changesSummary}`, source: 'USER', moduleId: id, changes: config.sensors })
         const response: ConfigUpdateResponse = {
           success: true,
           message: 'Configuration updated and published',
         }
         return response
       } else {
+        this.fastify.log.error({ msg: `[API] Échec modification configuration`, source: 'USER', moduleId: id, error: 'Failed to publish' })
         throw this.fastify.httpErrors.internalServerError('Failed to publish configuration')
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      this.fastify.log.error(`Error updating config: ${errorMessage}`)
+      this.fastify.log.error({ msg: `[API] Échec modification configuration`, source: 'USER', moduleId: id, error: errorMessage })
       throw this.fastify.httpErrors.internalServerError(errorMessage)
     }
   }
@@ -89,16 +95,18 @@ export class DeviceController {
       const published = this.fastify.publishReset(id, sensor)
 
       if (published) {
+        this.fastify.log.info({ msg: `[API] Reset capteur demandé`, source: 'USER', moduleId: id, sensor })
         return {
           success: true,
           message: `Reset command sent for sensor ${sensor}`,
         }
       } else {
+        this.fastify.log.error({ msg: `[API] Échec reset capteur`, source: 'USER', moduleId: id, sensor, error: 'Failed to publish' })
         throw this.fastify.httpErrors.internalServerError('Failed to publish reset command')
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      this.fastify.log.error(`Error resetting sensor: ${errorMessage}`)
+      this.fastify.log.error({ msg: `[API] Échec reset capteur`, source: 'USER', moduleId: id, sensor, error: errorMessage })
       throw this.fastify.httpErrors.internalServerError(errorMessage)
     }
   }
@@ -112,8 +120,7 @@ export class DeviceController {
 
     try {
       await this.deviceRepo.updatePreferences(id, preferences)
-      
-      // Return the updated preferences (we could fetch again to return the full set)
+      this.fastify.log.info({ msg: `[API] Préférences modifiées`, source: 'USER', moduleId: id, preferences })
       return {
         success: true,
         message: 'Preferences updated',
@@ -121,7 +128,7 @@ export class DeviceController {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      this.fastify.log.error(`Error updating preferences: ${errorMessage}`)
+      this.fastify.log.error({ msg: `[API] Échec modification préférences`, source: 'USER', moduleId: id, error: errorMessage })
       throw this.fastify.httpErrors.internalServerError(errorMessage)
     }
   }
@@ -134,14 +141,14 @@ export class DeviceController {
 
     try {
       await this.deviceRepo.removeFromZone(id)
-      this.fastify.log.info(`[ZONES] Device "${id}" retir\u00e9 de sa zone`)
+      this.fastify.log.info({ msg: `[API] Module retiré de sa zone`, source: 'USER', moduleId: id })
       return {
         success: true,
         message: 'Device removed from zone',
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      this.fastify.log.error(`Error removing from zone: ${errorMessage}`)
+      this.fastify.log.error({ msg: `[API] Échec retrait module de zone`, source: 'USER', moduleId: id, error: errorMessage })
       throw this.fastify.httpErrors.internalServerError(errorMessage)
     }
   }
@@ -275,10 +282,6 @@ export class DeviceController {
   private async buildHistory(moduleId: string, days: number) {
     const historyRows = await this.deviceRepo.getHistoryData(moduleId, days)
 
-    this.fastify.log.info(
-      `📊 History query for ${moduleId} (days=${days}): ${historyRows.length} records`
-    )
-
     const sensors = {
       co2: [] as SensorDataPoint[],
       temp: [] as SensorDataPoint[],
@@ -314,15 +317,6 @@ export class DeviceController {
         case 'temp_sht': sensors.temp_sht.push(dataPoint); break
         case 'hum_sht': sensors.hum_sht.push(dataPoint); break
       }
-    })
-
-    this.fastify.log.info({
-      msg: 'History counts check',
-      moduleId,
-      days,
-      co2: sensors.co2.length,
-      eco2: sensors.eco2.length,
-      tvoc: sensors.tvoc.length,
     })
 
     return sensors

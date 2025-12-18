@@ -129,7 +129,7 @@ const zonesRoutes: FastifyPluginAsync = async fastify => {
         .values({ name, description: description || null })
         .returning()
       
-      fastify.log.info(`[ZONES] Zone créée: "${name}" (${zone.id})`)
+      fastify.log.info({ msg: `[API] Zone créée: "${name}"`, source: 'USER', zoneId: zone.id, zoneName: name })
       
       reply.status(201)
       return {
@@ -167,7 +167,7 @@ const zonesRoutes: FastifyPluginAsync = async fastify => {
         throw fastify.httpErrors.notFound(`Zone '${id}' not found`)
       }
       
-      fastify.log.info(`[ZONES] Zone mise à jour: "${name}" (${id})`)
+      fastify.log.info({ msg: `[API] Zone modifiée: "${name}"`, source: 'USER', zoneId: id, zoneName: name })
       
       return {
         id: zone.id,
@@ -208,7 +208,7 @@ const zonesRoutes: FastifyPluginAsync = async fastify => {
         .delete(schema.zones)
         .where(eq(schema.zones.id, id))
       
-      fastify.log.info(`[ZONES] Zone supprimée: "${zoneToDelete?.name}" (${id})`)
+      fastify.log.info({ msg: `[API] Zone supprimée: "${zoneToDelete?.name}"`, source: 'USER', zoneId: id, zoneName: zoneToDelete?.name })
       
       reply.status(204)
     }
@@ -248,7 +248,7 @@ const zonesRoutes: FastifyPluginAsync = async fastify => {
         .set({ zoneId: id })
         .where(eq(schema.deviceSystemStatus.moduleId, deviceId))
       
-      fastify.log.info(`[ZONES] Le module ${deviceName} a été assigné à la zone "${zone?.name}"`)
+      fastify.log.info({ msg: `[API] Module "${deviceName}" assigné à zone "${zone?.name}"`, source: 'USER', moduleId: deviceId, zoneId: id, zoneName: zone?.name })
       
       return { success: true, message: `Device ${deviceId} assigned to zone ${id}` }
     }
