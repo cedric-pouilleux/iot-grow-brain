@@ -166,9 +166,12 @@ const logsRoutes: FastifyPluginAsync = async fastify => {
         start = new Date(end.getTime() - 24 * 60 * 60 * 1000)
       }
 
+      // Fixed 10-minute buckets as requested
+      const bucketSizeSeconds = 600 
+
       let query = sql`
         SELECT
-          floor(extract(epoch from time) / 600) * 600 as bucket,
+          floor(extract(epoch from time) / ${bucketSizeSeconds}) * ${bucketSizeSeconds} as bucket,
           category,
           count(*) as count
         FROM system_logs
@@ -200,11 +203,11 @@ const logsRoutes: FastifyPluginAsync = async fastify => {
       
       const result = await fastify.db.execute(query)
 
-      // Process result into slots (10 min intervals)
+      // Process result into slots
       const buckets: Record<string, Record<string, number>> = {}
       
       // Generate all slots between start and end
-      const slotMs = 10 * 60 * 1000 // 10 minutes
+      const slotMs = bucketSizeSeconds * 1000
       for (let time = start.getTime(); time <= end.getTime(); time += slotMs) {
         const slotDate = new Date(time)
         buckets[slotDate.toISOString()] = {}

@@ -15,21 +15,18 @@
           height="100%" 
           preserveAspectRatio="none"
           :viewBox="`0 0 ${bucketCount} 100`"
-          shape-rendering="crispEdges"
           class="block"
         >
           <!-- Bars with stacked category segments -->
-          <g v-for="(bucket, i) in buckets" :key="i">
-            <rect
-              v-for="(segment, j) in bucket.segments"
-              :key="j"
-              :x="i"
-              :y="100 - segment.y - segment.height"
-              width="1"
-              :height="segment.height"
-              :fill="segment.color"
-            />
-          </g>
+          <!-- Bars with stacked category segments -->
+          <!-- Stacked Area Paths (Stepped) -->
+          <path
+            v-for="layer in layers"
+            :key="layer.name"
+            :d="layer.d"
+            :fill="layer.color"
+            shape-rendering="geometricPrecision"
+          />
 
           <!-- Selection overlay -->
           <rect
@@ -152,31 +149,104 @@ const maxCount = computed(() => {
   ), 1)
 })
 
-const buckets = computed(() => {
-  return rawData.value.map(bucket => {
-    const total = Object.values(bucket.counts).reduce((a, c) => a + c, 0)
-    const segments: { color: string; height: number; y: number }[] = []
+// Methods
+const getCategoryOrder = () => {
+  // Define consistent order based on all available categories
+  // Use known categories first, then any others found in data
+  const known = Object.keys(CATEGORY_COLORS).sort()
+  const found = new Set<string>()
+  rawData.value.forEach(b => Object.keys(b.counts).forEach(k => found.add(k)))
+  return Array.from(found).sort()
+}
+
+const layers = computed(() => {
+  if (!rawData.value.length) return []
+
+  const categories = getCategoryOrder()
+  const result: { color: string; d: string; name: string }[] = []
+  
+  // Pre-calculate heights for all slots
+  // stackTops[slotIndex][categoryIndex] = y positions
+  const stackCurrent = new Array(rawData.value.length).fill(0)
+  
+  categories.forEach(cat => {
+    let pathD = ''
     
-    let y = 0
-    // Sort categories for consistent stacking order
-    const sortedCategories = Object.entries(bucket.counts)
-      .filter(([_, count]) => count > 0)
-      .sort(([a], [b]) => a.localeCompare(b))
-    
-    for (const [category, count] of sortedCategories) {
+    // Forward pass (Top line)
+    rawData.value.forEach((bucket, i) => {
+      const count = bucket.counts[cat] || 0
       const height = (count / maxCount.value) * 95
-      segments.push({
-        color: CATEGORY_COLORS[category] || '#6b7280',
-        height,
-        y
-      })
-      y += height
+      const yBottom = stackCurrent[i]
+      const yTop = yBottom + height
+      
+      const yPos = 100 - yTop
+      
+      if (i === 0) {
+        pathD += `M ${i} ${yPos}`
+      } else {
+        // Step Line: Horizontal then Vertical
+        // L {i} {prevY} -> L {i} {currY}
+        // stackCurrent[i-1] ALREADY includes the height for this category from the previous iteration
+        const prevY = 100 - stackCurrent[i-1]
+        
+        // Corner logic for perfect steps
+        pathD += ` L ${i} ${prevY} L ${i} ${yPos}`
+      }
+      
+      // Update stack for this slot
+      stackCurrent[i] += height
+      
+      // Last point extension
+      if (i === rawData.value.length - 1) {
+        pathD += ` L ${i + 1} ${yPos}`
+      }
+    })
+    
+    // Backward pass (Bottom line)
+    // We need the "bottom" which is the "top" of the previous layer
+    // We must re-calculate or store?
+    // Let's re-calculate to be safe and simple (cpu is cheap)
+    // Actually we stored the top in 'stackCurrent' AFTER adding.
+    // So the bottom for this category was (stackCurrent - height).
+    
+    for (let i = rawData.value.length - 1; i >= 0; i--) {
+      const count = bucketCount.value > 0 ? (rawData.value[i].counts[cat] || 0) : 0
+      const height = (count / maxCount.value) * 95
+      const yTop = stackCurrent[i] 
+      const yBottom = yTop - height
+      
+      const yPos = 100 - yBottom
+      
+      if (i === rawData.value.length - 1) {
+        pathD += ` L ${i + 1} ${yPos}`
+        pathD += ` L ${i} ${yPos}`
+      } else {
+         const prevY = 100 - (stackCurrent[i+1] - ((rawData.value[i+1].counts[cat] || 0) / maxCount.value * 95))
+         pathD += ` L ${i + 1} ${prevY} L ${i + 1} ${yPos} L ${i} ${yPos}`
+      }
     }
     
+    if (pathD) {
+       pathD += ' Z'
+       result.push({
+         name: cat,
+         color: CATEGORY_COLORS[cat] || '#6b7280',
+         d: pathD
+       })
+    }
+  })
+  
+  return result
+})
+
+const buckets = computed(() => {
+  return rawData.value.map((bucket, i) => {
+    const total = Object.values(bucket.counts).reduce((a, c) => a + c, 0)
     return {
       slot: bucket.slot,
       total,
-      segments
+      segments: [], // Not used for rendering anymore
+      counts: bucket.counts
     }
   })
 })
