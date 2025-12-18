@@ -10,7 +10,12 @@
     Interval config and time counter moved to ModuleOptionsPanel.
   -->
   <div
-    class="relative rounded-lg group/card bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-between flex-1 min-w-0"
+    class="relative rounded-lg group/card dark:border-gray-700 flex flex-col justify-between flex-1 min-w-0 transition-all duration-300"
+    :class="[
+      isPanelOpen 
+        ? [openBgClass, 'card-open-shadow'] 
+        : 'bg-gray-50 dark:bg-gray-900'
+    ]"
     :style="{ '--shadow-color': hoverShadowColor }"
   >
     <!-- Header: Title + Sensor Selector -->
@@ -33,13 +38,13 @@
              v-if="sensors.length > 1"
              :id="`sensor-list-${moduleId}-${sensors[0]?.key || 'default'}`"
              position="static"
-             dropdown-class="left-0 w-full bg-gray-950 rounded-b-lg rounded-t-none shadow-xl overflow-hidden text-sm"
+             dropdown-class="left-0 w-full bg-white dark:bg-gray-950 rounded-b-lg rounded-t-none shadow-md overflow-hidden text-sm"
            >
              <template #trigger="{ isOpen, toggle }">
                <button 
                  @click.stop="toggle"
-                 class="p-1 rounded-tr-lg text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-950 transition-colors flex items-center"
-                 :class="{'bg-gray-950': isOpen}"
+                 class="p-1 rounded-tr-lg hover:bg-white dark:hover:bg-gray-950 transition-colors flex items-center"
+                 :class="[valueColorClass, {'bg-white dark:bg-gray-950': isOpen}]"
                  title="Changer de capteur"
                >
                  <Icon name="tabler:cpu" class="w-4 h-4" />
@@ -53,7 +58,7 @@
                    :key="sensor.key"
                    @click="selectSensor(sensor.key, close)"
                    class="w-full text-left p-2 flex items-center justify-between transition-colors dropdown-item-animate"
-                   :class="activeSensorKey === sensor.key ? valueColorClass : 'text-gray-400 hover:bg-gray-900 hover:text-white'"
+                   :class="activeSensorKey === sensor.key ? valueColorClass : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-white'"
                    :style="{ animationDelay: `${index * 50}ms` }"
                  >
                    <span class="text-xs">
@@ -201,6 +206,7 @@ interface Props {
   isLoading?: boolean
   initialActiveSensorKey?: string
   graphDuration?: string
+  isPanelOpen?: boolean
 }
 
 // ============================================================================
@@ -210,6 +216,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
   graphDuration: '24h',
+  isPanelOpen: false,
 })
 
 defineEmits(['toggle-graph'])
@@ -351,6 +358,21 @@ const hoverShadowColor = computed(() => {
   return map[props.color] || 'rgba(0, 0, 0, 0.2)'
 })
 
+// Background class when card is open (colored theme)
+const openBgClass = computed(() => {
+  const map: Record<string, string> = {
+    emerald: 'bg-emerald-100 dark:bg-emerald-900/40',
+    orange: 'bg-orange-100 dark:bg-orange-900/40',
+    amber: 'bg-amber-100 dark:bg-amber-900/40',
+    blue: 'bg-blue-100 dark:bg-blue-900/40',
+    violet: 'bg-violet-100 dark:bg-violet-900/40',
+    pink: 'bg-pink-100 dark:bg-pink-900/40',
+    cyan: 'bg-cyan-100 dark:bg-cyan-900/40',
+    gray: 'bg-gray-200 dark:bg-gray-700',
+  }
+  return map[props.color] || 'bg-white dark:bg-gray-800'
+})
+
 // ============================================================================
 // Title Logic
 // ============================================================================
@@ -434,9 +456,11 @@ const thresholdAlert = computed(() => {
 // ============================================================================
 
 const getSensorStatus = (sensor: SensorItem) => {
+  // Status: ok = connected, anything else = disconnected
   if (sensor.status === 'ok') return { icon: 'tabler:circle-check-filled', color: 'text-green-500', text: 'OK' }
-  if (sensor.status === 'missing') return { icon: 'tabler:circle-x-filled', color: 'text-red-500', text: 'Manquant' }
-  if (sensor.value === undefined || sensor.value === null) return { icon: 'tabler:help-circle-filled', color: 'text-gray-300', text: 'No Data' }
+  if (sensor.status === 'missing') return { icon: 'tabler:circle-x-filled', color: 'text-red-500', text: 'Déconnecté' }
+  // No explicit status and no value = sensor not connected
+  if (sensor.value === undefined || sensor.value === null) return { icon: 'tabler:circle-x-filled', color: 'text-red-500', text: 'Déconnecté' }
   return { icon: 'tabler:circle-check-filled', color: 'text-green-500', text: 'OK' }
 }
 
@@ -651,6 +675,15 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Shadow for opened card - only in dark mode */
+.card-open-shadow {
+  box-shadow: none;
+}
+
+:global(.dark) .card-open-shadow {
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.4);
 }
 </style>
 

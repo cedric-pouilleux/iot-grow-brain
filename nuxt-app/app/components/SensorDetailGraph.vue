@@ -1,24 +1,41 @@
 <template>
-  <div v-if="selectedSensor" class="mt-4 animate-fade-in">
-    <h3 class="font-bold text-gray-700 uppercase text-sm flex items-center gap-2 mb-4">
-      <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: sensorColor }"></span>
-      {{ sensorLabel }}
-    </h3>
-
-    <div class="h-80 w-full relative">
-      <ClientOnly>
-        <Line v-if="chartData" :data="chartData" :options="chartOptions" />
-        <template #fallback>
-          <div class="h-full flex items-center justify-center text-[10px] text-gray-300">
-            Chargement...
+  <Transition name="slide-panel">
+    <div v-if="selectedSensor" class="mt-5">
+      <!-- Panel -->
+      <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: sensorColor }"></span>
+            <span class="font-semibold text-gray-700 dark:text-white text-sm">{{ sensorLabel }}</span>
+            <span class="text-xs text-gray-400">Historique détaillé</span>
           </div>
-        </template>
-      </ClientOnly>
-      <div v-if="!hasHistory" class="h-full flex items-center justify-center text-gray-400">
-        Pas assez de données pour afficher le graphique détaillé.
+          <button 
+            @click="$emit('close')"
+            class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+            title="Fermer"
+          >
+            <Icon name="tabler:x" class="w-4 h-4" />
+          </button>
+        </div>
+        
+        <!-- Chart -->
+        <div class="h-80 w-full relative p-4">
+          <ClientOnly>
+            <Line v-if="chartData" :data="chartData" :options="chartOptions" />
+            <template #fallback>
+              <div class="h-full flex items-center justify-center text-[10px] text-gray-300">
+                Chargement...
+              </div>
+            </template>
+          </ClientOnly>
+          <div v-if="!hasHistory" class="h-full flex items-center justify-center text-gray-400">
+            Pas assez de données pour afficher le graphique détaillé.
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+  </Transition>
 </template>
 
 <script setup lang="ts">
@@ -251,3 +268,29 @@ const chartOptions = computed(() => ({
   },
 }))
 </script>
+
+<style scoped>
+/* Panel slides: starts fast, slows at the end */
+.slide-panel-enter-active {
+  transition: all 0.35s cubic-bezier(0, 0, 0.2, 1);
+}
+
+.slide-panel-leave-active {
+  transition: all 0.25s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.slide-panel-enter-from,
+.slide-panel-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* Shadow separator top (inverted - shadow goes down) */
+.shadow-separator-top {
+  background: radial-gradient(ellipse 70% 100% at center top, rgba(0, 0, 0, 0.08) 0%, transparent 100%);
+}
+
+:global(.dark) .shadow-separator-top {
+  background: radial-gradient(ellipse 70% 100% at center top, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
+}
+</style>

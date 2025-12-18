@@ -13,21 +13,19 @@
   <Transition name="slide">
     <div 
       v-if="isOpen" 
-      class="overflow-visible"
+      class="overflow-visible mb-5"
     >
-      <div class="grid grid-cols-6 gap-4 mb-4 items-stretch">
+      <div class="grid grid-cols-6 gap-4 mb-5 items-stretch">
         
         <!-- LEFT: Informations (1 col) -->
-        <div class="col-span-6 lg:col-span-1 flex flex-col space-y-3">
-          <h3 class="text-[13px] text-gray-500 dark:text-white">
-            Informations
-          </h3>
+        <div class="col-span-6 lg:col-span-1 flex flex-col justify-between space-y-3">
           
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 flex flex-col justify-between flex-grow overflow-visible">
-            <!-- Hardware Section -->
-            <div>
+          <!-- Hardware Section -->
+          <div>
+            <h3 class="text-[13px] text-gray-500 dark:text-white">Hardware</h3>
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm mt-3 p-3">
               <div class="flex items-center justify-between mb-1"> 
-                <span class="text-[12px] font-medium text-gray-500 dark:text-gray-200">Hardware</span>
+                <span class="text-[12px] font-medium text-gray-500 dark:text-gray-200">{{ hardwareModel }}</span>
                 <div 
                   class="w-2.5 h-2.5 rounded-full cursor-help"
                   :class="isOnline ? 'bg-green-500' : 'bg-red-500'"
@@ -36,14 +34,17 @@
               </div>
               <div class="text-xs space-y-0.5 text-gray-500 dark:text-gray-400">
                 <div>{{ moduleId }}</div>
-                <div>{{ hardwareModel }}</div>
                 <div>Cpu {{ cpuFreq }} MHz</div>
               </div>
             </div>
-            
-            <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
+          </div>
+
+          <!-- Network Section -->
+          <div>
+            <h3 class="text-[13px] text-gray-500 dark:text-white">Réseau</h3>
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm mt-3 p-3">
               <div class="flex items-center justify-between mb-1">
-                <span class="text-[12px] font-medium text-gray-500 dark:text-gray-200">Réseau</span>
+                <span class="text-[12px] font-medium text-gray-500 dark:text-gray-200">Wi-Fi</span>
                 <div class="cursor-help" :title="`Signal: ${rssi || '--'} dBm`">
                   <Icon v-if="!rssi" name="tabler:wifi-off" class="w-5 h-5" :class="rssiClass" />
                   <Icon v-else-if="rssi > -60" name="tabler:wifi" class="w-5 h-5" :class="rssiClass" />
@@ -63,10 +64,12 @@
                 </div>
               </div>
             </div>
-            
-            <!-- Memory Section -->
-            <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
-              <div class="text-[12px] font-medium text-gray-500 dark:text-gray-200 mb-2">Mémoire</div>
+          </div>
+
+          <!-- Memory Section -->
+          <div>
+            <h3 class="text-[13px] text-gray-500 dark:text-white">Mémoire</h3>
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm mt-3 p-3">
               <div class="flex gap-4 justify-center">
                 <!-- Flash Doughnut -->
                 <div class="w-16 h-16 relative">
@@ -98,7 +101,7 @@
           </h3>
           
           <!-- Zone Selector -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 flex-grow">
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm p-3 flex-grow">
             <h3 class="text-[12px] text-gray-500 dark:text-gray-200 mb-1 block">Zone associée</h3>
             <div class="flex flex-wrap gap-1.5 mt-2 items-center">
               <!-- Zone Tags (toggle on click) -->
@@ -129,8 +132,12 @@
           </div>
 
           <!-- Chart Options -->
-          <h3 class="text-[13px] text-gray-500 dark:text-white">Configuration des graphiques</h3>
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3">
+          <h3 class="text-[13px] text-gray-500 dark:text-white">Configuration des cartes</h3>
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm p-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs text-gray-600 dark:text-gray-300">Afficher les seuils d'alerte</span>
+              <UIToggle v-model="colorThresholds" />
+            </div>
             <!-- Show Charts Toggle (Parent option) -->
             <div class="flex items-center justify-between">
               <span class="text-xs text-gray-600 dark:text-gray-300">Afficher les graphiques</span>
@@ -159,7 +166,7 @@
 
           <h3 class="text-[13px] text-gray-500 dark:text-white">Configuration des Capteurs</h3>
           
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm divide-y divide-gray-100 dark:divide-gray-900 flex-grow">
+          <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm divide-y divide-gray-100 dark:divide-gray-900 flex-grow">
             <HardwareSensorRow
               v-for="hw in hardwareSensorList"
               :key="hw.hardwareKey"
@@ -520,7 +527,7 @@ const HARDWARE_SENSORS = [
   },
   {
     hardwareKey: 'sht30',
-    name: 'SHT30',
+    name: 'SHT31',
     measurements: ['temp_sht', 'hum_sht'],
     measurementLabels: { temp_sht: 'Temp', hum_sht: 'Hum' }
   },
@@ -546,7 +553,7 @@ export interface HardwareSensorItem {
     value?: number
   }>
   interval: number
-  status: 'ok' | 'partial' | 'missing'
+  status: 'ok' | 'missing'
 }
 
 const hardwareSensorList = computed<HardwareSensorItem[]>(() => {
@@ -578,11 +585,9 @@ const hardwareSensorList = computed<HardwareSensorItem[]>(() => {
     )
     if (activeMeasurements.length === 0) continue
     
-    // Determine overall hardware status
-    const okCount = activeMeasurements.filter(m => m.status === 'ok').length
-    const hwStatus = okCount === activeMeasurements.length ? 'ok'
-                   : okCount === 0 ? 'missing'
-                   : 'partial'
+    // Determine overall hardware status: ok if ALL measurements are ok, otherwise missing
+    const allOk = activeMeasurements.every(m => m.status === 'ok')
+    const hwStatus = allOk ? 'ok' : 'missing'
     
     // Get interval from first measurement's config
     const firstKey = hw.measurements[0]
@@ -593,7 +598,7 @@ const hardwareSensorList = computed<HardwareSensorItem[]>(() => {
       name: hw.name,
       measurements: activeMeasurements,
       interval,
-      status: hwStatus as 'ok' | 'partial' | 'missing'
+      status: hwStatus as 'ok' | 'missing'
     })
   }
   
@@ -602,15 +607,14 @@ const hardwareSensorList = computed<HardwareSensorItem[]>(() => {
 </script>
 
 <style scoped>
-/* Panel slides with elastic bounce */
+/* Panel slide transition - smooth, no delay */
 .slide-enter-active {
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  transition-delay: 0.15s;
+  transition: max-height 0.25s ease-out, opacity 0.2s ease-out;
   max-height: 500px;
 }
 
 .slide-leave-active {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: max-height 0.2s ease-in, opacity 0.15s ease-in;
   max-height: 500px;
 }
 
@@ -618,7 +622,14 @@ const hardwareSensorList = computed<HardwareSensorItem[]>(() => {
 .slide-leave-to {
   max-height: 0;
   opacity: 0;
-  padding-top: 0;
-  padding-bottom: 0;
+}
+
+/* Shadow separator - upward shadow from center */
+.shadow-separator {
+  background: radial-gradient(ellipse 70% 100% at center bottom, rgba(0, 0, 0, 0.08) 0%, transparent 100%);
+}
+
+:global(.dark) .shadow-separator {
+  background: radial-gradient(ellipse 70% 100% at center bottom, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
 }
 </style>

@@ -34,7 +34,7 @@
         @toggle-options="optionsPanelOpen = !optionsPanelOpen"
       />
 
-      <!-- Options Panel (slides open with delay) -->
+      <!-- Options Panel -->
       <ModuleOptionsPanel
         :is-open="optionsPanelOpen"
         :device-status="deviceStatus"
@@ -43,8 +43,6 @@
         :sensor-history-map="sensorHistoryMap"
         @zone-changed="$emit('zone-changed')"
         @open-zone-drawer="$emit('open-zone-drawer', moduleId)"
-        class="options-panel-transition"
-        :class="{ 'options-panel-open': optionsPanelOpen }"
       />
 
       <!-- Sensor Cards Grid with slide animation -->
@@ -62,6 +60,7 @@
           :color="group.color"
           :graph-duration="graphDuration"
           :initial-active-sensor-key="group.initialKey"
+          :is-panel-open="isCardPanelOpen(group)"
           @toggle-graph="toggleGraph(group.sensors[0]?.key)"
         />
       </div>
@@ -312,6 +311,14 @@ const toggleGraph = (sensorType: string) => {
   setTimeout(() => isToggling.value = false, 100)
 }
 
+/**
+ * Check if a card's panel is open (its sensor is selected for detail graph)
+ */
+const isCardPanelOpen = (group: { sensors: { key: string }[] }) => {
+  if (!selectedGraphSensor.value) return false
+  return group.sensors.some(s => normalizeSensorType(s.key) === selectedGraphSensor.value)
+}
+
 // ============================================================================
 // Uptime Calculation
 // ============================================================================
@@ -328,15 +335,14 @@ const calculatedUptime = computed(() => {
 </script>
 
 <style scoped>
-/* Cards slide down first (fast, snappy) */
+/* Cards slide down first (fast) */
 .cards-transition {
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.1s linear;
 }
 
-/* Options panel slides with delay and bounce */
+/* Options panel - simple linear transition */
 .options-panel-transition {
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  transition-delay: 0.1s;
+  transition: all 0.3s linear;
 }
 </style>
 

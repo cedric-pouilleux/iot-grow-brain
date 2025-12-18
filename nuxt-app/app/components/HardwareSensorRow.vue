@@ -15,7 +15,7 @@
     />
     
     <!-- Hardware Name -->
-    <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 flex-shrink-0">
+    <span class="text-xs font-semibold flex-shrink-0" :class="statusTextClass">
       {{ hardware.name }}
     </span>
     
@@ -119,9 +119,16 @@ const { showSnackbar } = useSnackbar()
 const statusClass = computed(() => {
   switch (props.hardware.status) {
     case 'ok': return 'bg-green-500'
-    case 'partial': return 'bg-yellow-500'
     case 'missing': return 'bg-red-500'
-    default: return 'bg-gray-300'
+    default: return 'bg-red-500'
+  }
+})
+
+const statusTextClass = computed(() => {
+  switch (props.hardware.status) {
+    case 'ok': return 'text-gray-700 dark:text-gray-200'
+    case 'missing': return 'text-red-600 dark:text-red-400'
+    default: return 'text-red-600 dark:text-red-400'
   }
 })
 
@@ -138,7 +145,7 @@ const getMeasurementClass = (status: string) => {
   switch (status) {
     case 'ok': return 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400'
     case 'missing': return 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400'
-    default: return 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+    default: return 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400'
   }
 }
 
