@@ -106,10 +106,9 @@
         </div>
       </div>
       
-      <!-- Threshold Alert (below value, only when not good) -->
-      <div class="h-[18px] flex items-center">
+      <!-- Threshold Alert (below value, only when enabled and not good) -->
+      <div v-if="showAlertThresholds && thresholdAlert && thresholdAlert.level !== 'good'" class="h-[18px] flex items-center">
         <UITag 
-          v-if="thresholdAlert && thresholdAlert.level !== 'good'" 
           :label="thresholdAlert.label"
           :variant="thresholdAlert.tagVariant"
         />
@@ -443,7 +442,7 @@ const unit = computed(() => activeSensor.value ? getUnit(activeSensor.value.key)
 // ============================================================================
 
 const { evaluateThreshold, getThresholdColor, getThresholdDefinition, isTrendPositive } = useThresholds()
-const { showCharts, showThresholdLines, colorThresholds } = useChartSettings()
+const { showCharts, showThresholdLines, colorThresholds, showAlertThresholds } = useChartSettings()
 
 const thresholdAlert = computed(() => {
   const sensor = activeSensor.value

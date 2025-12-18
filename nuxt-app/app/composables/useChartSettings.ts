@@ -11,12 +11,14 @@ interface ChartSettings {
   showCharts: boolean
   showThresholdLines: boolean
   colorThresholds: boolean
+  showAlertThresholds: boolean
 }
 
 const defaultSettings: ChartSettings = {
   showCharts: true,
   showThresholdLines: false,
-  colorThresholds: true
+  colorThresholds: true,
+  showAlertThresholds: true
 }
 
 // Global reactive settings
@@ -75,6 +77,14 @@ export function useChartSettings() {
     }
   })
 
+  const showAlertThresholds = computed({
+    get: () => settings.value.showAlertThresholds,
+    set: (value: boolean) => {
+      settings.value.showAlertThresholds = value
+      saveSettings()
+    }
+  })
+
   const toggleShowCharts = () => {
     showCharts.value = !showCharts.value
   }
@@ -87,12 +97,18 @@ export function useChartSettings() {
     colorThresholds.value = !colorThresholds.value
   }
 
+  const toggleAlertThresholds = () => {
+    showAlertThresholds.value = !showAlertThresholds.value
+  }
+
   return {
     showCharts,
     showThresholdLines,
     colorThresholds,
+    showAlertThresholds,
     toggleShowCharts,
     toggleThresholdLines,
-    toggleColorThresholds
+    toggleColorThresholds,
+    toggleAlertThresholds
   }
 }

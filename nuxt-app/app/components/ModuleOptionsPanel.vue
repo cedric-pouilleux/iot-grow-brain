@@ -136,7 +136,7 @@
           <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm p-3">
             <div class="flex items-center justify-between mb-2">
               <span class="text-xs text-gray-600 dark:text-gray-300">Afficher les seuils d'alerte</span>
-              <UIToggle v-model="colorThresholds" />
+              <UIToggle v-model="showAlertThresholds" />
             </div>
             <!-- Show Charts Toggle (Parent option) -->
             <div class="flex items-center justify-between">
@@ -238,7 +238,7 @@ const { showSnackbar } = useSnackbar()
 
 // Chart settings
 import { useChartSettings } from '../composables/useChartSettings'
-const { showCharts, showThresholdLines, colorThresholds, toggleShowCharts, toggleThresholdLines, toggleColorThresholds } = useChartSettings()
+const { showCharts, showThresholdLines, colorThresholds, showAlertThresholds, toggleShowCharts, toggleThresholdLines, toggleColorThresholds, toggleAlertThresholds } = useChartSettings()
 
 // Emit definition
 const emit = defineEmits<{
