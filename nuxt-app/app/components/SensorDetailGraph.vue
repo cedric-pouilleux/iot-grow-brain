@@ -4,19 +4,40 @@
       <!-- Panel -->
       <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
         <!-- Header -->
-        <div class="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-700">
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: sensorColor }"></span>
-            <span class="font-semibold text-gray-700 dark:text-white text-sm">{{ sensorLabel }}</span>
-            <span class="text-xs text-gray-400">Historique détaillé</span>
+        <div class="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: dynamicColor }"></span>
+              <span class="font-semibold text-gray-700 dark:text-white text-sm">{{ dynamicTitle }}</span>
+              <span class="text-xs text-gray-400">Historique détaillé</span>
+            </div>
+            <button 
+              @click="$emit('close')"
+              class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+              title="Fermer"
+            >
+              <Icon name="tabler:x" class="w-4 h-4" />
+            </button>
           </div>
-          <button 
-            @click="$emit('close')"
-            class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
-            title="Fermer"
-          >
-            <Icon name="tabler:x" class="w-4 h-4" />
-          </button>
+          
+          <!-- Sensor selector chips -->
+          <div v-if="availableSensors && availableSensors.length > 1" class="flex flex-wrap gap-2 mt-2">
+            <button
+              v-for="(sensor, index) in availableSensors"
+              :key="sensor.key"
+              @click="toggleSensor(sensor.key)"
+              class="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs transition-all"
+              :class="selectedSensorKeys.has(sensor.key) 
+                ? 'bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white' 
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'"
+            >
+              <span 
+                class="w-2 h-2 rounded-full" 
+                :style="{ backgroundColor: getSensorShadeColor(index) }"
+              ></span>
+              {{ sensor.model || sensor.label }}
+            </button>
+          </div>
         </div>
         
         <!-- Chart -->
@@ -53,6 +74,7 @@ import {
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
 import 'chartjs-adapter-date-fns'
+import { getSensorRange, getNormalizationRatio } from '../config/sensors'
 
 if (process.client) {
   ChartJS.register(
@@ -66,41 +88,152 @@ if (process.client) {
   )
 }
 
+interface SensorItem {
+  key: string
+  label: string
+  value?: number
+  status?: string
+  model?: string
+}
+
 interface Props {
   selectedSensor: string | null
+  initialActiveSensor?: string | null // Pre-select this sensor from the card
   history: SensorDataPoint[]
   sensorLabel: string
   sensorColor: string
   sensorUnit: string
+  availableSensors?: SensorItem[]
+  sensorHistoryMap?: Record<string, SensorDataPoint[]>
 }
 
 const props = withDefaults(defineProps<Props>(), {
   selectedSensor: null,
+  initialActiveSensor: null,
   history: () => [],
+  availableSensors: () => [],
+  sensorHistoryMap: () => ({}),
 })
 
 defineEmits<{
   close: []
 }>()
 
+// Color mode detection for grid color
+const colorMode = useColorMode()
+const isDark = computed(() => colorMode.value === 'dark')
+
+// State for multi-sensor selection
+const selectedSensorKeys = ref<Set<string>>(new Set())
+
+// Initialize with the active sensor from the card (or fallback to primary sensor)
+watch(() => [props.selectedSensor, props.initialActiveSensor] as const, ([selected, initial]) => {
+  // Prefer initialActiveSensor from the card, otherwise use selectedSensor
+  const sensorToSelect = initial || selected
+  if (sensorToSelect) {
+    selectedSensorKeys.value = new Set([sensorToSelect])
+  }
+}, { immediate: true })
+
+// Toggle sensor selection
+// VOC/TVOC are exclusive (can't combine different scales)
+const exclusiveSensorGroups = [['voc', 'tvoc']]
+
+const toggleSensor = (sensorKey: string) => {
+  const keyLower = sensorKey.toLowerCase()
+  
+  // Check if this sensor belongs to an exclusive group
+  const exclusiveGroup = exclusiveSensorGroups.find(group => group.includes(keyLower))
+  
+  if (exclusiveGroup) {
+    // Exclusive selection: replace the current selection with this sensor
+    selectedSensorKeys.value = new Set([sensorKey])
+    return
+  }
+  
+  // Normal toggle behavior for other sensors
+  const newSet = new Set(selectedSensorKeys.value)
+  if (newSet.has(sensorKey)) {
+    // Don't allow deselecting the last sensor
+    if (newSet.size > 1) {
+      newSet.delete(sensorKey)
+    }
+  } else {
+    newSet.add(sensorKey)
+  }
+  selectedSensorKeys.value = newSet
+}
+
+// Color shade multipliers for different sensors (index-based)
+const shadeMultipliers = [1.0, 0.7, 1.3, 0.5, 1.5] // base, darker, lighter, darkest, lightest
+
+// Get color shade for a sensor based on its index
+const getSensorShadeColor = (index: number): string => {
+  const baseColor = props.sensorColor
+  const multiplier = shadeMultipliers[index % shadeMultipliers.length]
+  
+  // Parse hex color
+  const r = parseInt(baseColor.slice(1, 3), 16)
+  const g = parseInt(baseColor.slice(3, 5), 16)
+  const b = parseInt(baseColor.slice(5, 7), 16)
+  
+  // Apply shade multiplier (clamp to 0-255)
+  const adjustedR = Math.min(255, Math.max(0, Math.round(r * multiplier)))
+  const adjustedG = Math.min(255, Math.max(0, Math.round(g * multiplier)))
+  const adjustedB = Math.min(255, Math.max(0, Math.round(b * multiplier)))
+  
+  return `rgb(${adjustedR}, ${adjustedG}, ${adjustedB})`
+}
+
+// Get sensor color by key (for chart datasets)
+const getSensorColorByKey = (sensorKey: string): string => {
+  const index = props.availableSensors?.findIndex(s => s.key === sensorKey) ?? 0
+  return getSensorShadeColor(index)
+}
+
+// Dynamic title based on first selected sensor
+const dynamicTitle = computed(() => {
+  const firstKey = Array.from(selectedSensorKeys.value)[0]
+  if (!firstKey) return props.sensorLabel
+  
+  const sensor = props.availableSensors?.find(s => s.key === firstKey)
+  if (sensor) {
+    // Use model name if available (e.g., "SGP40", "SGP30")
+    // Otherwise use the label (e.g., "COV", "TVOC")
+    return sensor.model || sensor.label
+  }
+  return props.sensorLabel
+})
+
+// Dynamic color based on first selected sensor
+const dynamicColor = computed(() => {
+  const firstKey = Array.from(selectedSensorKeys.value)[0]
+  if (!firstKey) return props.sensorColor
+  return getSensorColorByKey(firstKey)
+})
+
 const hasHistory = computed(() => props.history && props.history.length >= 2)
 
 const graphMinMax = computed(() => {
+  // Use the first selected sensor to determine the range
+  const firstKey = Array.from(selectedSensorKeys.value)[0]
+  const sensorType = (firstKey || props.selectedSensor)?.toLowerCase() || ''
+  const range = getSensorRange(sensorType)
+  
+  if (range) {
+    return range
+  }
+
+  // Fallback to dynamic calculation for unknown sensors
   if (!hasHistory.value) return { min: 0, max: 100 }
   const values = props.history.map(d => d.value).filter(v => v !== null && v !== undefined)
   if (values.length === 0) return { min: 0, max: 100 }
   let min = Math.min(...values)
   let max = Math.max(...values)
 
-  // Petit padding pour ne pas coller aux bords (identique aux mini cards)
-  const range = max - min || 1
-  let minWithPadding = min - range * 0.1
-  let maxWithPadding = max + range * 0.1
-
-  // Force min to 0 (no negative padding) for specific sensors
-  if (['voc', 'co2', 'humidity'].includes(props.selectedSensor || '')) {
-    minWithPadding = Math.max(0, minWithPadding)
-  }
+  const range2 = max - min || 1
+  let minWithPadding = min - range2 * 0.1
+  let maxWithPadding = max + range2 * 0.1
 
   return {
     min: minWithPadding,
@@ -108,8 +241,75 @@ const graphMinMax = computed(() => {
   }
 })
 
-// Configuration Chart.js identique aux petits graphiques
+// Configuration Chart.js with multi-sensor support
 const chartData = computed<ChartData<'line'> | null>(() => {
+  const hexToRgba = (color: string, alpha: number): string => {
+    // Handle both hex (#ffffff) and rgb(r, g, b) formats
+    if (color.startsWith('#')) {
+      const r = parseInt(color.slice(1, 3), 16)
+      const g = parseInt(color.slice(3, 5), 16)
+      const b = parseInt(color.slice(5, 7), 16)
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`
+    } else if (color.startsWith('rgb(')) {
+      return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`)
+    }
+    return color
+  }
+
+  // Check if we have multi-sensor data available
+  const hasMultiSensorData = props.availableSensors && 
+    props.availableSensors.length > 1 && 
+    Object.keys(props.sensorHistoryMap || {}).length > 0
+
+  if (hasMultiSensorData) {
+    // Multi-sensor mode: create one dataset per selected sensor
+    const datasets = []
+    
+    for (const sensorKey of selectedSensorKeys.value) {
+      const sensorHistory = props.sensorHistoryMap?.[sensorKey]
+      if (!sensorHistory || sensorHistory.length < 2) continue
+      
+      const sensor = props.availableSensors?.find(s => s.key === sensorKey)
+      const color = getSensorColorByKey(sensorKey)
+      
+      // Get normalization ratio for this sensor (e.g., TVOC / 100)
+      const ratio = getNormalizationRatio(sensorKey)
+      
+      const sortedData = [...sensorHistory].sort((a, b) => {
+        const timeA = a.time instanceof Date ? a.time.getTime() : new Date(a.time).getTime()
+        const timeB = b.time instanceof Date ? b.time.getTime() : new Date(b.time).getTime()
+        return timeA - timeB
+      })
+      
+      // Apply normalization ratio to values
+      const normalizedData = sortedData.map(m => ({ 
+        x: m.time as unknown as number, 
+        y: m.value / ratio 
+      }))
+      
+      datasets.push({
+        label: sensor?.model || sensor?.label || sensorKey,
+        backgroundColor: hexToRgba(color, 0.1),
+        borderColor: color,
+        borderWidth: 2,
+        data: normalizedData,
+        tension: 0.2,
+        fill: false, // No fill for multi-line to avoid overlap
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        pointHoverBorderWidth: 2,
+        pointHoverBackgroundColor: '#ffffff',
+        pointHoverBorderColor: color,
+        hitRadius: 8,
+        spanGaps: true,
+      })
+    }
+    
+    if (datasets.length === 0) return null
+    return { datasets }
+  }
+
+  // Fallback: single sensor mode (original behavior)
   if (!hasHistory.value) return null
 
   const sortedData = [...props.history].sort((a, b) => {
@@ -117,13 +317,6 @@ const chartData = computed<ChartData<'line'> | null>(() => {
     const timeB = b.time instanceof Date ? b.time.getTime() : new Date(b.time).getTime()
     return timeA - timeB
   })
-
-  const hexToRgba = (hex: string, alpha: number): string => {
-    const r = parseInt(hex.slice(1, 3), 16)
-    const g = parseInt(hex.slice(3, 5), 16)
-    const b = parseInt(hex.slice(5, 7), 16)
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`
-  }
 
   // Calculate average time gap to detect significant gaps
   const timeGaps: number[] = []
@@ -194,7 +387,7 @@ const chartOptions = computed(() => ({
         }
       },
       border: { display: false },
-      grid: { color: '#f3f4f6', drawBorder: false },
+      grid: { color: isDark.value ? 'rgba(75, 85, 99, 0.3)' : '#f3f4f6', drawBorder: false },
       ticks: {
         font: { family: "'Inter', sans-serif", size: 11 },
         color: '#9ca3af',
@@ -206,7 +399,7 @@ const chartOptions = computed(() => ({
       min: graphMinMax.value.min,
       max: graphMinMax.value.max,
       border: { display: false },
-      grid: { color: '#f3f4f6', drawBorder: false },
+      grid: { color: isDark.value ? 'rgba(75, 85, 99, 0.3)' : '#f3f4f6', drawBorder: false },
       ticks: {
         color: props.sensorColor,
         font: { family: "'Inter', sans-serif", size: 11 },

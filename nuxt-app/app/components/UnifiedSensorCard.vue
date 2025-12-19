@@ -218,7 +218,10 @@ const props = withDefaults(defineProps<Props>(), {
   isPanelOpen: false,
 })
 
-defineEmits(['toggle-graph'])
+const emit = defineEmits<{
+  'toggle-graph': []
+  'update:active-sensor': [key: string]
+}>()
 
 // ============================================================================
 // State
@@ -237,6 +240,9 @@ if (!props.sensors.find(s => s.key === activeSensorKey.value)) {
 
 watch(activeSensorKey, async (newVal) => {
   if (process.client && newVal) {
+    // Notify parent of active sensor change
+    emit('update:active-sensor', newVal)
+    
     try {
       const prefKey = `sensor-pref-${props.label}`
       await $fetch(`/api/modules/${props.moduleId}/preferences`, {
@@ -247,7 +253,7 @@ watch(activeSensorKey, async (newVal) => {
       console.error('Failed to save preference', e)
     }
   }
-})
+}, { immediate: true })
 
 // ============================================================================
 // Computed: Active Sensor

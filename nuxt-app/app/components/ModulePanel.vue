@@ -61,18 +61,22 @@
           :graph-duration="graphDuration"
           :initial-active-sensor-key="group.initialKey"
           :is-panel-open="isCardPanelOpen(group)"
-          @toggle-graph="toggleGraph(group.sensors[0]?.key)"
+          @toggle-graph="toggleGraph(group.sensors[0]?.key, activeSensorByGroup[group.type] || group.initialKey)"
+          @update:active-sensor="handleActiveSensorChange(group.type, $event)"
         />
       </div>
 
-      <!-- Detailed Graph Overlay (legacy support) -->
+      <!-- Detailed Graph Overlay with multi-sensor support -->
       <SensorDetailGraph
         v-if="selectedGraphSensor"
         :selected-sensor="selectedGraphSensor"
+        :initial-active-sensor="selectedGraphActiveSensor"
         :history="getSensorHistory(selectedGraphSensor)"
         :sensor-label="getSensorLabel(selectedGraphSensor)"
         :sensor-color="getSensorColor(selectedGraphSensor)"
         :sensor-unit="getSensorUnit(selectedGraphSensor)"
+        :available-sensors="selectedGraphAvailableSensors"
+        :sensor-history-map="selectedGraphHistoryMap"
         @close="selectedGraphSensor = null"
       />
     </template>
@@ -147,8 +151,17 @@ const props = withDefaults(defineProps<Props>(), {
 
 const optionsPanelOpen = ref(false)
 const selectedGraphSensor = ref<string | null>(null)
+const selectedGraphActiveSensor = ref<string | null>(null) // Active sensor from card to pre-select
 const isToggling = ref(false)
 const graphDuration = ref('24h')
+
+// Track active sensor per group type (updated by UnifiedSensorCard)
+const activeSensorByGroup = reactive<Record<string, string>>({})
+
+// Handler for when a card changes its active sensor
+const handleActiveSensorChange = (groupType: string, sensorKey: string) => {
+  activeSensorByGroup[groupType] = sensorKey
+}
 
 // ============================================================================
 // Sensor Groups Definition
@@ -298,15 +311,17 @@ const getHistoryMap = (group: any) => {
 // Graph Toggle
 // ============================================================================
 
-const toggleGraph = (sensorType: string) => {
+const toggleGraph = (sensorType: string, activeSensorKey?: string) => {
   if (isToggling.value) return
   isToggling.value = true
   const normalizedType = normalizeSensorType(sensorType)
   
   if (selectedGraphSensor.value === normalizedType) {
     selectedGraphSensor.value = null
+    selectedGraphActiveSensor.value = null
   } else {
     selectedGraphSensor.value = normalizedType
+    selectedGraphActiveSensor.value = activeSensorKey || sensorType
   }
   setTimeout(() => isToggling.value = false, 100)
 }
@@ -318,6 +333,31 @@ const isCardPanelOpen = (group: { sensors: { key: string }[] }) => {
   if (!selectedGraphSensor.value) return false
   return group.sensors.some(s => normalizeSensorType(s.key) === selectedGraphSensor.value)
 }
+
+/**
+ * Find the group that contains the selected sensor for multi-sensor graph
+ */
+const selectedGraphGroup = computed(() => {
+  if (!selectedGraphSensor.value) return null
+  return activeGroups.value.find(g => 
+    g.sensors.some(s => normalizeSensorType(s.key) === selectedGraphSensor.value)
+  ) || null
+})
+
+/**
+ * Get available sensors for the selected graph (from the group)
+ */
+const selectedGraphAvailableSensors = computed(() => {
+  return selectedGraphGroup.value?.sensors || []
+})
+
+/**
+ * Get sensor history map for the selected graph group
+ */
+const selectedGraphHistoryMap = computed<Record<string, SensorDataPoint[]>>(() => {
+  if (!selectedGraphGroup.value) return {}
+  return getHistoryMap(selectedGraphGroup.value)
+})
 
 // ============================================================================
 // Uptime Calculation
