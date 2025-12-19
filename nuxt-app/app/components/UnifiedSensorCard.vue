@@ -174,6 +174,7 @@ import { useThresholds } from '../composables/useThresholds'
 import AppDropdown from './AppDropdown.vue'
 import UITag from './ui/UITag.vue'
 import { useChartSettings } from '../composables/useChartSettings'
+import { useCountUp } from '../composables/useCountUp'
 import annotationPlugin from 'chartjs-plugin-annotation'
 
 // ============================================================================
@@ -325,13 +326,27 @@ const selectSensor = (key: string, closeFn?: () => void) => {
 // ============================================================================
 
 const formatSensorValue = (val?: number) => formatValue(val)
-const formattedValue = computed(() => {
+
+// Raw numeric value for animation (undefined/null when missing)
+const rawValue = computed(() => {
   const sensor = activeSensor.value
-  // Show '--' if sensor is missing or has no value
   if (!sensor || sensor.status === 'missing' || sensor.value === undefined || sensor.value === null) {
+    return undefined
+  }
+  return sensor.value
+})
+
+// Animated value using countUp effect
+const animatedValue = useCountUp(rawValue, {
+  duration: 400,
+  threshold: 0.05
+})
+
+const formattedValue = computed(() => {
+  if (animatedValue.value === undefined || animatedValue.value === null) {
     return '--'
   }
-  return formatSensorValue(sensor.value)
+  return formatSensorValue(animatedValue.value)
 })
 
 const valueColorClass = computed(() => {
