@@ -26,10 +26,10 @@
            <Icon
              :name="statusIcon"
              class="w-2.5 h-2.5"
-             :class="statusColor"
+             :class="isPanelOpen ? 'text-white' : statusColor"
              :title="statusTooltip"
            />
-           <span class="text-gray-500 dark:text-white text-[13px]">{{ currentTitle }}</span>
+           <span :class="isPanelOpen ? 'text-white' : 'text-gray-500 dark:text-white'" class="text-[13px]">{{ currentTitle }}</span>
         </div>
 
         <div class="flex">
@@ -44,7 +44,7 @@
                <button 
                  @click.stop="toggle"
                  class="p-1 rounded-tr-lg hover:bg-white dark:hover:bg-gray-950 transition-colors flex items-center"
-                 :class="[valueColorClass, {'bg-white dark:bg-gray-950': isOpen}]"
+                 :class="[isPanelOpen ? darkerColorClass : valueColorClass, {'bg-white dark:bg-gray-950': isOpen}]"
                  title="Changer de capteur"
                >
                  <Icon name="tabler:cpu" class="w-4 h-4" />
@@ -84,7 +84,7 @@
       <!-- Main Value Display -->
       <div class="flex items-center">
         <!-- Value -->
-        <span class="text-3xl font-bold tracking-tight" :class="valueColorClass">
+        <span class="text-3xl font-bold tracking-tight" :class="isPanelOpen ? 'text-white' : valueColorClass">
           {{ formattedValue }}
         </span>
         
@@ -102,7 +102,7 @@
           <div v-else class="w-2.5 h-2.5 -mb-0.5"></div>
           
           <!-- Unit -->  
-          <span class="text-sm font-medium text-gray-400 dark:text-gray-400">{{ unit }}</span>
+          <span class="text-sm font-medium" :class="isPanelOpen ? 'text-white/70' : 'text-gray-400 dark:text-gray-400'">{{ unit }}</span>
         </div>
       </div>
       
@@ -342,6 +342,21 @@ const valueColorClass = computed(() => {
   return map[props.color] || 'text-gray-800'
 })
 
+// Lighter color class for CTA icon when panel is open (2 shades lighter)
+const darkerColorClass = computed(() => {
+  const map: Record<string, string> = {
+    emerald: 'text-emerald-300',
+    orange: 'text-orange-300',
+    amber: 'text-amber-300',
+    blue: 'text-blue-300',
+    violet: 'text-violet-300',
+    pink: 'text-pink-300',
+    cyan: 'text-cyan-300',
+    gray: 'text-gray-300',
+  }
+  return map[props.color] || 'text-gray-300'
+})
+
 // Shadow color for hover effect (colored glow)
 const hoverShadowColor = computed(() => {
   const map: Record<string, string> = {
@@ -357,17 +372,17 @@ const hoverShadowColor = computed(() => {
   return map[props.color] || 'rgba(0, 0, 0, 0.2)'
 })
 
-// Background class when card is open (colored theme)
+// Background class when card is open (colored theme - saturated colors)
 const openBgClass = computed(() => {
   const map: Record<string, string> = {
-    emerald: 'bg-emerald-100 dark:bg-emerald-900/40',
-    orange: 'bg-orange-100 dark:bg-orange-900/40',
-    amber: 'bg-amber-100 dark:bg-amber-900/40',
-    blue: 'bg-blue-100 dark:bg-blue-900/40',
-    violet: 'bg-violet-100 dark:bg-violet-900/40',
-    pink: 'bg-pink-100 dark:bg-pink-900/40',
-    cyan: 'bg-cyan-100 dark:bg-cyan-900/40',
-    gray: 'bg-gray-200 dark:bg-gray-700',
+    emerald: 'bg-emerald-500 dark:bg-emerald-900/40',
+    orange: 'bg-orange-500 dark:bg-orange-900/40',
+    amber: 'bg-amber-500 dark:bg-amber-900/40',
+    blue: 'bg-blue-500 dark:bg-blue-900/40',
+    violet: 'bg-violet-500 dark:bg-violet-900/40',
+    pink: 'bg-pink-500 dark:bg-pink-900/40',
+    cyan: 'bg-cyan-500 dark:bg-cyan-900/40',
+    gray: 'bg-gray-500 dark:bg-gray-700',
   }
   return map[props.color] || 'bg-white dark:bg-gray-800'
 })
@@ -488,6 +503,12 @@ const colorMap: Record<string, string> = {
 
 const strokeColor = computed(() => colorMap[props.color] || colorMap.gray)
 
+// Chart color - white when panel is open (for dark background in light mode)
+const chartStrokeColor = computed(() => {
+  if (props.isPanelOpen) return '#ffffff'
+  return strokeColor.value
+})
+
 const chartData = computed<ChartData<'line'> | null>(() => {
   const history = activeHistory.value
   if (!history || history.length < 2) return null
@@ -542,8 +563,8 @@ const chartData = computed<ChartData<'line'> | null>(() => {
   return {
     datasets: [{
       label: props.label,
-      backgroundColor: hexToRgba(strokeColor.value, 0.1),
-      borderColor: strokeColor.value,
+      backgroundColor: hexToRgba(chartStrokeColor.value, 0.15),
+      borderColor: chartStrokeColor.value,
       borderWidth: 2,
       data: sortedData.map(m => ({ x: new Date(m.time).getTime(), y: m.value })),
       tension: 0.2,
