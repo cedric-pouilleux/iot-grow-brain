@@ -72,7 +72,7 @@
         :selected-sensor="selectedGraphSensor"
         :initial-active-sensor="selectedGraphActiveSensor"
         :history="getSensorHistory(selectedGraphSensor)"
-        :sensor-label="getSensorLabel(selectedGraphSensor)"
+        :sensor-label="selectedGraphGroup?.label || getSensorLabel(selectedGraphSensor)"
         :sensor-color="getSensorColor(selectedGraphSensor)"
         :sensor-unit="getSensorUnit(selectedGraphSensor)"
         :available-sensors="selectedGraphAvailableSensors"

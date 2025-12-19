@@ -6,36 +6,41 @@
         <!-- Header -->
         <div class="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: dynamicColor }"></span>
-              <span class="font-semibold text-gray-700 dark:text-white text-sm">{{ dynamicTitle }}</span>
-              <span class="text-xs text-gray-400">Historique détaillé</span>
+            <!-- Title + Sensor chips (grouped together) -->
+            <div class="flex items-center gap-3 flex-wrap">
+              <!-- Title -->
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: dynamicColor }"></span>
+                <span class="font-semibold text-gray-700 dark:text-white text-sm">{{ dynamicTitle }}</span>
+              </div>
+              
+              <!-- Sensor selector chips -->
+              <div v-if="availableSensors && availableSensors.length > 1" class="flex flex-wrap gap-1.5">
+                <button
+                  v-for="(sensor, index) in availableSensors"
+                  :key="sensor.key"
+                  @click="toggleSensor(sensor.key)"
+                  class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-all"
+                  :class="selectedSensorKeys.has(sensor.key) 
+                    ? 'bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white' 
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'"
+                >
+                  <span 
+                    class="w-2 h-2 rounded-full" 
+                    :style="{ backgroundColor: getSensorShadeColor(index) }"
+                  ></span>
+                  {{ getSensorDisplayLabel(sensor) }}
+                </button>
+              </div>
             </div>
+            
+            <!-- Close button -->
             <button 
               @click="$emit('close')"
-              class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+              class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors shrink-0"
               title="Fermer"
             >
               <Icon name="tabler:x" class="w-4 h-4" />
-            </button>
-          </div>
-          
-          <!-- Sensor selector chips -->
-          <div v-if="availableSensors && availableSensors.length > 1" class="flex flex-wrap gap-2 mt-2">
-            <button
-              v-for="(sensor, index) in availableSensors"
-              :key="sensor.key"
-              @click="toggleSensor(sensor.key)"
-              class="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs transition-all"
-              :class="selectedSensorKeys.has(sensor.key) 
-                ? 'bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white' 
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'"
-            >
-              <span 
-                class="w-2 h-2 rounded-full" 
-                :style="{ backgroundColor: getSensorShadeColor(index) }"
-              ></span>
-              {{ sensor.model || sensor.label }}
             </button>
           </div>
         </div>
@@ -191,25 +196,50 @@ const getSensorColorByKey = (sensorKey: string): string => {
   return getSensorShadeColor(index)
 }
 
-// Dynamic title based on first selected sensor
+// Get display label for a sensor (PM sensors show their type, others show model)
+const getSensorDisplayLabel = (sensor: SensorItem): string => {
+  // PM sensors: show the PM type (PM1.0, PM2.5, etc.) instead of the model
+  if (/^pm\d/.test(sensor.key)) {
+    return sensor.label
+  }
+  // Other sensors: prefer model name if available
+  return sensor.model || sensor.label
+}
+
+// Dynamic title based on sensor type
+// Only COV/TVOC sensors have dynamic titles, others use the group label
 const dynamicTitle = computed(() => {
   const firstKey = Array.from(selectedSensorKeys.value)[0]
   if (!firstKey) return props.sensorLabel
   
-  const sensor = props.availableSensors?.find(s => s.key === firstKey)
-  if (sensor) {
-    // Use model name if available (e.g., "SGP40", "SGP30")
-    // Otherwise use the label (e.g., "COV", "TVOC")
-    return sensor.model || sensor.label
+  const keyLower = firstKey.toLowerCase()
+  
+  // COV sensors: show different titles based on active sensor
+  if (keyLower === 'tvoc') {
+    return 'Composés Organiques Volatils Totaux'
   }
+  if (keyLower === 'voc') {
+    return 'Composés Organiques Volatils'
+  }
+  
+  // All other sensors (Temperature, Humidity, PM, etc.) use the group label
   return props.sensorLabel
 })
 
-// Dynamic color based on first selected sensor
+// Dynamic color based on selected sensor
+// Only changes for COV/TVOC (exclusive selection), otherwise uses the base group color
 const dynamicColor = computed(() => {
   const firstKey = Array.from(selectedSensorKeys.value)[0]
   if (!firstKey) return props.sensorColor
-  return getSensorColorByKey(firstKey)
+  
+  // Only COV/TVOC can change color (exclusive selection)
+  const keyLower = firstKey.toLowerCase()
+  if (keyLower === 'voc' || keyLower === 'tvoc') {
+    return getSensorColorByKey(firstKey)
+  }
+  
+  // All other sensors keep the base group color
+  return props.sensorColor
 })
 
 const hasHistory = computed(() => props.history && props.history.length >= 2)
@@ -288,7 +318,7 @@ const chartData = computed<ChartData<'line'> | null>(() => {
       }))
       
       datasets.push({
-        label: sensor?.model || sensor?.label || sensorKey,
+        label: sensor ? getSensorDisplayLabel(sensor) : sensorKey,
         backgroundColor: hexToRgba(color, 0.1),
         borderColor: color,
         borderWidth: 2,
@@ -366,13 +396,13 @@ const chartData = computed<ChartData<'line'> | null>(() => {
   }
 })
 
-const chartOptions = computed(() => ({
+const chartOptions = computed<ChartOptions<'line'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
-  animation: false,
+  animation: false as const,
   interaction: {
     intersect: false,
-    mode: 'index' as const,
+    mode: 'index',
   },
   scales: {
     x: {

@@ -425,7 +425,9 @@ const currentTitle = computed(() => {
 
 const getDropdownItemLabel = (sensor: SensorItem) => {
   // PM sensors: just show the PM size label (PM1, PM2.5, etc.)
-  if (props.label === 'Particules fines') return sensor.label
+  // Detect by group label OR by sensor key pattern
+  const isPmSensor = props.label === 'Particules fines' || /^pm\d/.test(sensor.key)
+  if (isPmSensor) return sensor.label
   
   // COV group: show model with sensor type in parentheses
   if (props.label === 'COV' && sensor.model) {

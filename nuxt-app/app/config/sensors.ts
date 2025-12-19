@@ -50,12 +50,12 @@ export const sensorRanges: Record<string, SensorRange> = {
   pressure: { min: 300, max: 1100 },
 
   // ============================================================================
-  // Particules fines - PM (0 à 3000 µg/m³)
+  // Particules fines - PM (0 à 5000 µg/m³)
   // ============================================================================
-  pm1: { min: 0, max: 3000 },
-  pm25: { min: 0, max: 3000 },
-  pm4: { min: 0, max: 3000 },
-  pm10: { min: 0, max: 3000 },
+  pm1: { min: 0, max: 5000 },
+  pm25: { min: 0, max: 5000 },
+  pm4: { min: 0, max: 5000 },
+  pm10: { min: 0, max: 5000 },
 
   // ============================================================================
   // Monoxyde de carbone - CO (0 à 1000 ppm)
