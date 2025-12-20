@@ -1,6 +1,6 @@
 <template>
   <div class="relative" :class="{ 'opacity-40': disabled }"> 
-    <div class="relative w-20 h-3.5 rounded-full
+    <div class="relative w-20 h-3.5 rounded-md
       bg-gray-700
       dark:bg-gradient-to-b dark:from-gray-900 dark:to-gray-800
       dark:border-t dark:border-blue-400/50
@@ -22,7 +22,7 @@
       :max="max"
       :step="step"
       :disabled="disabled"
-      class="slider absolute inset-0 w-[calc(100%-4px)] left-0.5 h-full rounded-full outline-none bg-transparent"
+      class="slider absolute inset-0 w-[calc(100%-4px)] left-0.5 h-full rounded-md outline-none bg-transparent"
       :class="disabled ? 'cursor-not-allowed' : 'cursor-pointer'"
     />
   </div>
@@ -71,7 +71,7 @@ const thumbPosition = computed(() => {
   appearance: none;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: 4px;
   background: linear-gradient(180deg, #fff 0%, #e5e7eb 50%, #d1d5db 100%);
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.4), 0 0 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   cursor: pointer;
@@ -91,7 +91,7 @@ const thumbPosition = computed(() => {
   width: 8px;
   height: 8px;
   border: none;
-  border-radius: 50%;
+  border-radius: 4px;
   background: linear-gradient(180deg, #fff 0%, #e5e7eb 50%, #d1d5db 100%);
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.4), 0 0 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   cursor: pointer;

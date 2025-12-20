@@ -131,7 +131,7 @@ const MODULE_TYPE_ICONS: Record<string, string> = {
 // Module type labels mapping (human-readable)
 const MODULE_TYPE_LABELS: Record<string, string> = {
   'air-quality': 'Qualité d\'air',
-  'air-quality-bench': 'Bench Qualité d\'air',
+  'air-quality-bench': 'Qualité de l\'air (Benchmark)',
   'lighting': 'Éclairage',
   'climate': 'Climat',
 }

@@ -2,7 +2,7 @@
   <component
     :is="to ? 'NuxtLink' : 'span'" 
     :to="to"
-    class="inline-flex items-center justify-center gap-1.5 rounded-full relative overflow-hidden tracking-wide transition-all duration-200"
+    class="inline-flex items-center justify-center gap-1.5 rounded-md relative overflow-hidden tracking-wide transition-all duration-200"
     :class="[variantClasses, sizeClasses, (clickable || to) ? 'tag-clickable cursor-pointer' : '', icon ? 'pr-[6px]' : '']"
   >
     <Icon 

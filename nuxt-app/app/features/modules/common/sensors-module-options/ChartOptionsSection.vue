@@ -1,86 +1,63 @@
 <template>
-  <div>
-    <h3 class="text-sm font-semibold text-gray-500 dark:text-white">Configuration des cartes</h3>
-    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm p-3 mt-3">
-      
-      <!-- Minimalist Mode Toggle -->
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs text-gray-500 dark:text-gray-400">Affichage minimaliste</span>
-        <UIToggle v-model="minimalMode" />
-      </div>
-      
-      <!-- Alert Thresholds Toggle -->
-      <div class="flex items-center justify-between" :class="minimalMode ? '' : 'mb-2'">
-        <span class="text-xs text-gray-500 dark:text-gray-400">Seuils d'alerte</span>
-        <UIToggle v-model="showAlertThresholds" />
-      </div>
-      
-      <!-- Standard options (hidden when minimal mode is on) -->
-      <template v-if="!minimalMode">
-        <!-- Show Charts Toggle -->
-        <div class="flex items-center justify-between">
-          <span class="text-xs text-gray-500 dark:text-gray-400">Afficher les graphiques</span>
-          <UIToggle v-model="showCharts" />
-        </div>
-        
-        <!-- Nested Chart Options (only when charts enabled) -->
-        <div v-if="showCharts" class="ml-2 mt-1 pl-2 border-l-2 border-gray-200 dark:border-gray-700 space-y-1.5">
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-gray-500 dark:text-gray-400">Lignes de seuil</span>
-            <UIToggle v-model="showThresholdLines" />
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-gray-500 dark:text-gray-400">Couleurs de seuil</span>
-            <UIToggle v-model="colorThresholds" />
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-gray-500 dark:text-gray-400">Durée</span>
-            <UIDropdown
-              id="graph-duration"
-              dropdown-class="top-full right-0 w-24 bg-white dark:bg-gray-800 rounded-lg shadow-xl mt-1 overflow-hidden border border-gray-200 dark:border-gray-700 z-50"
-              size="small"
-            >
-              <template #trigger="{ isOpen, toggle, sizeClasses }">
-                <button
-                  class="flex items-center justify-between border transition-colors bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200"
-                  :class="[
-                    sizeClasses,
-                    isOpen ? 'border-blue-500 ring-1 ring-blue-500' : 'hover:border-gray-300 dark:hover:border-gray-500'
-                  ]"
-                  @click.stop="toggle"
-                >
-                  <span class="font-medium">{{ graphDuration }}</span>
-                  <Icon name="tabler:chevron-down" class="w-3 h-3 opacity-50" />
-                </button>
-              </template>
-              <template #content="{ close }">
-                <div class="py-1">
-                  <button
-                    v-for="duration in ['1h', '6h', '12h', '24h', '7j']"
-                    :key="duration"
-                    @click="graphDuration = duration; close()"
-                    class="w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between"
-                    :class="graphDuration === duration 
-                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium' 
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
-                  >
-                    {{ duration }}
-                    <Icon v-if="graphDuration === duration" name="tabler:check" class="w-3.5 h-3.5 text-blue-500" />
-                  </button>
-                </div>
-              </template>
-            </UIDropdown>
-          </div>
-        </div>
-      </template>
+  <UIPanel title="Configuration des cartes">
+    <!-- Minimalist Mode -->
+    <div class="flex items-center justify-between mb-3 pb-3 border-b border-dashed border-gray-200 dark:border-gray-700">
+      <span class="text-xs font-medium text-gray-700 dark:text-gray-200">Affichage minimaliste</span>
+      <UIToggle v-model="minimalMode" size="small" />
     </div>
-  </div>
+
+    <!-- Threshold Indicators (Always Visible) -->
+    <div 
+      class="flex items-center justify-between"
+      :class="!minimalMode ? 'mb-3 pb-3 border-b border-dashed border-gray-200 dark:border-gray-700' : ''"
+    >
+      <span class="text-xs text-gray-700 dark:text-gray-200">Indicateurs de seuils</span>
+      <UIToggle v-model="showAlertThresholds" size="small" />
+    </div>
+    
+    <!-- Standard options (hidden when minimal mode is on) -->
+    <template v-if="!minimalMode">
+      <div class="space-y-4">
+        
+        <!-- Graph Settings Group -->
+        <div>
+          <span class="text-[11px] text-gray-400 uppercase font-bold tracking-wider mb-2 block">Graphiques</span>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+            <!-- Duration -->
+            <div class="col-span-2 flex items-center justify-between">
+              <span class="text-xs text-gray-500 dark:text-gray-400">Période affichée</span>
+              <UISelect
+                v-model="graphDuration"
+                :options="['1h', '6h', '12h', '24h', '7j']"
+                size="small"
+                class="w-24"
+                dropdown-class="right-0 origin-top-right"
+              />
+            </div>
+
+            <!-- Color Thresholds (Renamed) -->
+            <div class="col-span-2 flex items-center justify-between">
+              <span class="text-xs text-gray-500 dark:text-gray-400">Afficher les seuils</span>
+              <UIToggle v-model="colorThresholds" size="small" />
+            </div>
+
+            <!-- Fixed Scale -->
+            <div class="col-span-2 flex items-center justify-between">
+              <span class="text-xs text-gray-500 dark:text-gray-400">Échelle fixe total</span>
+              <UIToggle v-model="useFixedScale" size="small" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+  </UIPanel>
 </template>
 
 <script setup lang="ts">
 import { useChartSettings } from './composables'
 import UIToggle from '~/components/design-system/UIToggle/UIToggle.vue'
-import UIDropdown from '~/components/design-system/UIDropdown/UIDropdown.vue'
+import UISelect from '~/components/design-system/UISelect/UISelect.vue'
+import UIPanel from '~/components/design-system/UIPanel/UIPanel.vue'
 
 const { 
   showCharts, 
@@ -88,6 +65,7 @@ const {
   colorThresholds, 
   showAlertThresholds, 
   minimalMode,
-  graphDuration
+  graphDuration,
+  useFixedScale
 } = useChartSettings()
 </script>

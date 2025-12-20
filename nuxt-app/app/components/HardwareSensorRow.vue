@@ -5,7 +5,7 @@
     Compact row for hardware sensor with measurements, interval control, and reset button.
     All elements on a single line for maximum density.
   -->
-  <div class="px-3 py-2 flex items-center gap-2">
+  <div class="flex items-center gap-2">
     
     <!-- Status Indicator -->
     <div 
@@ -41,15 +41,17 @@
     </span>
     
     <!-- Reset Button -->
-    <button
-      @click="resetSensor"
-      :disabled="resetting"
-      class="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors flex-shrink-0"
-      :class="{ 'animate-spin': resetting }"
-      title="Redémarrer le capteur"
-    >
-      <Icon :name="resetting ? 'tabler:loader' : 'tabler:refresh'" class="w-3.5 h-3.5" />
-    </button>
+    <!-- Reset Button -->
+    <UITooltip text="Redémarrer le capteur">
+      <button
+        @click="resetSensor"
+        :disabled="resetting"
+        class="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors flex-shrink-0"
+        :class="{ 'animate-spin': resetting }"
+      >
+        <Icon :name="resetting ? 'tabler:loader' : 'tabler:refresh'" class="w-3.5 h-3.5" />
+      </button>
+    </UITooltip>
     
     <!-- Interval Control (glossy slider) -->
     <UISlider
@@ -75,6 +77,7 @@ import { useSnackbar } from './design-system/UISnackbar/useSnackbar'
 import type { SensorDataPoint } from '../types'
 import UISlider from './design-system/UISlider/UISlider.vue'
 import UITag from './design-system/UITag/UITag.vue'
+import UITooltip from './design-system/UITooltip/UITooltip.vue'
 
 // ============================================================================
 // Types

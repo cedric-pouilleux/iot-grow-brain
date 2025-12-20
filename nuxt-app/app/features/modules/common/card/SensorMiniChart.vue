@@ -6,13 +6,6 @@
     </div>
 
     <!-- Maximize button -->
-    <button 
-      @click.stop="$emit('maximize')"
-      class="absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-900 rounded transition-colors z-20 opacity-0 group-hover/card:opacity-100"
-      title="Agrandir le graphique"
-    >
-      <Icon name="tabler:arrows-maximize" class="w-4 h-4" />
-    </button>
 
     <ClientOnly>
       <Line v-if="chartData" :data="chartData" :options="chartOptions" />
@@ -40,6 +33,7 @@ import 'chartjs-adapter-date-fns'
 import annotationPlugin from 'chartjs-plugin-annotation'
 import type { ChartData, ChartOptions } from 'chart.js'
 import type { SensorDataPoint } from '../types'
+import { getSensorRange } from './config/sensors'
 import { useThresholds } from './composables'
 import { useChartSettings } from '~/features/modules/common/sensors-module-options/composables'
 
@@ -69,7 +63,7 @@ defineEmits<{
 }>()
 
 const { getThresholdColor, getThresholdDefinition } = useThresholds()
-const { showCharts, showThresholdLines, colorThresholds } = useChartSettings()
+const { showCharts, showThresholdLines, colorThresholds, useFixedScale } = useChartSettings()
 
 // Color mapping
 const colorMap: Record<string, string> = {
@@ -208,7 +202,13 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
     interaction: { intersect: false, mode: 'index' as const },
     scales: {
       x: { type: 'time', display: false },
-      y: { display: false }
+      y: { 
+        display: false,
+        ...(useFixedScale.value && getSensorRange(props.sensorKey) ? {
+          min: getSensorRange(props.sensorKey)?.min,
+          max: getSensorRange(props.sensorKey)?.max
+        } : {})
+      }
     },
     plugins: {
       legend: { display: false },

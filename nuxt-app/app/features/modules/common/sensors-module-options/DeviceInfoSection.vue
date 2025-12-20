@@ -2,31 +2,28 @@
   <div class="col-span-6 md:col-span-3 lg:col-span-1 flex flex-col justify-between space-y-3">
     
     <!-- Hardware Section -->
-    <div>
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-500 dark:text-white">Hardware</h3>
+    <UIPanel title="Hardware">
+      <template #options>
         <UITooltip :text="'Uptime: ' + formattedUptime" position="left">
           <div 
             class="w-2.5 h-2.5 rounded-full cursor-help"
             :class="isOnline ? 'bg-green-500' : 'bg-red-500'"
           ></div>
         </UITooltip>
-      </div>
-      <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm mt-3 p-3">
-        <div class="text-xs space-y-0.5 text-gray-500 dark:text-gray-400">
-          <div class="flex justify-between items-center mb-1">
-            <div class="font-medium text-gray-600 dark:text-gray-300">{{ hardwareModel }}</div>
-            <div class="text-[10px]">{{ cpuFreq }} MHz</div>
-          </div>
-          <div>{{ moduleId }}</div>
+      </template>
+      
+      <div class="text-xs space-y-0.5 text-gray-500 dark:text-gray-400">
+        <div class="flex justify-between items-center mb-1">
+          <div class="font-medium text-gray-600 dark:text-gray-300">{{ hardwareModel }}</div>
+          <div class="text-[10px]">{{ cpuFreq }} MHz</div>
         </div>
+        <div>{{ moduleId }}</div>
       </div>
-    </div>
+    </UIPanel>
 
     <!-- Network Section -->
-    <div>
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-500 dark:text-white">Réseau</h3>
+    <UIPanel title="Réseau">
+      <template #options>
         <UITooltip :text="`Signal: ${rssi || '--'} dBm`" position="left">
           <div class="cursor-help">
             <Icon v-if="!rssi" name="tabler:wifi-off" class="w-5 h-5" :class="rssiClass" />
@@ -36,48 +33,44 @@
             <Icon v-else name="tabler:wifi-0" class="w-5 h-5" :class="rssiClass" />
           </div>
         </UITooltip>
-      </div>
-      <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm mt-3 p-3">
-        <div class="text-xs space-y-0.5">
-          <div class="flex justify-between">
-            <span class="text-gray-500 dark:text-gray-400">IP</span>
-            <span class="text-gray-600 dark:text-gray-300 font-mono text-[10px]">{{ ip || '--' }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-gray-500 dark:text-gray-400">MAC</span>
-            <span class="text-gray-600 dark:text-gray-300 font-mono text-[10px]">{{ mac || '--' }}</span>
-          </div>
+      </template>
+
+      <div class="text-xs space-y-0.5">
+        <div class="flex justify-between">
+          <span class="text-gray-500 dark:text-gray-400">IP</span>
+          <span class="text-gray-600 dark:text-gray-300 font-mono text-[10px]">{{ ip || '--' }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500 dark:text-gray-400">MAC</span>
+          <span class="text-gray-600 dark:text-gray-300 font-mono text-[10px]">{{ mac || '--' }}</span>
         </div>
       </div>
-    </div>
+    </UIPanel>
 
 
     <!-- Memory Section -->
-    <div>
-      <h3 class="text-sm font-semibold text-gray-500 dark:text-white">Mémoire</h3>
-      <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm mt-3 p-3">
-        <div class="flex gap-4 justify-center">
-          <!-- Flash Doughnut -->
-          <div class="w-16 h-16 relative">
-            <ClientOnly>
-              <Doughnut :data="flashChartData" :options="doughnutOptions" />
-            </ClientOnly>
-            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <span class="text-[9px] font-medium text-gray-500 dark:text-gray-400">Flash</span>
-            </div>
+    <UIPanel title="Mémoire">
+      <div class="flex gap-4 justify-center">
+        <!-- Flash Doughnut -->
+        <div class="w-16 h-16 relative">
+          <ClientOnly>
+            <Doughnut :data="flashChartData" :options="doughnutOptions" />
+          </ClientOnly>
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span class="text-[9px] font-medium text-gray-500 dark:text-gray-400">Flash</span>
           </div>
-          <!-- RAM Doughnut -->
-          <div class="w-16 h-16 relative">
-            <ClientOnly>
-              <Doughnut :data="ramChartData" :options="doughnutOptions" />
-            </ClientOnly>
-            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <span class="text-[9px] font-medium text-gray-500 dark:text-gray-400">RAM</span>
-            </div>
+        </div>
+        <!-- RAM Doughnut -->
+        <div class="w-16 h-16 relative">
+          <ClientOnly>
+            <Doughnut :data="ramChartData" :options="doughnutOptions" />
+          </ClientOnly>
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span class="text-[9px] font-medium text-gray-500 dark:text-gray-400">RAM</span>
           </div>
         </div>
       </div>
-    </div>
+    </UIPanel>
   </div>
 </template>
 
@@ -89,6 +82,7 @@ import ModuleStorageSection from './ModuleStorageSection.vue'
 import { formatUptime } from '~/utils/time'
 import type { DeviceStatus } from '../types'
 import UITooltip from '~/components/design-system/UITooltip/UITooltip.vue'
+import UIPanel from '~/components/design-system/UIPanel/UIPanel.vue'
 
 if (process.client) {
   ChartJS.register(ArcElement, Tooltip, Legend)

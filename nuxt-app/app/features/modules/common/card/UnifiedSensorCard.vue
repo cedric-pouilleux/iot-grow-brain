@@ -52,13 +52,20 @@
           <!-- Header Row -->
           <div class="flex justify-between">
             <div class="flex items-center gap-1">
-              <Icon
-                :name="statusIcon"
-                class="w-2.5 h-2.5"
-                :class="isPanelOpen ? 'text-white' : statusColor"
-                :title="statusTooltip"
-              />
-              <span :class="isPanelOpen ? 'text-white' : 'text-gray-500 dark:text-white'" class="text-[13px]">{{ currentTitle }}</span>
+              <UITooltip :text="statusTooltip" position="top">
+                <Icon
+                  :name="statusIcon"
+                  class="w-3 h-3"
+                  :class="isPanelOpen ? 'text-white' : statusColor"
+                />
+              </UITooltip>
+              <span 
+                :class="[isPanelOpen ? 'text-white' : darkerValueColorClass, 'font-bold']" 
+                class="text-[13px] cursor-pointer hover:opacity-80 transition-opacity"
+                @click="$emit('toggle-graph')"
+              >
+                {{ currentTitle }}
+              </span>
             </div>
 
             <div class="flex">
@@ -83,6 +90,8 @@
             :color="color"
             :isPanelOpen="isPanelOpen"
             :showTrend="activeSensor?.status !== 'missing'"
+            class="cursor-pointer hover:opacity-80 transition-opacity"
+            @click="$emit('toggle-graph')"
           />
           
           <!-- Threshold Alert -->
@@ -125,6 +134,7 @@ import SensorCardValue from './SensorCardValue.vue'
 import SensorCardThreshold from './SensorCardThreshold.vue'
 import SensorDropdown from './SensorDropdown.vue'
 import SensorMiniChart from './SensorMiniChart.vue'
+import UITooltip from '~/components/design-system/UITooltip/UITooltip.vue'
 
 // ============================================================================
 // Types
@@ -368,7 +378,12 @@ const getSensorStatus = (sensor: SensorItem) => {
 
 const currentStatus = computed(() => getSensorStatus(activeSensor.value))
 const statusIcon = computed(() => currentStatus.value.icon)
-const statusColor = computed(() => currentStatus.value.color)
+const statusColor = computed(() => {
+  if (currentStatus.value.text === 'OK') {
+    return valueColorClass.value
+  }
+  return currentStatus.value.color
+})
 const statusTooltip = computed(() => {
   const model = activeSensor.value?.model || activeSensor.value?.label || 'Capteur'
   return `${model}: ${currentStatus.value.text}`

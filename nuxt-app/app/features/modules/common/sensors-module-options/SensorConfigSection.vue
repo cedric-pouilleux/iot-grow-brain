@@ -1,8 +1,7 @@
 <template>
   <div class="col-span-6 lg:col-span-3 flex flex-col space-y-3">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <h3 class="text-sm font-semibold text-gray-500 dark:text-white">Configuration des Capteurs</h3>
+    <UIPanel title="Configuration des Capteurs">
+      <template #options>
         <template v-if="storageStats">
           <UITooltip text="Espace occupé en base de donnée">
             <UITag variant="blue" size="xs">
@@ -10,43 +9,46 @@
             </UITag>
           </UITooltip>
         </template>
+        
+        <!-- Projections (Compact) -->
+        <template v-if="projectionsData">
+          <UITooltip text="Estimation par jour">
+            <UITag variant="neutral" size="xs" :outlined="true">
+              {{ formatBytes(projectionsData.daily) }}/j
+            </UITag>
+          </UITooltip>
+          <UITooltip text="Estimation par mois">
+            <UITag variant="neutral" size="xs" :outlined="true">
+              {{ formatBytes(projectionsData.monthly) }}/m
+            </UITag>
+          </UITooltip>
+          <UITooltip text="Estimation par an" position="top-right">
+            <UITag variant="neutral" size="xs" :outlined="true">
+              {{ formatBytes(projectionsData.yearly) }}/an
+            </UITag>
+          </UITooltip>
+        </template>
+      </template>
+
+      <div>
+        <HardwareSensorRow
+          v-for="(sensor, index) in hardwareSensorList"
+          :key="sensor.hardwareKey"
+          :hardware="sensor"
+          :moduleId="moduleId"
+          :sensorHistoryMap="sensorHistoryMap"
+          :class="{
+            'border-b border-dashed border-gray-200 dark:border-gray-700 pb-1 mb-1': index < hardwareSensorList.length - 1
+          }"
+          @interval-change="onIntervalChange"
+        />
+        
+        <!-- Empty State --> 
+        <div v-if="hardwareSensorList.length === 0" class="p-4 text-center text-xs text-gray-400">
+          Aucun capteur détecté
+        </div>
       </div>
-      
-      <!-- Projections (Compact) -->
-      <div v-if="projectionsData" class="flex items-center gap-2">
-        <UITooltip text="Estimation par jour">
-          <UITag variant="neutral" size="xs" :outlined="true">
-            {{ formatBytes(projectionsData.daily) }}/j
-          </UITag>
-        </UITooltip>
-        <UITooltip text="Estimation par mois">
-          <UITag variant="neutral" size="xs" :outlined="true">
-            {{ formatBytes(projectionsData.monthly) }}/m
-          </UITag>
-        </UITooltip>
-        <UITooltip text="Estimation par an" position="top-right">
-          <UITag variant="neutral" size="xs" :outlined="true">
-            {{ formatBytes(projectionsData.yearly) }}/an
-          </UITag>
-        </UITooltip>
-      </div>
-    </div>
-    
-    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-      <HardwareSensorRow
-        v-for="sensor in hardwareSensorList"
-        :key="sensor.hardwareKey"
-        :hardware="sensor"
-        :moduleId="moduleId"
-        :sensorHistoryMap="sensorHistoryMap"
-        @interval-change="onIntervalChange"
-      />
-      
-      <!-- Empty State --> 
-      <div v-if="hardwareSensorList.length === 0" class="p-4 text-center text-xs text-gray-400">
-        Aucun capteur détecté
-      </div>
-    </div> 
+    </UIPanel>
   </div>
 </template>
 
@@ -55,6 +57,7 @@ import { computed, toRef, onMounted, watch } from 'vue'
 import HardwareSensorRow from '~/components/HardwareSensorRow.vue'
 import UITag from '~/components/design-system/UITag/UITag.vue'
 import UITooltip from '~/components/design-system/UITooltip/UITooltip.vue'
+import UIPanel from '~/components/design-system/UIPanel/UIPanel.vue'
 import { HARDWARE_SENSORS } from './config/hardwareSensors'
 import { useModuleStorage } from './composables/useModuleStorage'
 import type { DeviceStatus, SensorDataPoint } from '../types'

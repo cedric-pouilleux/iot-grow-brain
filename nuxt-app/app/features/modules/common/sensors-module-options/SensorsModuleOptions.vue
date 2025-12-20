@@ -11,52 +11,15 @@
       class="overflow-visible mb-5"
     >
       <div class="grid grid-cols-6 gap-4 mb-5 items-stretch">
-        
-        <!-- LEFT: Device Info (1 col) -->
         <DeviceInfoSection
           :deviceStatus="deviceStatus"
           :moduleId="moduleId"
         />
-
-        <!-- MIDDLE: Module Configuration (2 cols) -->
-        <div class="col-span-6 md:col-span-3 lg:col-span-2 flex flex-col space-y-3">
-          <h3 class="text-[13px] text-gray-500 dark:text-white">
-            Configuration du module
-          </h3>
-          
-          <!-- Zone Selector -->
-          <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm p-3 flex-grow">
-            <h3 class="text-[12px] text-gray-500 dark:text-gray-200 mb-1 block">Zone associée</h3>
-            <div class="flex flex-wrap gap-1.5 mt-2 items-center">
-              <button
-                v-for="zone in zones"
-                :key="zone.id"
-                @click="handleToggleZone(zone.id)"
-              >
-                <UIButton 
-                  :label="zone.name" 
-                  size="large"
-                  :variant="zone.id === currentZoneId ? 'blue' : 'gray'"
-                  clickable
-                />
-              </button>
-              <span v-if="zones.length === 0" class="text-xs text-gray-400 italic">
-                Aucune zone
-              </span>
-            </div>
-            <button
-              @click="$emit('open-zone-drawer')"
-              class="text-[10px] text-gray-400 hover:text-blue-500 underline transition-colors mt-2"
-            >
-              Administration des zones
-            </button>
-          </div>
-
-          <!-- Chart Options -->
-          <ChartOptionsSection />
-        </div>
-
-        <!-- RIGHT: Sensors Configuration (3 cols) -->
+        <ModuleConfigurationSection
+          :moduleId="moduleId"
+          @open-zone-drawer="$emit('open-zone-drawer')"
+          @zone-changed="$emit('zone-changed')"
+        />
         <SensorConfigSection
           :deviceStatus="deviceStatus"
           :moduleId="moduleId"
@@ -68,25 +31,10 @@
 </template>
 
 <script setup lang="ts">
-/**
- * SensorsModuleOptions
- * 
- * Reusable options panel for sensor-based modules.
- * Sub-components:
- * - DeviceInfoSection: Hardware, network, memory display
- * - ChartOptionsSection: Chart visibility toggles
- * - SensorConfigSection: Hardware sensor list
- */
-import { computed } from 'vue'
 import type { DeviceStatus, SensorDataPoint } from '../types'
-import { useZones } from '~/composables/useZones'
-import UIButton from '~/components/design-system/UIButton/UIButton.vue'
 import DeviceInfoSection from './DeviceInfoSection.vue'
-import ChartOptionsSection from './ChartOptionsSection.vue'
+import ModuleConfigurationSection from './ModuleConfigurationSection.vue'
 import SensorConfigSection from './SensorConfigSection.vue'
-
-// Use zones composable
-const { zones, assignDevice, unassignDevice } = useZones()
 
 interface Props {
   isOpen: boolean
@@ -95,44 +43,13 @@ interface Props {
   sensorHistoryMap?: Record<string, SensorDataPoint[]>
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
-const emit = defineEmits<{
+defineEmits<{
   'toggle-zone': [zoneId: string]
   'open-zone-drawer': []
   'zone-changed': []
 }>()
-
-// Current zone from device status
-const currentZoneId = computed(() => {
-  // Find zone that contains this module
-  for (const zone of zones.value) {
-    if (zone.devices?.some(d => d.moduleId === props.moduleId)) {
-      return zone.id
-    }
-  }
-  return undefined
-})
-
-const handleToggleZone = async (zoneId: string) => {
-  // Toggle zone assignment using composable methods
-  try {
-    if (currentZoneId.value === zoneId) {
-      // Unassign from current zone
-      await unassignDevice(props.moduleId)
-    } else {
-      // If already in another zone, unassign first
-      if (currentZoneId.value) {
-        await unassignDevice(props.moduleId)
-      }
-      // Assign to new zone
-      await assignDevice(zoneId, props.moduleId)
-    }
-    emit('zone-changed')
-  } catch (e) {
-    console.error('Failed to toggle zone:', e)
-  }
-}
 </script>
 
 <style scoped>

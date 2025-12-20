@@ -14,6 +14,7 @@ interface ChartSettings {
   showAlertThresholds: boolean
   minimalMode: boolean
   graphDuration: string
+  useFixedScale: boolean
 }
 
 const defaultSettings: ChartSettings = {
@@ -22,7 +23,8 @@ const defaultSettings: ChartSettings = {
   colorThresholds: true,
   showAlertThresholds: true,
   minimalMode: false,
-  graphDuration: '24h'
+  graphDuration: '24h',
+  useFixedScale: false
 }
 
 // Global reactive settings
@@ -58,19 +60,13 @@ loadSettings()
 
 export function useChartSettings() {
   const showCharts = computed({
-    get: () => settings.value.showCharts,
-    set: (value: boolean) => {
-      settings.value.showCharts = value
-      saveSettings()
-    }
+    get: () => true, // Always show charts in normal mode
+    set: () => {} // No-op
   })
 
   const showThresholdLines = computed({
-    get: () => settings.value.showThresholdLines,
-    set: (value: boolean) => {
-      settings.value.showThresholdLines = value
-      saveSettings()
-    }
+    get: () => false, // Feature removed
+    set: () => {} // No-op
   })
 
   const colorThresholds = computed({
@@ -105,6 +101,14 @@ export function useChartSettings() {
     }
   })
 
+  const useFixedScale = computed({
+    get: () => settings.value.useFixedScale,
+    set: (value: boolean) => {
+      settings.value.useFixedScale = value
+      saveSettings()
+    }
+  })
+
   const toggleShowCharts = () => {
     showCharts.value = !showCharts.value
   }
@@ -124,6 +128,10 @@ export function useChartSettings() {
   const toggleMinimalMode = () => {
     minimalMode.value = !minimalMode.value
   }
+  
+  const toggleFixedScale = () => {
+    useFixedScale.value = !useFixedScale.value
+  }
 
   return {
     showCharts,
@@ -132,10 +140,12 @@ export function useChartSettings() {
     showAlertThresholds,
     minimalMode,
     graphDuration,
+    useFixedScale,
     toggleShowCharts,
     toggleThresholdLines,
     toggleColorThresholds,
     toggleAlertThresholds,
-    toggleMinimalMode
+    toggleMinimalMode,
+    toggleFixedScale
   }
 }

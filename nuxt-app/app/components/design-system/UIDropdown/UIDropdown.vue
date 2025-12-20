@@ -1,7 +1,7 @@
 <template>
   <div :class="[position]" ref="containerRef">
     <!-- Trigger Slot -->
-    <div @click.stop="toggle" class="cursor-pointer group w-fit">
+    <div @click.stop="toggle" class="cursor-pointer group w-full">
       <slot name="trigger" :isOpen="isOpen" :toggle="toggle" :close="close" :size="size" :sizeClasses="sizeClasses"></slot>
     </div>
 
