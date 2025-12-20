@@ -40,7 +40,7 @@
         </div>
         <!-- Value + Unit -->
         <div class="flex items-baseline">
-          <span class="text-4xl font-bold tracking-tight" :class="isPanelOpen ? 'text-white' : valueColorClass">
+          <span class="text-3xl font-bold tracking-tight" :class="isPanelOpen ? 'text-white' : valueColorClass">
             {{ formattedValue }}
           </span>
           <span class="text-base font-medium ml-1" :class="isPanelOpen ? 'text-white/70' : lightValueColorClass">{{ unit }}</span>
@@ -59,7 +59,7 @@
       </div>
 
       <!-- NORMAL MODE -->
-      <div v-else key="normal" class="flex flex-col">
+      <div v-else key="normal" class="flex flex-col h-full justify-between">
       <div class="pl-2" :class="showCharts && !minimalMode ? 'pb-0' : 'pb-3'">
         <div class="flex justify-between">
           <div class="flex items-center gap-1">
@@ -79,16 +79,16 @@
                v-if="sensors.length > 1"
                :id="`sensor-list-${moduleId}-${sensors[0]?.key || 'default'}`"
                position="static"
-               dropdown-class="left-0 w-full bg-white dark:bg-gray-950 rounded-b-lg rounded-t-none shadow-md overflow-hidden text-sm"
+               :dropdown-class="`left-0 w-full rounded-b-lg rounded-t-none shadow-md overflow-hidden text-sm ${themeBgClass}`"
              >
                <template #trigger="{ isOpen, toggle }">
                  <button 
                    @click.stop="toggle"
-                   class="p-1 rounded-tr-lg hover:bg-white dark:hover:bg-gray-950 transition-colors flex items-center"
-                   :class="[isPanelOpen ? darkerColorClass : valueColorClass, {'bg-white dark:bg-gray-950': isOpen}]"
+                   class="p-1 rounded-tr-lg transition-colors flex items-center group/cta"
+                   :class="[isOpen ? [themeBgClass, 'rounded-b-none'] : ctaHoverBgClass]"
                    title="Changer de capteur"
                  >
-                   <Icon name="tabler:cpu" class="w-4 h-4" />
+                   <Icon name="tabler:cpu" class="w-4 h-4 transition-colors" :class="isOpen ? 'text-white' : [valueColorClass, 'group-hover/cta:text-white']" />
                  </button>
                </template>
 
@@ -98,19 +98,18 @@
                      v-for="(sensor, index) in sensors"
                      :key="sensor.key"
                      @click="selectSensor(sensor.key, close)"
-                     class="w-full text-left p-2 flex items-center justify-between transition-colors dropdown-item-animate"
-                     :class="activeSensorKey === sensor.key ? valueColorClass : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-white'"
+                     class="w-full text-left p-2 flex items-center justify-between transition-colors dropdown-item-animate text-white"
+                     :class="[activeSensorKey === sensor.key ? activeItemBgClass : hoverBgClass]"
                      :style="{ animationDelay: `${index * 50}ms` }"
                    >
                      <span class="text-xs">
                        {{ getDropdownItemLabel(sensor) }}
                      </span>
                      <div class="flex items-center gap-2">
-                        <span class="font-bold font-mono text-xs" :class="activeSensorKey === sensor.key ? valueColorClass : ''">{{ formatSensorValue(sensor.value) }}<span class="text-xs font-normal" :class="activeSensorKey === sensor.key ? 'opacity-70' : 'text-gray-500'">{{ getUnit(sensor.key) }}</span></span>
+                        <span class="font-bold font-mono text-xs text-white">{{ formatSensorValue(sensor.value) }}<span class="text-xs font-normal text-white/70">{{ getUnit(sensor.key) }}</span></span>
                         <Icon 
                           :name="getSensorStatus(sensor).icon"
-                          class="w-3 h-3" 
-                          :class="getSensorStatus(sensor).color"
+                          class="w-3 h-3 text-white" 
                         />
                      </div>
                    </button>
@@ -219,7 +218,7 @@ import type { SensorDataPoint } from '../types'
 import { formatValue } from '../utils/format'
 import { useThresholds } from '../composables/useThresholds'
 import AppDropdown from './AppDropdown.vue'
-import UITag from './ui/UITag.vue'
+import UIButton from './ui/UIButton.vue'
 import { useChartSettings } from '../composables/useChartSettings'
 import { useCountUp } from '../composables/useCountUp'
 import annotationPlugin from 'chartjs-plugin-annotation'
@@ -485,6 +484,66 @@ const darkerValueColorClass = computed(() => {
     gray: 'text-gray-700 dark:text-gray-300',
   }
   return map[props.color] || 'text-gray-700'
+})
+
+// Theme background class for dropdown (uses main theme color)
+const themeBgClass = computed(() => {
+  const map: Record<string, string> = {
+    emerald: 'bg-emerald-500',
+    orange: 'bg-orange-500',
+    amber: 'bg-amber-500',
+    blue: 'bg-blue-500',
+    violet: 'bg-violet-500',
+    pink: 'bg-pink-500',
+    cyan: 'bg-cyan-500',
+    gray: 'bg-gray-500',
+  }
+  return map[props.color] || 'bg-gray-500'
+})
+
+// Active/hover item background class (2 shades darker than theme: 700)
+const activeItemBgClass = computed(() => {
+  const map: Record<string, string> = {
+    emerald: 'bg-emerald-600 hover:bg-emerald-600',
+    orange: 'bg-orange-600 hover:bg-orange-600',
+    amber: 'bg-amber-600 hover:bg-amber-600',
+    blue: 'bg-blue-600 hover:bg-blue-600',
+    violet: 'bg-violet-600 hover:bg-violet-600',
+    pink: 'bg-pink-600 hover:bg-pink-600',
+    cyan: 'bg-cyan-600 hover:bg-cyan-600',
+    gray: 'bg-gray-600 hover:bg-gray-600',
+  }
+  return map[props.color] || 'bg-gray-600 hover:bg-gray-600'
+})
+
+// Hover class for non-active dropdown items (2 shades darker on hover)
+const hoverBgClass = computed(() => {
+  const map: Record<string, string> = {
+    emerald: 'hover:bg-emerald-600',
+    orange: 'hover:bg-orange-600',
+    amber: 'hover:bg-amber-600',
+    blue: 'hover:bg-blue-600',
+    violet: 'hover:bg-violet-600',
+    pink: 'hover:bg-pink-600',
+    cyan: 'hover:bg-cyan-600',
+    gray: 'hover:bg-gray-600',
+  }
+  return map[props.color] || 'hover:bg-gray-600'
+})
+
+// Hover class for CTA button (themed color on hover)
+const ctaHoverBgClass = computed(() => {
+  const map: Record<string, string> = {
+    emerald: 'hover:bg-emerald-500',
+    orange: 'hover:bg-orange-500',
+    amber: 'hover:bg-amber-500',
+    blue: 'hover:bg-blue-500',
+    violet: 'hover:bg-violet-500',
+    pink: 'hover:bg-pink-500',
+    cyan: 'hover:bg-cyan-500',
+    gray: 'hover:bg-gray-500',
+  }
+  return map[props.color] || 'hover:bg-gray-500'
 })
 
 // ============================================================================
@@ -853,4 +912,5 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
   transform: scale(1.02);
 }
 </style>
+
 

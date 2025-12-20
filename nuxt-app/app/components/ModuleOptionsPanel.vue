@@ -110,7 +110,7 @@
                 :key="zone.id"
                 @click="handleToggleZone(zone.id)"
               >
-                <UITag 
+                <UIButton 
                   :label="zone.name" 
                   size="large"
                   :variant="zone.id === currentZoneId ? 'blue' : 'gray'"
@@ -210,7 +210,7 @@ import { getHardwareModel } from '../utils/hardware'
 import { useStorageCalculations } from '../composables/useStorageCalculations'
 import HardwareSensorRow from './HardwareSensorRow.vue'
 import UIToggle from './ui/UIToggle.vue'
-import UITag from './ui/UITag.vue'
+import UIButton from './ui/UIButton.vue'
 import { Doughnut } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip } from 'chart.js'
 
