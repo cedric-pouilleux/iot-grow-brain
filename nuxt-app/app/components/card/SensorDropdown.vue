@@ -1,5 +1,5 @@
 <template>
-  <AppDropdown
+  <UIDropdown
     v-if="sensors.length > 1"
     :id="`sensor-list-${moduleId}-${sensors[0]?.key || 'default'}`"
     position="static"
@@ -49,7 +49,7 @@
         </button>
       </div>
     </template>
-  </AppDropdown>
+  </UIDropdown>
   
   <!-- Placeholder to maintain alignment when no dropdown -->
   <div v-else class="w-6 h-6"></div>
@@ -57,7 +57,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import AppDropdown from '../AppDropdown.vue'
+import UIDropdown from '../design-system/UIDropdown/UIDropdown.vue'
 import { useCardColors } from '../../composables/useCardColors'
 import { formatValue } from '../../utils/format'
 

@@ -2,7 +2,7 @@
   <div :class="[position]" ref="containerRef">
     <!-- Trigger Slot -->
     <div @click.stop="toggle" class="cursor-pointer group w-fit">
-      <slot name="trigger" :isOpen="isOpen" :toggle="toggle" :close="close"></slot>
+      <slot name="trigger" :isOpen="isOpen" :toggle="toggle" :close="close" :size="size" :sizeClasses="sizeClasses"></slot>
     </div>
 
     <!-- Dropdown Content -->
@@ -22,7 +22,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
-import { useDropdownRegistry } from '../composables/useDropdownRegistry'
+import { useDropdownRegistry } from './useDropdownRegistry'
 
 interface Props {
   /**
@@ -42,7 +42,17 @@ interface Props {
    * Position class for the wrapper. Default 'relative'.
    * Pass 'static' to allow dropdown content to be absolute relative to a parent container.
    */
+  /**
+   * Position class for the wrapper. Default 'relative'.
+   * Pass 'static' to allow dropdown content to be absolute relative to a parent container.
+   */
   position?: string
+  /**
+   * Size of the trigger when using default styles or exposed via slot.
+   * 'small' | 'middle' | 'large'
+   * Default: 'middle'
+   */
+  size?: 'small' | 'middle' | 'large'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -50,6 +60,7 @@ const props = withDefaults(defineProps<Props>(), {
   dropdownClass: '',
   independent: false,
   position: 'relative',
+  size: 'middle'
 })
 
 const { open: registryOpen, close: registryClose, isActive } = useDropdownRegistry()
@@ -97,9 +108,19 @@ onUnmounted(() => {
   document.removeEventListener('mousedown', handleGlobalClick)
 })
 
-// Classes
 const dropdownClasses = computed(() => {
   return props.dropdownClass
+})
+
+const sizeClasses = computed(() => {
+  switch (props.size) {
+    case 'small':
+      return 'h-7 text-xs px-2 gap-1 rounded'
+    case 'large':
+      return 'h-10 text-base px-4 gap-2 rounded-lg'
+    default: // middle
+      return 'h-8 text-sm px-3 gap-1.5 rounded-lg'
+  }
 })
 </script>
 

@@ -35,16 +35,41 @@
           </div>
           <div class="flex items-center justify-between">
             <span class="text-xs text-gray-500 dark:text-gray-400">Durée</span>
-            <select 
-              v-model="graphDuration"
-              class="text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-2 py-1 text-gray-700 dark:text-gray-200 focus:outline-none focus:border-blue-500"
+            <UIDropdown
+              id="graph-duration"
+              dropdown-class="top-full right-0 w-24 bg-white dark:bg-gray-800 rounded-lg shadow-xl mt-1 overflow-hidden border border-gray-200 dark:border-gray-700 z-50"
+              size="small"
             >
-              <option value="1h">1h</option>
-              <option value="6h">6h</option>
-              <option value="12h">12h</option>
-              <option value="24h">24h</option>
-              <option value="7j">7j</option>
-            </select>
+              <template #trigger="{ isOpen, toggle, sizeClasses }">
+                <button
+                  class="flex items-center justify-between border transition-colors bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200"
+                  :class="[
+                    sizeClasses,
+                    isOpen ? 'border-blue-500 ring-1 ring-blue-500' : 'hover:border-gray-300 dark:hover:border-gray-500'
+                  ]"
+                  @click.stop="toggle"
+                >
+                  <span class="font-medium">{{ graphDuration }}</span>
+                  <Icon name="tabler:chevron-down" class="w-3 h-3 opacity-50" />
+                </button>
+              </template>
+              <template #content="{ close }">
+                <div class="py-1">
+                  <button
+                    v-for="duration in ['1h', '6h', '12h', '24h', '7j']"
+                    :key="duration"
+                    @click="graphDuration = duration; close()"
+                    class="w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between"
+                    :class="graphDuration === duration 
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-medium' 
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+                  >
+                    {{ duration }}
+                    <Icon v-if="graphDuration === duration" name="tabler:check" class="w-3.5 h-3.5 text-blue-500" />
+                  </button>
+                </div>
+              </template>
+            </UIDropdown>
           </div>
         </div>
       </template>
@@ -54,7 +79,8 @@
 
 <script setup lang="ts">
 import { useChartSettings } from '../../../composables/useChartSettings'
-import UIToggle from '../../ui/UIToggle.vue'
+import UIToggle from '../../design-system/UIToggle/UIToggle.vue'
+import UIDropdown from '../../design-system/UIDropdown/UIDropdown.vue'
 
 const { 
   showCharts, 

@@ -12,11 +12,12 @@
       />
     </button>
     <NuxtPage />
-    <BaseSnackbar />
+    <UISnackbar />
   </div>
 </template>
 
 <script setup lang="ts">
+import UISnackbar from './components/design-system/UISnackbar/UISnackbar.vue'
 const colorMode = useColorMode()
 const toggleColorMode = () => {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'

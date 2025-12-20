@@ -79,7 +79,7 @@
 import { computed } from 'vue'
 import type { DeviceStatus, SensorDataPoint } from '../../../types'
 import { useZones } from '../../../composables/useZones'
-import UIButton from '../../ui/UIButton.vue'
+import UIButton from '../../design-system/UIButton/UIButton.vue'
 import DeviceInfoSection from './DeviceInfoSection.vue'
 import ChartOptionsSection from './ChartOptionsSection.vue'
 import SensorConfigSection from './SensorConfigSection.vue'

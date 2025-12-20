@@ -22,7 +22,7 @@
         <div class="flex flex-wrap items-center gap-2 pb-2">
           
           <!-- Period Dropdown -->
-          <AppDropdown
+          <UIDropdown
             id="period-filter"
             dropdown-class="top-full left-0 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-xl mt-1 overflow-hidden border border-gray-200 dark:border-gray-700"
           >
@@ -54,10 +54,10 @@
                 </button>
               </div>
             </template>
-          </AppDropdown>
+          </UIDropdown>
 
           <!-- Category Dropdown (Multi-select) -->
-          <AppDropdown
+          <UIDropdown
             id="category-filter"
             dropdown-class="top-full left-0 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl mt-1 overflow-hidden border border-gray-200 dark:border-gray-700"
           >
@@ -105,10 +105,10 @@
                 </button>
               </div>
             </template>
-          </AppDropdown>
+          </UIDropdown>
 
           <!-- Source Dropdown -->
-          <AppDropdown
+          <UIDropdown
             id="source-filter"
             dropdown-class="top-full left-0 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-xl mt-1 overflow-hidden border border-gray-200 dark:border-gray-700"
           >
@@ -164,10 +164,10 @@
                 </button>
               </div>
             </template>
-          </AppDropdown>
+          </UIDropdown>
 
           <!-- Direction Dropdown -->
-          <AppDropdown
+          <UIDropdown
             id="direction-filter"
             dropdown-class="top-full left-0 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-xl mt-1 overflow-hidden border border-gray-200 dark:border-gray-700"
           >
@@ -223,10 +223,10 @@
                 </button>
               </div>
             </template>
-          </AppDropdown>
+          </UIDropdown>
 
           <!-- Level Dropdown (Multi-select) -->
-          <AppDropdown
+          <UIDropdown
             id="level-filter"
             dropdown-class="top-full left-0 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-xl mt-1 overflow-hidden border border-gray-200 dark:border-gray-700"
           >
@@ -271,10 +271,10 @@
                 </button>
               </div>
             </template>
-          </AppDropdown>
+          </UIDropdown>
 
           <!-- Limit Dropdown -->
-          <AppDropdown
+          <UIDropdown
             id="limit-filter"
             dropdown-class="top-full left-0 w-24 bg-white dark:bg-gray-800 rounded-lg shadow-xl mt-1 overflow-hidden border border-gray-200 dark:border-gray-700"
           >
@@ -306,7 +306,7 @@
                 </button>
               </div>
             </template>
-          </AppDropdown>
+          </UIDropdown>
 
           <!-- Search Input -->
           <div class="flex-1 min-w-[150px]">
@@ -552,6 +552,9 @@
 </template>
 
 <script setup lang="ts">
+import LogHistogram from '../components/LogHistogram.vue'
+import UIDropdown from '../components/design-system/UIDropdown/UIDropdown.vue'
+
 interface LogEntry {
   id: string
   category: string

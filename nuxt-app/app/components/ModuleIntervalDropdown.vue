@@ -1,5 +1,5 @@
 <template>
-  <AppDropdown
+  <UIDropdown
     :id="`interval-${moduleId}-${sensorKeys[0] || 'global'}`"
     dropdown-class="top-full left-0 right-0 -ml-2 bg-gray-800 rounded-b-lg rounded-t-none shadow-xl p-3 text-left"
     position="static"
@@ -51,14 +51,14 @@
 
 
     </template>
-  </AppDropdown>
+  </UIDropdown>
 </template>
 
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { formatSize } from '../utils/format'
-import AppDropdown from './AppDropdown.vue'
-import { useSnackbar } from '../composables/useSnackbar'
+import UIDropdown from './design-system/UIDropdown/UIDropdown.vue'
+import { useSnackbar } from '../components/design-system/UISnackbar/useSnackbar'
 
 const props = defineProps({
   initialInterval: { type: Number, default: 60 },

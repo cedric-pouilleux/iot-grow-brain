@@ -61,7 +61,7 @@
  */
 import { ref, computed, watch } from 'vue'
 import { useTimeAgo } from '../composables/useTimeAgo'
-import { useSnackbar } from '../composables/useSnackbar'
+import { useSnackbar } from './design-system/UISnackbar/useSnackbar'
 
 // ============================================================================
 // Props & Emits

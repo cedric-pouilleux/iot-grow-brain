@@ -23,7 +23,11 @@
 - No API options on the view side, only composable APIs.
 - Avoid setInterval, nextTick, and other hacks to solve problems as much as possible.
 - Prefer tailwind over custom css.
-- Dont forget darkmode when adding feature.333333333333333333333333333333662
+- Dont forget darkmode when adding feature
+
+## Design system
+- Always start design system component with UI prefix.
+- No profession on design system component.
 
 
 

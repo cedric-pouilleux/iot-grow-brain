@@ -43,7 +43,7 @@
         </div>
         
         <!-- Threshold Alert -->
-        <SensorCardThreshold :threshold="thresholdAlert" :isPanelOpen="isPanelOpen" />
+        <SensorCardThreshold v-if="showAlertThresholds" :threshold="thresholdAlert" :isPanelOpen="isPanelOpen" />
       </div>
 
       <!-- NORMAL MODE -->

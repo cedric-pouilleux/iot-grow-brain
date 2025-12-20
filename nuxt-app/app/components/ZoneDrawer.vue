@@ -201,7 +201,7 @@ const emit = defineEmits<{
 const { zones, isLoading, fetchZones, createZone, updateZone, deleteZone, unassignDevice } = useZones()
 
 // Snackbar for feedback
-import { useSnackbar } from '../composables/useSnackbar'
+import { useSnackbar } from './design-system/UISnackbar/useSnackbar'
 const { showSnackbar } = useSnackbar()
 
 // ============================================================================

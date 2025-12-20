@@ -70,9 +70,9 @@
  */
 import { ref, computed, watch } from 'vue'
 import { useTimeAgo } from '../composables/useTimeAgo'
-import { useSnackbar } from '../composables/useSnackbar'
+import { useSnackbar } from './design-system/UISnackbar/useSnackbar'
 import type { SensorDataPoint } from '../types'
-import UISlider from './ui/UISlider.vue'
+import UISlider from './design-system/UISlider/UISlider.vue'
 
 // ============================================================================
 // Types

@@ -48,5 +48,6 @@
 </template>
 
 <script setup lang="ts">
+import { useSnackbar } from './useSnackbar'
 const { snackbar } = useSnackbar()
 </script>
