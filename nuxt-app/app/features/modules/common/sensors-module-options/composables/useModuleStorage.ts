@@ -26,12 +26,10 @@ export function useModuleStorage(moduleId: Ref<string>) {
     error.value = null
     
     try {
-      const { data } = await useFetch<ModuleStorageStats>(`${apiUrl}/api/modules/${moduleId.value}/storage`, {
-        key: `module-storage-${moduleId.value}`
-      })
+      const data = await $fetch<ModuleStorageStats>(`${apiUrl}/api/modules/${moduleId.value}/storage`)
       
-      if (data.value) {
-        storageStats.value = data.value
+      if (data) {
+        storageStats.value = data
       }
     } catch (e) {
       console.error('Failed to fetch storage stats:', e)

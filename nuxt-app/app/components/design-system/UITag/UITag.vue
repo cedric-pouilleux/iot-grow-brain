@@ -25,11 +25,13 @@ const props = withDefaults(defineProps<{
   size?: 'xs' | 'sm' | 'md'
   clickable?: boolean
   outlined?: boolean
+  light?: boolean
 }>(), {
   variant: 'neutral',
   size: 'xs',
   clickable: false,
-  outlined: false
+  outlined: false,
+  light: false
 })
 
 defineEmits<{
@@ -48,14 +50,26 @@ const variantClasses = computed(() => {
     }
   }
 
-  // Glossy / Filled style
+  // Pastel / Light style
+  if (props.light) {
+    switch (props.variant) {
+      case 'primary': return 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+      case 'success': return 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800'
+      case 'warning': return 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
+      case 'error':   return 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
+      case 'blue':    return 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800'
+      default:        return 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700'
+    }
+  }
+
+  // Solid / Filled style (Default)
   switch (props.variant) {
-    case 'primary': return 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-    case 'success': return 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800'
-    case 'warning': return 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
-    case 'error':   return 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
-    case 'blue':    return 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 border-blue-100 dark:border-blue-800'
-    default:        return 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700'
+    case 'primary': return 'bg-blue-600 text-white border-blue-600 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800'
+    case 'success': return 'bg-green-600 text-white border-green-600 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800'
+    case 'warning': return 'bg-orange-500 text-white border-orange-500 dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-800'
+    case 'error':   return 'bg-red-600 text-white border-red-600 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800'
+    case 'blue':    return 'bg-blue-500 text-white border-blue-500 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800'
+    default:        return 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'
   }
 })
 

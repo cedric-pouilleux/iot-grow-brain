@@ -50,3 +50,4 @@ FROM measurements
 GROUP BY sensor_type
 ORDER BY count DESC;
 
+

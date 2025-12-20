@@ -44,7 +44,8 @@
 
       <!-- Sensor Cards Grid with slide animation -->
       <div 
-        class="flex gap-4 cards-transition"
+        class="grid gap-4 cards-transition"
+        style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));"
         :class="{ 'cards-pushed': optionsPanelOpen }"
       >
         <UnifiedSensorCard

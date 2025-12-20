@@ -1,15 +1,16 @@
 <template>
-  <div class="col-span-6 lg:col-span-1 flex flex-col justify-between space-y-3">
+  <div class="col-span-6 md:col-span-3 lg:col-span-1 flex flex-col justify-between space-y-3">
     
     <!-- Hardware Section -->
     <div>
       <div class="flex items-center justify-between">
         <h3 class="text-[13px] text-gray-500 dark:text-white">Hardware</h3>
-        <div 
-          class="w-2.5 h-2.5 rounded-full cursor-help"
-          :class="isOnline ? 'bg-green-500' : 'bg-red-500'"
-          :title="'Uptime: ' + formattedUptime"
-        ></div>
+        <UITooltip :text="'Uptime: ' + formattedUptime" position="left">
+          <div 
+            class="w-2.5 h-2.5 rounded-full cursor-help"
+            :class="isOnline ? 'bg-green-500' : 'bg-red-500'"
+          ></div>
+        </UITooltip>
       </div>
       <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm mt-3 p-3">
         <div class="text-xs space-y-0.5 text-gray-500 dark:text-gray-400">
@@ -26,13 +27,15 @@
     <div>
       <div class="flex items-center justify-between">
         <h3 class="text-[13px] text-gray-500 dark:text-white">Réseau</h3>
-        <div class="cursor-help" :title="`Signal: ${rssi || '--'} dBm`">
-          <Icon v-if="!rssi" name="tabler:wifi-off" class="w-5 h-5" :class="rssiClass" />
-          <Icon v-else-if="rssi > -60" name="tabler:wifi" class="w-5 h-5" :class="rssiClass" />
-          <Icon v-else-if="rssi > -75" name="tabler:wifi-2" class="w-5 h-5" :class="rssiClass" />
-          <Icon v-else-if="rssi > -85" name="tabler:wifi-1" class="w-5 h-5" :class="rssiClass" />
-          <Icon v-else name="tabler:wifi-0" class="w-5 h-5" :class="rssiClass" />
-        </div>
+        <UITooltip :text="`Signal: ${rssi || '--'} dBm`" position="left">
+          <div class="cursor-help">
+            <Icon v-if="!rssi" name="tabler:wifi-off" class="w-5 h-5" :class="rssiClass" />
+            <Icon v-else-if="rssi > -60" name="tabler:wifi" class="w-5 h-5" :class="rssiClass" />
+            <Icon v-else-if="rssi > -75" name="tabler:wifi-2" class="w-5 h-5" :class="rssiClass" />
+            <Icon v-else-if="rssi > -85" name="tabler:wifi-1" class="w-5 h-5" :class="rssiClass" />
+            <Icon v-else name="tabler:wifi-0" class="w-5 h-5" :class="rssiClass" />
+          </div>
+        </UITooltip>
       </div>
       <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm mt-3 p-3">
         <div class="text-xs space-y-0.5">
@@ -85,6 +88,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import ModuleStorageSection from './ModuleStorageSection.vue'
 import { formatUptime } from '~/utils/time'
 import type { DeviceStatus } from '../types'
+import UITooltip from '~/components/design-system/UITooltip/UITooltip.vue'
 
 if (process.client) {
   ChartJS.register(ArcElement, Tooltip, Legend)
@@ -115,7 +119,7 @@ const formattedUptime = computed(() => {
   if (!bootedAt) return '--'
   const bootTime = new Date(bootedAt).getTime()
   const uptimeMs = Date.now() - bootTime
-  return formatUptime(uptimeMs)
+  return formatUptime(uptimeMs / 1000)
 })
 
 // Network info

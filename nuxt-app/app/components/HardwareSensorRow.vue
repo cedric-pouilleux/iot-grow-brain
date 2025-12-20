@@ -26,6 +26,7 @@
         :key="m.key"
         :variant="getVariant(m.status)"
         size="xs"
+        :light="true"
       >
         {{ m.label }}
       </UITag>

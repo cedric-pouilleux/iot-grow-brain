@@ -19,7 +19,7 @@
         />
 
         <!-- MIDDLE: Module Configuration (2 cols) -->
-        <div class="col-span-6 lg:col-span-2 flex flex-col space-y-3">
+        <div class="col-span-6 md:col-span-3 lg:col-span-2 flex flex-col space-y-3">
           <h3 class="text-[13px] text-gray-500 dark:text-white">
             Configuration du module
           </h3>
