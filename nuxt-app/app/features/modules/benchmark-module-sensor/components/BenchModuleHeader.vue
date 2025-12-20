@@ -6,22 +6,16 @@
     Contains module type icon, options button, and logs link.
   -->
   <div class="py-2">
-    <div class="flex flex-wrap justify-between items-center gap-3">
+    <div class="flex flex-wrap items-center gap-4 mb-4">
       
-      <!-- Left: Module Type with Icon -->
+      <!-- Left: Module Type (No Icon) -->
       <div 
         class="flex items-center gap-2 cursor-pointer group"
         @click="$emit('toggle-options')"
         title="Ouvrir les options"
       >
-        <!-- Module Type Icon -->
-        <Icon 
-          v-if="moduleTypeIcon"
-          :name="moduleTypeIcon" 
-          class="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors"
-        />
         <h2
-          class="font-medium text-base text-gray-800 dark:text-gray-100 leading-tight"
+          class="font-black text-3xl tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-gray-900 via-gray-600 to-gray-800 dark:from-white dark:via-gray-200 dark:to-gray-500 filter drop-shadow-sm leading-none"
           style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
         >
           {{ moduleTypeLabel }}
@@ -32,29 +26,27 @@
       <div class="flex items-center gap-2">
         
         <!-- Options Button -->
-        <button
-          class="h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-300 text-gray-500 dark:text-gray-400 border-t border-transparent hover:text-white hover:bg-gradient-to-b hover:from-gray-900 hover:to-gray-800 hover:border-blue-400/50 hover:shadow-[0_0_2px_rgba(0,0,0,0.9)]"
-          :class="optionsPanelOpen ? 'bg-gradient-to-b from-gray-900 to-gray-800 border-blue-400/50 text-white shadow-[0_0_2px_rgba(0,0,0,0.9)]' : ''"
+        <UIButton 
+          icon="tabler:settings"
+          :icon-class="{ 'rotate-90': optionsPanelOpen }"
+          :variant="optionsPanelOpen ? 'blue' : 'ghost'"
+          size="small"
+          :clickable="true"
+          label="Options"
           title="Options du module"
           @click="$emit('toggle-options')"
-        >
-          <Icon 
-            name="tabler:settings" 
-            class="w-5 h-5 transition-transform duration-300"
-            :class="{ 'rotate-90': optionsPanelOpen }"
-          />
-        </button>
+        /> 
 
         <!-- Logs Button -->
-        <NuxtLink
-          :to="`/logs?search=${moduleId}&category=HARDWARE`"
-          class="h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-300 text-gray-500 dark:text-gray-400 border-t border-transparent hover:text-white hover:bg-gradient-to-b hover:from-gray-900 hover:to-gray-800 hover:border-blue-400/50 hover:shadow-[0_0_2px_rgba(0,0,0,0.9)]"
-          title="Voir les logs du module"
-        >
-          <Icon name="tabler:notes" class="w-5 h-5" />
+        <NuxtLink :to="`/logs?search=${moduleId}&category=HARDWARE`" target="_blank" title="Voir les logs du module">
+          <UIButton 
+            icon="tabler:notes"
+            variant="ghost"
+            size="small"
+            label="Logs"
+            :clickable="true"
+          />
         </NuxtLink>
-
-
 
       </div>
     </div>
@@ -71,6 +63,7 @@
 import { computed } from 'vue'
 import type { DeviceStatus } from '../../common/types'
 import { getWifiClass } from '../../common/utils/hardware'
+import UIButton from '~/components/design-system/UIButton/UIButton.vue'
 
 // ============================================================================
 // Props

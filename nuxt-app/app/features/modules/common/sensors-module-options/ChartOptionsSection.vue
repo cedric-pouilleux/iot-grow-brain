@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h3 class="text-[13px] text-gray-500 dark:text-white">Configuration des cartes</h3>
+    <h3 class="text-sm font-semibold text-gray-500 dark:text-white">Configuration des cartes</h3>
     <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm p-3 mt-3">
       
       <!-- Minimalist Mode Toggle -->

@@ -2,7 +2,7 @@
   <div class="col-span-6 lg:col-span-3 flex flex-col space-y-3">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <h3 class="text-[13px] text-gray-500 dark:text-white">Configuration des Capteurs</h3>
+        <h3 class="text-sm font-semibold text-gray-500 dark:text-white">Configuration des Capteurs</h3>
         <template v-if="storageStats">
           <UITooltip text="Espace occupé en base de donnée">
             <UITag variant="blue" size="xs">

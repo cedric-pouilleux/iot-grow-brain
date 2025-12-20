@@ -1,30 +1,48 @@
 <template>
-  <span 
-    class="inline-flex items-center rounded-full relative overflow-hidden tracking-wide"
-    :class="[variantClasses, sizeClasses, clickable ? 'tag-clickable' : '']"
+  <component
+    :is="to ? 'NuxtLink' : 'span'" 
+    :to="to"
+    class="inline-flex items-center justify-center gap-1.5 rounded-full relative overflow-hidden tracking-wide transition-all duration-200"
+    :class="[variantClasses, sizeClasses, (clickable || to) ? 'tag-clickable cursor-pointer' : '', icon ? 'pr-[6px]' : '']"
   >
-    <span class="relative z-10"><slot>{{ label }}</slot></span>
-  </span>
-</template>
+    <Icon 
+      v-if="icon" 
+      :name="icon" 
+      :class="['w-4 h-4 transition-transform duration-300', iconClass]" 
+    />
+    <span 
+      v-if="$slots.default || label" 
+      class="relative z-10 font-medium leading-none"
+      :class="{ 'pr-1': icon }"
+    >
+      <slot>{{ label }}</slot>
+    </span>
+  </component>
+</template>flex flex-wrap items-center gap-4
 
 <script setup lang="ts">
 import { computed } from 'vue'
 
-type Variant = 'gray' | 'red' | 'orange' | 'yellow' | 'green' | 'blue'
+type Variant = 'gray' | 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'neutral' | 'ghost'
 type Size = 'small' | 'middle' | 'large'
 
 interface Props {
   label?: string
+  icon?: string
+  iconClass?: string | Record<string, boolean>
   variant?: Variant
   size?: Size
   clickable?: boolean
+  to?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   label: '',
+  icon: '',
   variant: 'gray',
   size: 'small',
   clickable: false,
+  to: undefined,
 })
 
 const sizeClasses = computed(() => {
@@ -41,6 +59,16 @@ const variantClasses = computed(() => {
     gray: `
       bg-gray-500 text-white border-b border-gray-800
       dark:bg-gradient-to-b dark:from-gray-900 dark:to-gray-800 dark:border-t dark:border-b dark:border-t-blue-400/50 dark:border-b-gray-950 dark:text-white
+    `,
+    neutral: `
+      bg-gray-200 text-gray-700 border-b border-gray-300
+      dark:bg-gradient-to-b dark:from-gray-800 dark:to-gray-700 dark:border-t dark:border-b dark:border-t-gray-600/50 dark:border-b-gray-900 dark:text-gray-200
+    `,
+    ghost: `
+      bg-transparent text-gray-600 dark:text-gray-400 border-b border-transparent
+      dark:border-t dark:border-b dark:border-transparent
+      hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/50
+      active:bg-gray-200 dark:active:bg-gray-800
     `,
     red: `
       bg-red-500 text-white border-b border-red-800
@@ -77,6 +105,7 @@ const variantClasses = computed(() => {
   opacity: 0;
   transition: opacity 0.2s ease;
   border-radius: inherit;
+  pointer-events: none;
 }
 
 .tag-clickable:hover::before {

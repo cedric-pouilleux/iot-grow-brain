@@ -4,7 +4,7 @@
     <!-- Hardware Section -->
     <div>
       <div class="flex items-center justify-between">
-        <h3 class="text-[13px] text-gray-500 dark:text-white">Hardware</h3>
+        <h3 class="text-sm font-semibold text-gray-500 dark:text-white">Hardware</h3>
         <UITooltip :text="'Uptime: ' + formattedUptime" position="left">
           <div 
             class="w-2.5 h-2.5 rounded-full cursor-help"
@@ -26,7 +26,7 @@
     <!-- Network Section -->
     <div>
       <div class="flex items-center justify-between">
-        <h3 class="text-[13px] text-gray-500 dark:text-white">Réseau</h3>
+        <h3 class="text-sm font-semibold text-gray-500 dark:text-white">Réseau</h3>
         <UITooltip :text="`Signal: ${rssi || '--'} dBm`" position="left">
           <div class="cursor-help">
             <Icon v-if="!rssi" name="tabler:wifi-off" class="w-5 h-5" :class="rssiClass" />
@@ -54,7 +54,7 @@
 
     <!-- Memory Section -->
     <div>
-      <h3 class="text-[13px] text-gray-500 dark:text-white">Mémoire</h3>
+      <h3 class="text-sm font-semibold text-gray-500 dark:text-white">Mémoire</h3>
       <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm mt-3 p-3">
         <div class="flex gap-4 justify-center">
           <!-- Flash Doughnut -->
