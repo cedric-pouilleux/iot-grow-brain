@@ -21,9 +21,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import HardwareSensorRow from '../../HardwareSensorRow.vue'
-import { HARDWARE_SENSORS } from '../../../config/hardwareSensors'
-import type { DeviceStatus, SensorDataPoint } from '../../../types'
+import HardwareSensorRow from '~/components/HardwareSensorRow.vue'
+import { HARDWARE_SENSORS } from '~/config/hardwareSensors'
+import type { DeviceStatus, SensorDataPoint } from '~/types'
 
 interface Measurement {
   key: string

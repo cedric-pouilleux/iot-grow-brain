@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ThresholdResult } from '../../composables/useThresholds'
+import type { ThresholdResult } from './composables'
 
 interface Props {
   threshold: ThresholdResult | null

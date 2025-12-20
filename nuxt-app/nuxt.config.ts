@@ -3,6 +3,12 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
 
+  alias: {
+    '@module-card': '~/features/modules/common/card',
+    '@sensors-options': '~/features/modules/common/sensors-module-options',
+    '@benchmark-module-sensors': '~/features/modules/benchmark-module-sensor',
+  },
+
   modules: ['@nuxtjs/tailwindcss', '@nuxt/icon', '@nuxtjs/color-mode'],
 
   colorMode: {

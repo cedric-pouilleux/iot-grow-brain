@@ -253,6 +253,47 @@ const zonesRoutes: FastifyPluginAsync = async fastify => {
       return { success: true, message: `Device ${deviceId} assigned to zone ${id}` }
     }
   )
+
+  // DELETE /zones/:id/devices/:deviceId - Remove device from zone
+  app.delete(
+    '/zones/:id/devices/:deviceId',
+    {
+      schema: {
+        tags: ['Zones'],
+        summary: 'Remove a device from this zone',
+        params: z.object({
+          id: z.string().uuid(),
+          deviceId: z.string()
+        })
+      }
+    },
+    async (request, reply) => {
+      const { id, deviceId } = request.params
+      
+      // Get zone name and device name for logging
+      const [zone] = await fastify.db
+        .select({ name: schema.zones.name })
+        .from(schema.zones)
+        .where(eq(schema.zones.id, id))
+      
+      const [device] = await fastify.db
+        .select({ preferences: schema.deviceSystemStatus.preferences })
+        .from(schema.deviceSystemStatus)
+        .where(eq(schema.deviceSystemStatus.moduleId, deviceId))
+      
+      const deviceName = (device?.preferences as any)?.name || deviceId
+      
+      // Unassign device from zone (set zoneId to null)
+      await fastify.db
+        .update(schema.deviceSystemStatus)
+        .set({ zoneId: null })
+        .where(eq(schema.deviceSystemStatus.moduleId, deviceId))
+      
+      fastify.log.info({ msg: `[API] Module "${deviceName}" retiré de zone "${zone?.name}"`, source: 'USER', moduleId: deviceId, zoneId: id, zoneName: zone?.name })
+      
+      reply.status(204)
+    }
+  )
 }
 
 export default zonesRoutes

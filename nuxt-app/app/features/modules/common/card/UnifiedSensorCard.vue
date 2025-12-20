@@ -115,12 +115,10 @@
  * Uses sub-components for value, threshold, dropdown, and chart.
  */
 import { ref, computed, watch } from 'vue'
-import type { SensorDataPoint } from '../../types'
-import { formatValue } from '../../utils/format'
-import { useThresholds } from '../../composables/useThresholds'
-import { useChartSettings } from '../../composables/useChartSettings'
-import { useCardColors } from '../../composables/useCardColors'
-import { useCountUp } from '../../composables/useCountUp'
+import type { SensorDataPoint } from '~/types'
+import { formatValue } from '~/utils/format'
+import { useThresholds, useCardColors, useCountUp } from './composables'
+import { useChartSettings } from '~/features/modules/common/sensors-module-options/composables'
 
 // Sub-components
 import SensorCardValue from './SensorCardValue.vue'

@@ -78,9 +78,9 @@
 </template>
 
 <script setup lang="ts">
-import { useChartSettings } from '../../../composables/useChartSettings'
-import UIToggle from '../../design-system/UIToggle/UIToggle.vue'
-import UIDropdown from '../../design-system/UIDropdown/UIDropdown.vue'
+import { useChartSettings } from './composables'
+import UIToggle from '~/components/design-system/UIToggle/UIToggle.vue'
+import UIDropdown from '~/components/design-system/UIDropdown/UIDropdown.vue'
 
 const { 
   showCharts, 

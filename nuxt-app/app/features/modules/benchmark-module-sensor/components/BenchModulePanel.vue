@@ -1,15 +1,14 @@
 <template>
   <!--
-    ModulePanel.vue
-    ===============
-    Main container for a module's dashboard view.
+    BenchModulePanel.vue
+    ====================
+    Main panel for benchmark-module-sensor.
     
-    Structure:
-    1. Loading state
-    2. ModuleHeader with options toggle
-    3. ModuleOptionsPanel (collapsible)
-    4. Sensor cards grid
-    5. Detailed graph overlay (legacy)
+    Uses:
+    - ModuleLayout for structure
+    - BenchModuleHeader for header
+    - SensorsModuleOptions for options
+    - Sensor cards from common/card
   -->
   <div class="mb-6">
     <!-- Loading state -->
@@ -22,7 +21,7 @@
 
     <template v-else-if="props.deviceStatus">
       <!-- Header with options toggle -->
-      <ModuleHeader
+      <BenchModuleHeader
         :module-name="moduleName"
         :module-id="moduleId"
         :zone-name="deviceStatus?.zoneName"
@@ -34,11 +33,10 @@
       />
 
       <!-- Options Panel -->
-      <ModuleOptionsPanel
+      <SensorsModuleOptions
         :is-open="optionsPanelOpen"
         :device-status="deviceStatus"
         :module-id="moduleId"
-        :formatted-uptime="formatUptime(calculatedUptime)"
         :sensor-history-map="sensorHistoryMap"
         @zone-changed="$emit('zone-changed')"
         @open-zone-drawer="$emit('open-zone-drawer', moduleId)"
@@ -85,27 +83,26 @@
 
 <script setup lang="ts">
 /**
- * ModulePanel
+ * BenchModulePanel
  * 
- * Container component that orchestrates:
- * - Module header with options toggle
- * - Options panel (device info + sensor config)
- * - Sensor cards grid
- * - Detail graph overlay
+ * Benchmark sensor module panel using:
+ * - BenchModuleHeader for header
+ * - SensorsModuleOptions for options
+ * - Unified sensor cards
  */
 import { computed, ref } from 'vue'
-import type { DeviceStatus, SensorData, SensorDataPoint } from '../types'
-import ModuleHeader from './ModuleHeader.vue'
-import ModuleOptionsPanel from './module/options-panel/ModuleOptionsPanel.vue'
-import SensorDetailGraph from './card/SensorDetailGraph.vue'
-import UnifiedSensorCard from './card/UnifiedSensorCard.vue'
-import { formatUptime } from '../utils/time'
+import type { DeviceStatus, SensorData, SensorDataPoint } from '~/types'
+import BenchModuleHeader from './BenchModuleHeader.vue'
+import SensorsModuleOptions from '~/features/modules/common/sensors-module-options/SensorsModuleOptions.vue'
+import SensorDetailGraph from '@module-card/SensorDetailGraph.vue'
+import UnifiedSensorCard from '@module-card/UnifiedSensorCard.vue'
+import { formatUptime } from '~/utils/time'
 import {
   getSensorLabel,
   getSensorColor,
   getSensorUnit,
   normalizeSensorType,
-} from '../utils/sensors'
+} from '~/utils/sensors'
 
 // ============================================================================
 // Props
@@ -154,7 +151,7 @@ const selectedGraphSensor = ref<string | null>(null)
 const selectedGraphActiveSensor = ref<string | null>(null) // Active sensor from card to pre-select
 const isToggling = ref(false)
 
-import { useChartSettings } from '../composables/useChartSettings'
+import { useChartSettings } from '~/features/modules/common/sensors-module-options/composables'
 const { graphDuration } = useChartSettings()
 
 // Track active sensor per group type (updated by UnifiedSensorCard)

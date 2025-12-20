@@ -2,12 +2,13 @@
 module.exports = {
   darkMode: 'class',
   content: [
-    './components/**/*.{js,vue,ts}',
-    './layouts/**/*.{js,vue,ts}',
-    './pages/**/*.{js,vue,ts}',
-    './plugins/**/*.{js,vue,ts}',
-    './app.vue',
-    './error.vue',
+    './app/components/**/*.{js,vue,ts}',
+    './app/features/**/*.{js,vue,ts}',
+    './app/layouts/**/*.{js,vue,ts}',
+    './app/pages/**/*.{js,vue,ts}',
+    './app/plugins/**/*.{js,vue,ts}',
+    './app/app.vue',
+    './app/error.vue',
   ],
   theme: {
     extend: {},

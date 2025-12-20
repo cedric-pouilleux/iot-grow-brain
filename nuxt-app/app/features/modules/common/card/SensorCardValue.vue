@@ -34,10 +34,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useCardColors } from '../../composables/useCardColors'
-import { useCountUp } from '../../composables/useCountUp'
-import { formatValue } from '../../utils/format'
-import { useThresholds } from '../../composables/useThresholds'
+import { useCardColors, useCountUp, useThresholds } from './composables'
+import { formatValue } from '~/utils/format'
 
 interface Props {
   value?: number

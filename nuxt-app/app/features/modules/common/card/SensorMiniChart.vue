@@ -39,9 +39,9 @@ import {
 import 'chartjs-adapter-date-fns'
 import annotationPlugin from 'chartjs-plugin-annotation'
 import type { ChartData, ChartOptions } from 'chart.js'
-import type { SensorDataPoint } from '../../types'
-import { useThresholds } from '../../composables/useThresholds'
-import { useChartSettings } from '../../composables/useChartSettings'
+import type { SensorDataPoint } from '~/types'
+import { useThresholds } from './composables'
+import { useChartSettings } from '~/features/modules/common/sensors-module-options/composables'
 
 // Register ChartJS components
 if (process.client) {
@@ -237,7 +237,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
           }
         }
       },
-      annotation: { annotations }
+      ...(process.client ? { annotation: { annotations } } : {})
     }
   }
 })

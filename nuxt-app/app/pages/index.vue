@@ -75,8 +75,7 @@
 import type { MqttMessage } from '../types'
 
 // Components
-import ModulePanel from '../components/ModulePanel.vue'
-import TimeRangeSelector from '../components/TimeRangeSelector.vue'
+import ModulePanel from '@benchmark-module-sensors/components/BenchModulePanel.vue'
 import ZoneDrawer from '../components/ZoneDrawer.vue'
 
 // Composables

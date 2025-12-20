@@ -57,9 +57,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import UIDropdown from '../design-system/UIDropdown/UIDropdown.vue'
-import { useCardColors } from '../../composables/useCardColors'
-import { formatValue } from '../../utils/format'
+import UIDropdown from '~/components/design-system/UIDropdown/UIDropdown.vue'
+import { useCardColors } from './composables'
+import { formatValue } from '~/utils/format'
 
 interface SensorItem {
   key: string

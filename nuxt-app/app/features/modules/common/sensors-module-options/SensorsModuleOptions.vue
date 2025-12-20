@@ -1,9 +1,9 @@
 <template>
   <!-- 
-    ModuleOptionsPanel.vue
-    =====================
-    Collapsible panel for module configuration.
-    Uses sub-components for device info, chart options, and sensor config.
+    SensorsModuleOptions.vue
+    ========================
+    Collapsible options panel for sensor-based modules.
+    Reusable across all modules that have sensors.
   -->
   <Transition name="slide">
     <div 
@@ -69,23 +69,24 @@
 
 <script setup lang="ts">
 /**
- * ModuleOptionsPanel
+ * SensorsModuleOptions
  * 
- * Main panel component using sub-components for cleaner organization:
+ * Reusable options panel for sensor-based modules.
+ * Sub-components:
  * - DeviceInfoSection: Hardware, network, memory display
  * - ChartOptionsSection: Chart visibility toggles
  * - SensorConfigSection: Hardware sensor list
  */
 import { computed } from 'vue'
-import type { DeviceStatus, SensorDataPoint } from '../../../types'
-import { useZones } from '../../../composables/useZones'
-import UIButton from '../../design-system/UIButton/UIButton.vue'
+import type { DeviceStatus, SensorDataPoint } from '~/types'
+import { useZones } from '~/composables/useZones'
+import UIButton from '~/components/design-system/UIButton/UIButton.vue'
 import DeviceInfoSection from './DeviceInfoSection.vue'
 import ChartOptionsSection from './ChartOptionsSection.vue'
 import SensorConfigSection from './SensorConfigSection.vue'
 
 // Use zones composable
-const { zones } = useZones()
+const { zones, assignDevice, unassignDevice } = useZones()
 
 interface Props {
   isOpen: boolean
@@ -114,25 +115,18 @@ const currentZoneId = computed(() => {
 })
 
 const handleToggleZone = async (zoneId: string) => {
-  // Toggle zone assignment
+  // Toggle zone assignment using composable methods
   try {
     if (currentZoneId.value === zoneId) {
-      // Unassign
-      await $fetch(`/api/zones/${zoneId}/devices/${encodeURIComponent(props.moduleId)}`, {
-        method: 'DELETE'
-      })
+      // Unassign from current zone
+      await unassignDevice(props.moduleId)
     } else {
-      // If already in another zone, remove first
+      // If already in another zone, unassign first
       if (currentZoneId.value) {
-        await $fetch(`/api/zones/${currentZoneId.value}/devices/${encodeURIComponent(props.moduleId)}`, {
-          method: 'DELETE'
-        })
+        await unassignDevice(props.moduleId)
       }
       // Assign to new zone
-      await $fetch(`/api/zones/${zoneId}/devices`, {
-        method: 'POST',
-        body: { deviceId: props.moduleId }
-      })
+      await assignDevice(zoneId, props.moduleId)
     }
     emit('zone-changed')
   } catch (e) {

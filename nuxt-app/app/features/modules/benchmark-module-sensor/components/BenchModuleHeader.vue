@@ -1,12 +1,9 @@
 <template>
   <!--
-    ModuleHeader.vue
-    ================
-    Header bar for a module panel. Contains:
-    - Module name with icon
-    - Options button (opens ModuleOptionsPanel)
-    - Graph duration selector
-    - WiFi signal indicator
+    BenchModuleHeader.vue
+    =====================
+    Header for benchmark-module-sensor.
+    Contains module type icon, options button, and logs link.
   -->
   <div class="py-2">
     <div class="flex flex-wrap justify-between items-center gap-3">
@@ -66,18 +63,14 @@
 
 <script setup lang="ts">
 /**
- * ModuleHeader
+ * BenchModuleHeader
  * 
- * Simplified header with:
- * - Options toggle (gear icon)
- * - Graph duration selector
- * - WiFi signal indicator
- * 
- * Hardware/Network/Storage info moved to ModuleOptionsPanel.
+ * Header component for benchmark sensor module.
+ * Options toggle and logs link.
  */
 import { computed } from 'vue'
-import type { DeviceStatus } from '../types'
-import { getWifiClass } from '../utils/hardware'
+import type { DeviceStatus } from '~/types'
+import { getWifiClass } from '~/utils/hardware'
 
 // ============================================================================
 // Props
@@ -105,7 +98,7 @@ const emit = defineEmits<{
 // Composables
 // ============================================================================
 
-import { useZones } from '../composables/useZones'
+import { useZones } from '~/composables/useZones'
 const { zones } = useZones()
 
 // ============================================================================
