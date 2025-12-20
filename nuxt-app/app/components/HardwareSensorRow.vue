@@ -20,15 +20,15 @@
     </span>
     
     <!-- Measurement badges -->
-    <div class="flex items-center gap-0.5 flex-shrink-0">
-      <span 
+    <div class="flex items-center gap-1 flex-shrink-0">
+      <UITag 
         v-for="m in hardware.measurements" 
         :key="m.key"
-        class="px-1 py-0.5 rounded text-[9px] font-medium"
-        :class="getMeasurementClass(m.status)"
+        :variant="getVariant(m.status)"
+        size="xs"
       >
         {{ m.label }}
-      </span>
+      </UITag>
     </div>
     
     <!-- Spacer -->
@@ -73,6 +73,7 @@ import { useTimeAgo } from '../composables/useTimeAgo'
 import { useSnackbar } from './design-system/UISnackbar/useSnackbar'
 import type { SensorDataPoint } from '../types'
 import UISlider from './design-system/UISlider/UISlider.vue'
+import UITag from './design-system/UITag/UITag.vue'
 
 // ============================================================================
 // Types
@@ -141,11 +142,11 @@ const statusLabel = computed(() => {
   }
 })
 
-const getMeasurementClass = (status: string) => {
+const getVariant = (status: string) => {
   switch (status) {
-    case 'ok': return 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400'
-    case 'missing': return 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400'
-    default: return 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400'
+    case 'ok': return 'success'
+    case 'missing': return 'error'
+    default: return 'error'
   }
 }
 
@@ -165,8 +166,17 @@ const timeAgo = useTimeAgo(() => {
 // Sync & Save Interval
 // ============================================================================
 
+const emit = defineEmits<{
+  'interval-change': [hardwareKey: string, interval: number]
+}>()
+
 watch(() => props.hardware.interval, (newVal) => {
   localInterval.value = newVal
+})
+
+// Emit event immediately when localInterval change (slider drag/release)
+watch(localInterval, (newVal) => {
+   emit('interval-change', props.hardware.hardwareKey, newVal)
 })
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null

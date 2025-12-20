@@ -1,4 +1,4 @@
-cd import { z } from 'zod'
+import { z } from 'zod'
 
 // --- Shared ---
 export const ModuleConfigSchema = z.object({

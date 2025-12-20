@@ -35,21 +35,34 @@ export function useModuleStorage(moduleId: Ref<string>) {
       }
     } catch (e) {
       console.error('Failed to fetch storage stats:', e)
-      error.value = 'Failed to load storage stats'
     } finally {
       loading.value = false
     }
   }
-  
+
   // Calculate projections based on active sensors intervals
-  const projections = computed(() => {
+  // We accept an optional mapping of "sensorType" -> "overrideInterval"
+  const projections = (customIntervals: Ref<Record<string, number> | undefined>) => computed(() => {
     if (!storageStats.value) return { daily: 0, monthly: 0, yearly: 0 }
     
     let dailyRows = 0
     
+    // We iterate over active sensors from valid stats first
     storageStats.value.activeSensors.forEach(s => {
-      // Default interval 60s if null or invalid
-      const interval = (s.intervalSeconds && s.intervalSeconds > 0) ? s.intervalSeconds : 60
+      // Check if we have an override (override applies to all sensors of that type? 
+      // Actually standardizing: HardwareSensorRow emits per Hardware Key (e.g. 'sgp40'). 
+      // SGP40 corresponds to 'voc' sensor type etc.
+      // Wait, backend response `activeSensors` has `sensorType`.
+      // HardwareSensorRow has `hardwareKey` (e.g. 'mhz14a').
+      // We need mapping hardwareKey -> sensorType(s).
+      
+      // Let's assume for now the user passes a map of sensorType -> interval
+      // OR let the caller handle the mapping.
+      // The simplest is: caller passes map[sensorType] -> interval.
+            
+      const override = customIntervals.value?.[s.sensorType]
+      const interval = (override !== undefined) ? override : (s.intervalSeconds && s.intervalSeconds > 0 ? s.intervalSeconds : 60)
+      
       const measurementsPerDay = (24 * 60 * 60) / interval
       dailyRows += measurementsPerDay
     })
@@ -67,7 +80,7 @@ export function useModuleStorage(moduleId: Ref<string>) {
   
   return {
     storageStats,
-    projections,
+    projections, // Now a function that returns a computed
     loading,
     error,
     fetchStorageStats

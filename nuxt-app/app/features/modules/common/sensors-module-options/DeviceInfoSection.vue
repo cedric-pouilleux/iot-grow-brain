@@ -48,8 +48,6 @@
       </div>
     </div>
 
-    <!-- Storage Section -->
-    <ModuleStorageSection :module-id="moduleId" />
 
     <!-- Memory Section -->
     <div>
