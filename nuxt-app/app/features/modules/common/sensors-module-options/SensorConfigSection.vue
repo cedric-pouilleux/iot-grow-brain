@@ -11,23 +11,15 @@
         </template>
         
         <!-- Projections (Compact) -->
-        <template v-if="projectionsData">
-          <UITooltip text="Estimation par jour">
-            <UITag variant="neutral" size="xs" :outlined="true">
-              {{ formatBytes(projectionsData.daily) }}/j
-            </UITag>
-          </UITooltip>
-          <UITooltip text="Estimation par mois">
-            <UITag variant="neutral" size="xs" :outlined="true">
-              {{ formatBytes(projectionsData.monthly) }}/m
-            </UITag>
-          </UITooltip>
-          <UITooltip text="Estimation par an" position="top-right">
-            <UITag variant="neutral" size="xs" :outlined="true">
-              {{ formatBytes(projectionsData.yearly) }}/an
-            </UITag>
-          </UITooltip>
-        </template>
+        <!-- Projections (Grouped) -->
+        <UITagList
+          v-if="projectionsData"
+          :items="[
+            { label: `${formatBytes(projectionsData.daily)}/j`, tooltip: 'Estimation par jour' },
+            { label: `${formatBytes(projectionsData.monthly)}/m`, tooltip: 'Estimation par mois' },
+            { label: `${formatBytes(projectionsData.yearly)}/an`, tooltip: 'Estimation par an' }
+          ]"
+        />
       </template>
 
       <div>
@@ -58,6 +50,7 @@ import HardwareSensorRow from '~/components/HardwareSensorRow.vue'
 import UITag from '~/components/design-system/UITag/UITag.vue'
 import UITooltip from '~/components/design-system/UITooltip/UITooltip.vue'
 import UIPanel from '~/components/design-system/UIPanel/UIPanel.vue'
+import UITagList from '~/components/design-system/UITagList/UITagList.vue'
 import { HARDWARE_SENSORS } from './config/hardwareSensors'
 import { useModuleStorage } from './composables/useModuleStorage'
 import type { DeviceStatus, SensorDataPoint } from '../types'
