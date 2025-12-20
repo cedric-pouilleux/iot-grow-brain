@@ -82,20 +82,12 @@
 </template>
 
 <script setup lang="ts">
-/**
- * BenchModulePanel
- * 
- * Benchmark sensor module panel using:
- * - BenchModuleHeader for header
- * - SensorsModuleOptions for options
- * - Unified sensor cards
- */
 import { computed, ref } from 'vue'
 import type { DeviceStatus, SensorData, SensorDataPoint } from '~/types'
 import BenchModuleHeader from './BenchModuleHeader.vue'
 import SensorsModuleOptions from '~/features/modules/common/sensors-module-options/SensorsModuleOptions.vue'
-import SensorDetailGraph from '@module-card/SensorDetailGraph.vue'
-import UnifiedSensorCard from '@module-card/UnifiedSensorCard.vue'
+import SensorDetailGraph from '../../common/card/SensorDetailGraph.vue' 
+import UnifiedSensorCard from '../../common/card/UnifiedSensorCard.vue'
 import { formatUptime } from '~/utils/time'
 import {
   getSensorLabel,
@@ -103,10 +95,6 @@ import {
   getSensorUnit,
   normalizeSensorType,
 } from '~/utils/sensors'
-
-// ============================================================================
-// Props
-// ============================================================================
 
 interface Props {
   moduleId: string
@@ -142,10 +130,6 @@ const props = withDefaults(defineProps<Props>(), {
   isHistoryLoading: false,
 })
 
-// ============================================================================
-// State
-// ============================================================================
-
 const optionsPanelOpen = ref(false)
 const selectedGraphSensor = ref<string | null>(null)
 const selectedGraphActiveSensor = ref<string | null>(null) // Active sensor from card to pre-select
@@ -161,10 +145,6 @@ const activeSensorByGroup = reactive<Record<string, string>>({})
 const handleActiveSensorChange = (groupType: string, sensorKey: string) => {
   activeSensorByGroup[groupType] = sensorKey
 }
-
-// ============================================================================
-// Sensor Groups Definition
-// ============================================================================
 
 const sensorGroupsDefinition = [
   {

@@ -120,28 +120,3 @@ export interface MetricsHistoryResponse {
   count: number
   periodDays: number
 }
-
-export interface StorageResponse {
-  database: {
-    totalSize: string
-    totalSizeBytes: number
-  }
-  tables: Array<{
-    name: string
-    totalSize: string
-    totalSizeBytes: number
-    tableSize: string
-    indexesSize: string
-  }>
-  measurements: {
-    totalRows: number
-    uniqueTopics: number
-    oldestRecord: Date | string | null
-    newestRecord: Date | string | null
-  }
-  timescaledb: {
-    totalChunks: number
-    chunksTotalSize: string
-    chunksTotalSizeBytes: number
-  } | null
-}

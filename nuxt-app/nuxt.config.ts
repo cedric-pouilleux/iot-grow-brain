@@ -1,12 +1,17 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { fileURLToPath } from 'url'
+import path from 'path'
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url))
+
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
 
   alias: {
-    '@module-card': '~/features/modules/common/card',
-    '@sensors-options': '~/features/modules/common/sensors-module-options',
-    '@benchmark-module-sensors': '~/features/modules/benchmark-module-sensor',
+    '@module-card': path.resolve(__dirname, 'app/features/modules/common/card'),
+    '@sensors-options': path.resolve(__dirname, 'app/features/modules/common/sensors-module-options'),
+    '@benchmark-module-sensors': path.resolve(__dirname, 'app/features/modules/benchmark-module-sensor'),
   },
 
   modules: ['@nuxtjs/tailwindcss', '@nuxt/icon', '@nuxtjs/color-mode'],
@@ -51,3 +56,4 @@ export default defineNuxtConfig({
     '/api/**': { proxy: `${process.env.API_URL || 'http://127.0.0.1:3001'}/api/**` },
   },
 })
+

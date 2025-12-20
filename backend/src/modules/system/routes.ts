@@ -5,7 +5,6 @@ import {
   MetricsHistoryQuerySchema,
   DbSizeResponseSchema,
   MetricsHistoryResponseSchema,
-  StorageResponseSchema,
 } from './schema'
 
 const systemRoutes: FastifyPluginAsync = async fastify => {
@@ -41,21 +40,6 @@ const systemRoutes: FastifyPluginAsync = async fastify => {
       },
     },
     controller.getMetricsHistory
-  )
-
-  // GET /storage
-  app.get(
-    '/storage',
-    {
-      schema: {
-        tags: ['System'],
-        summary: 'Get detailed storage information',
-        response: {
-          200: StorageResponseSchema,
-        },
-      },
-    },
-    controller.getStorageInfo
   )
 }
 
