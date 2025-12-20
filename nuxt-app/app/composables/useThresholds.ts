@@ -58,6 +58,12 @@ const THRESHOLDS: Record<string, ThresholdDefinition> = {
   
   // PM10: EPA AQI breakpoints (µg/m³, 24h average)
   pm10: { good: 54, moderate: 154, poor: 254 },
+  
+  // PM1: Ultrafine particles (no official EPA breakpoints, using stricter thresholds)
+  pm1: { good: 10, moderate: 25, poor: 50 },
+  
+  // PM4: Inhalable particles (interpolated between PM2.5 and PM10)
+  pm4: { good: 25, moderate: 50, poor: 100 },
 }
 
 // ============================================================================
