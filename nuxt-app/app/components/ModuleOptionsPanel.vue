@@ -134,30 +134,41 @@
           <!-- Chart Options -->
           <h3 class="text-[13px] text-gray-500 dark:text-white">Configuration des cartes</h3>
           <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm p-3">
+            <!-- Minimalist Mode Toggle (at top) -->
             <div class="flex items-center justify-between mb-2">
+              <span class="text-xs text-gray-600 dark:text-gray-300">Afficher minimaliste</span>
+              <UIToggle v-model="minimalMode" />
+            </div>
+
+            <!-- Alert Thresholds (always visible) -->
+            <div class="flex items-center justify-between" :class="{ 'mb-2': !minimalMode }">
               <span class="text-xs text-gray-600 dark:text-gray-300">Afficher les seuils d'alerte</span>
               <UIToggle v-model="showAlertThresholds" />
             </div>
-            <!-- Show Charts Toggle (Parent option) -->
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-gray-600 dark:text-gray-300">Afficher les graphiques</span>
-              <UIToggle v-model="showCharts" />
-            </div>
             
-            <!-- Dependent options container (indented with border-left) -->
-            <div v-if="showCharts" class="mt-2 ml-2 pl-2 border-l-2 border-gray-200 dark:border-gray-600 space-y-2">
-              <!-- Threshold Lines Toggle -->
+            <!-- Standard options (hidden when minimal mode is on) -->
+            <template v-if="!minimalMode">
+              <!-- Show Charts Toggle (Parent option) -->
               <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-500 dark:text-gray-400">Afficher les seuils</span>
-                <UIToggle v-model="showThresholdLines" />
+                <span class="text-xs text-gray-600 dark:text-gray-300">Afficher les graphiques</span>
+                <UIToggle v-model="showCharts" />
               </div>
               
-              <!-- Color Thresholds Toggle -->
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-500 dark:text-gray-400">Couleurs de seuil</span>
-                <UIToggle v-model="colorThresholds" />
+              <!-- Dependent options container (indented with border-left) -->
+              <div v-if="showCharts" class="mt-2 ml-2 pl-2 border-l-2 border-gray-200 dark:border-gray-600 space-y-2">
+                <!-- Threshold Lines Toggle -->
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-500 dark:text-gray-400">Afficher les seuils</span>
+                  <UIToggle v-model="showThresholdLines" />
+                </div>
+                
+                <!-- Color Thresholds Toggle -->
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-gray-500 dark:text-gray-400">Couleurs de seuil</span>
+                  <UIToggle v-model="colorThresholds" />
+                </div>
               </div>
-            </div>
+            </template>
           </div>
         </div>
 
@@ -238,7 +249,7 @@ const { showSnackbar } = useSnackbar()
 
 // Chart settings
 import { useChartSettings } from '../composables/useChartSettings'
-const { showCharts, showThresholdLines, colorThresholds, showAlertThresholds, toggleShowCharts, toggleThresholdLines, toggleColorThresholds, toggleAlertThresholds } = useChartSettings()
+const { showCharts, showThresholdLines, colorThresholds, showAlertThresholds, minimalMode, toggleShowCharts, toggleThresholdLines, toggleColorThresholds, toggleAlertThresholds, toggleMinimalMode } = useChartSettings()
 
 // Emit definition
 const emit = defineEmits<{

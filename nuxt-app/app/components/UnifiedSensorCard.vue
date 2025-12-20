@@ -18,106 +18,151 @@
     ]"
     :style="{ '--shadow-color': hoverShadowColor }"
   >
-    <!-- Header: Title + Sensor Selector -->
-    <div class="pl-2" :class="showCharts ? 'pb-0' : 'pb-3'">
-      <div class="flex justify-between">
-        <div class="flex items-center gap-1">
-           <!-- Status Indicator (in header) -->
-           <Icon
-             :name="statusIcon"
-             class="w-2.5 h-2.5"
-             :class="isPanelOpen ? 'text-white' : statusColor"
-             :title="statusTooltip"
-           />
-           <span :class="isPanelOpen ? 'text-white' : 'text-gray-500 dark:text-white'" class="text-[13px]">{{ currentTitle }}</span>
-        </div>
-
-        <div class="flex">
-           <!-- Sensor Selection Dropdown (for multi-sensor groups) -->
-           <AppDropdown
-             v-if="sensors.length > 1"
-             :id="`sensor-list-${moduleId}-${sensors[0]?.key || 'default'}`"
-             position="static"
-             dropdown-class="left-0 w-full bg-white dark:bg-gray-950 rounded-b-lg rounded-t-none shadow-md overflow-hidden text-sm"
-           >
-             <template #trigger="{ isOpen, toggle }">
-               <button 
-                 @click.stop="toggle"
-                 class="p-1 rounded-tr-lg hover:bg-white dark:hover:bg-gray-950 transition-colors flex items-center"
-                 :class="[isPanelOpen ? darkerColorClass : valueColorClass, {'bg-white dark:bg-gray-950': isOpen}]"
-                 title="Changer de capteur"
-               >
-                 <Icon name="tabler:cpu" class="w-4 h-4" />
-               </button>
-             </template>
-
-             <template #content="{ close }">
-               <div class="max-h-48 overflow-hidden">  
-                 <button
-                   v-for="(sensor, index) in sensors"
-                   :key="sensor.key"
-                   @click="selectSensor(sensor.key, close)"
-                   class="w-full text-left p-2 flex items-center justify-between transition-colors dropdown-item-animate"
-                   :class="activeSensorKey === sensor.key ? valueColorClass : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-white'"
-                   :style="{ animationDelay: `${index * 50}ms` }"
-                 >
-                   <span class="text-xs">
-                     {{ getDropdownItemLabel(sensor) }}
-                   </span>
-                   <div class="flex items-center gap-2">
-                      <span class="font-bold font-mono text-xs" :class="activeSensorKey === sensor.key ? valueColorClass : ''">{{ formatSensorValue(sensor.value) }}<span class="text-xs font-normal" :class="activeSensorKey === sensor.key ? 'opacity-70' : 'text-gray-500'">{{ getUnit(sensor.key) }}</span></span>
-                      <Icon 
-                        :name="getSensorStatus(sensor).icon"
-                        class="w-3 h-3" 
-                        :class="getSensorStatus(sensor).color"
-                      />
-                   </div>
-                 </button>
-               </div>
-             </template>
-           </AppDropdown>
-           <!-- Placeholder to maintain alignment when no dropdown -->
-           <div v-else class="w-6 h-6"></div>
-        </div>
-      </div>
-
-      <!-- Main Value Display -->
-      <div class="flex items-center">
-        <!-- Value -->
-        <span class="text-3xl font-bold tracking-tight" :class="isPanelOpen ? 'text-white' : valueColorClass">
-          {{ formattedValue }}
-        </span>
-        
-        <!-- Trend + Unit stacked vertically -->
-        <div class="flex flex-col items-start ml-1 -mb-0.5">
-          <!-- Trend Arrow (above unit) - only show when sensor is active and trend exists -->
+    <!-- MINIMALIST MODE -->
+    <Transition name="mode-switch" mode="out-in">
+      <div 
+        v-if="minimalMode" 
+        key="minimal" 
+        class="p-3 flex flex-col justify-start cursor-pointer"
+        @click="$emit('toggle-graph')"
+      >
+        <!-- Title + Trend Row -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-sm font-medium" :class="isPanelOpen ? 'text-white' : darkerValueColorClass">{{ currentTitle }}</span>
+          <!-- Trend Arrow (next to title) -->
           <Icon
             v-if="activeSensor?.status !== 'missing' && trend !== 'stable'"
             :name="trend === 'up' ? 'tabler:triangle-filled' : 'tabler:triangle-inverted-filled'"
-            class="w-2 h-2 "
+            class="w-2 h-2"
             :class="trendColorClass"
             :title="trendTooltip"
           />
-          <!-- Empty space if no trend to maintain alignment -->
-          <div v-else class="w-2.5 h-2.5 -mb-0.5"></div>
-          
-          <!-- Unit -->  
-          <span class="text-sm font-medium" :class="isPanelOpen ? 'text-white/70' : 'text-gray-400 dark:text-gray-400'">{{ unit }}</span>
+        </div>
+        <!-- Value + Unit -->
+        <div class="flex items-baseline">
+          <span class="text-4xl font-bold tracking-tight" :class="isPanelOpen ? 'text-white' : valueColorClass">
+            {{ formattedValue }}
+          </span>
+          <span class="text-base font-medium ml-1" :class="isPanelOpen ? 'text-white/70' : lightValueColorClass">{{ unit }}</span>
+        </div>
+        <!-- Threshold Alert (in minimalist mode) -->
+        <div 
+          v-if="showAlertThresholds && thresholdAlert && thresholdAlert.level !== 'good'" 
+          class="flex items-center gap-1"
+          :class="{ 'animate-blink': thresholdAlert.level === 'hazardous' }"
+        >
+          <Icon name="tabler:alert-triangle" class="w-3.5 h-3.5" :class="thresholdTextClass" />
+          <span class="text-sm font-bold" :class="thresholdTextClass">
+            {{ thresholdAlert.label }}
+          </span>
         </div>
       </div>
-      
-      <!-- Threshold Alert (below value, only when enabled and not good) -->
-      <div v-if="showAlertThresholds && thresholdAlert && thresholdAlert.level !== 'good'" class="h-[18px] flex items-center">
-        <UITag 
-          :label="thresholdAlert.label"
-          :variant="thresholdAlert.tagVariant"
-        />
-      </div>
-    </div>
 
-    <!-- Graph Area (only when charts enabled) -->
-    <div v-if="showCharts" class="h-[92px] w-full relative mt-2 rounded-b-lg overflow-hidden">
-      <!-- Loading overlay -->
+      <!-- NORMAL MODE -->
+      <div v-else key="normal" class="flex flex-col">
+      <div class="pl-2" :class="showCharts && !minimalMode ? 'pb-0' : 'pb-3'">
+        <div class="flex justify-between">
+          <div class="flex items-center gap-1">
+             <!-- Status Indicator (in header) -->
+             <Icon
+               :name="statusIcon"
+               class="w-2.5 h-2.5"
+               :class="isPanelOpen ? 'text-white' : statusColor"
+               :title="statusTooltip"
+             />
+             <span :class="isPanelOpen ? 'text-white' : 'text-gray-500 dark:text-white'" class="text-[13px]">{{ currentTitle }}</span>
+          </div>
+
+          <div class="flex">
+             <!-- Sensor Selection Dropdown (for multi-sensor groups) -->
+             <AppDropdown
+               v-if="sensors.length > 1"
+               :id="`sensor-list-${moduleId}-${sensors[0]?.key || 'default'}`"
+               position="static"
+               dropdown-class="left-0 w-full bg-white dark:bg-gray-950 rounded-b-lg rounded-t-none shadow-md overflow-hidden text-sm"
+             >
+               <template #trigger="{ isOpen, toggle }">
+                 <button 
+                   @click.stop="toggle"
+                   class="p-1 rounded-tr-lg hover:bg-white dark:hover:bg-gray-950 transition-colors flex items-center"
+                   :class="[isPanelOpen ? darkerColorClass : valueColorClass, {'bg-white dark:bg-gray-950': isOpen}]"
+                   title="Changer de capteur"
+                 >
+                   <Icon name="tabler:cpu" class="w-4 h-4" />
+                 </button>
+               </template>
+
+               <template #content="{ close }">
+                 <div class="max-h-48 overflow-hidden">  
+                   <button
+                     v-for="(sensor, index) in sensors"
+                     :key="sensor.key"
+                     @click="selectSensor(sensor.key, close)"
+                     class="w-full text-left p-2 flex items-center justify-between transition-colors dropdown-item-animate"
+                     :class="activeSensorKey === sensor.key ? valueColorClass : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-white'"
+                     :style="{ animationDelay: `${index * 50}ms` }"
+                   >
+                     <span class="text-xs">
+                       {{ getDropdownItemLabel(sensor) }}
+                     </span>
+                     <div class="flex items-center gap-2">
+                        <span class="font-bold font-mono text-xs" :class="activeSensorKey === sensor.key ? valueColorClass : ''">{{ formatSensorValue(sensor.value) }}<span class="text-xs font-normal" :class="activeSensorKey === sensor.key ? 'opacity-70' : 'text-gray-500'">{{ getUnit(sensor.key) }}</span></span>
+                        <Icon 
+                          :name="getSensorStatus(sensor).icon"
+                          class="w-3 h-3" 
+                          :class="getSensorStatus(sensor).color"
+                        />
+                     </div>
+                   </button>
+                 </div>
+               </template>
+             </AppDropdown>
+             <!-- Placeholder to maintain alignment when no dropdown -->
+             <div v-else class="w-6 h-6"></div>
+          </div>
+        </div>
+
+        <!-- Main Value Display -->
+        <div class="flex items-center">
+          <!-- Value -->
+          <span class="text-3xl font-bold tracking-tight" :class="isPanelOpen ? 'text-white' : valueColorClass">
+            {{ formattedValue }}
+          </span>
+          
+          <!-- Trend + Unit stacked vertically -->
+          <div class="flex flex-col items-start ml-1 -mb-0.5">
+            <!-- Trend Arrow (above unit) - only show when sensor is active and trend exists -->
+            <Icon
+              v-if="activeSensor?.status !== 'missing' && trend !== 'stable'"
+              :name="trend === 'up' ? 'tabler:triangle-filled' : 'tabler:triangle-inverted-filled'"
+              class="w-2 h-2 "
+              :class="trendColorClass"
+              :title="trendTooltip"
+            />
+            <!-- Empty space if no trend to maintain alignment -->
+            <div v-else class="w-2.5 h-2.5 -mb-0.5"></div>
+            
+            <!-- Unit -->  
+            <span class="text-sm font-medium" :class="isPanelOpen ? 'text-white/70' : 'text-gray-400 dark:text-gray-400'">{{ unit }}</span>
+          </div>
+        </div>
+        
+        <!-- Threshold Alert (below value, only when enabled and not good) -->
+        <div 
+          v-if="showAlertThresholds && thresholdAlert && thresholdAlert.level !== 'good'" 
+          class="flex items-center gap-1"
+          :class="{ 'animate-blink': thresholdAlert.level === 'hazardous' }"
+        >
+          <Icon name="tabler:alert-triangle" class="w-3.5 h-3.5" :class="thresholdTextClass" />
+          <span class="text-sm font-bold" :class="thresholdTextClass">
+            {{ thresholdAlert.label }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Graph Area (only when charts enabled and not in minimal mode) -->
+      <div v-if="showCharts" class="h-[92px] w-full relative mt-2 rounded-b-lg overflow-hidden">
+        <!-- Loading overlay -->
       <div v-if="isLoading" class="absolute inset-0 bg-white/80 dark:bg-gray-800/80 flex items-center justify-center z-10">
         <div class="animate-spin w-5 h-5 border-2 border-gray-300 border-t-emerald-500 rounded-full"></div>
       </div>
@@ -137,7 +182,9 @@
           Pas d'historique
         </div>
       </ClientOnly>
+      </div>
     </div>
+    </Transition>
   </div>
 </template>
 
@@ -222,6 +269,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   'toggle-graph': []
   'update:active-sensor': [key: string]
+  'open-options': []
 }>()
 
 // ============================================================================
@@ -408,6 +456,37 @@ const openBgClass = computed(() => {
   return map[props.color] || 'bg-white dark:bg-gray-800'
 })
 
+// Light color class for units in minimalist mode
+const lightValueColorClass = computed(() => {
+  const map: Record<string, string> = {
+    emerald: 'text-emerald-400 dark:text-emerald-400',
+    orange: 'text-orange-400 dark:text-orange-400',
+    amber: 'text-amber-400 dark:text-amber-400',
+    blue: 'text-blue-400 dark:text-blue-400',
+    violet: 'text-violet-400 dark:text-violet-400',
+    pink: 'text-pink-400 dark:text-pink-400',
+    cyan: 'text-cyan-400 dark:text-cyan-400',
+    gray: 'text-gray-400 dark:text-gray-400',
+  }
+  return map[props.color] || 'text-gray-400'
+})
+
+// Darker color class for title in minimalist mode (one shade darker than value)
+// Value uses 600, title uses 700 (light mode) / Value uses 400, title uses 300 (dark mode)
+const darkerValueColorClass = computed(() => {
+  const map: Record<string, string> = {
+    emerald: 'text-emerald-700 dark:text-emerald-300',
+    orange: 'text-orange-700 dark:text-orange-300',
+    amber: 'text-amber-700 dark:text-amber-300',
+    blue: 'text-blue-700 dark:text-blue-300',
+    violet: 'text-violet-700 dark:text-violet-300',
+    pink: 'text-pink-700 dark:text-pink-300',
+    cyan: 'text-cyan-700 dark:text-cyan-300',
+    gray: 'text-gray-700 dark:text-gray-300',
+  }
+  return map[props.color] || 'text-gray-700'
+})
+
 // ============================================================================
 // Title Logic
 // ============================================================================
@@ -480,12 +559,27 @@ const unit = computed(() => activeSensor.value ? getUnit(activeSensor.value.key)
 // ============================================================================
 
 const { evaluateThreshold, getThresholdColor, getThresholdDefinition, isTrendPositive } = useThresholds()
-const { showCharts, showThresholdLines, colorThresholds, showAlertThresholds } = useChartSettings()
+const { showCharts, showThresholdLines, colorThresholds, showAlertThresholds, minimalMode } = useChartSettings()
 
 const thresholdAlert = computed(() => {
   const sensor = activeSensor.value
   if (!sensor) return null
   return evaluateThreshold(sensor.key, sensor.value)
+})
+
+// Threshold text color class for theme-compatible display
+const thresholdTextClass = computed(() => {
+  if (!thresholdAlert.value) return ''
+  const level = thresholdAlert.value.level
+  
+  // Colors that work well on both light and dark backgrounds
+  const colorMap: Record<string, string> = {
+    good: 'text-emerald-600 dark:text-emerald-400',
+    moderate: 'text-amber-600 dark:text-amber-400',
+    poor: 'text-orange-600 dark:text-orange-400',
+    hazardous: 'text-red-600 dark:text-red-400',
+  }
+  return colorMap[level] || ''
 })
 
 // ============================================================================
@@ -727,6 +821,36 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
 
 :global(.dark) .card-open-shadow {
   box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.4);
+}
+
+/* Blinking animation for hazardous threshold alerts (every 2 seconds) */
+.animate-blink {
+  animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Mode switch transition - fade with subtle scale */
+.mode-switch-enter-active,
+.mode-switch-leave-active {
+  transition: all 0.25s ease-out;
+}
+
+.mode-switch-enter-from {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+.mode-switch-leave-to {
+  opacity: 0;
+  transform: scale(1.02);
 }
 </style>
 

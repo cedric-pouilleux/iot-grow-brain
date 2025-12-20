@@ -12,13 +12,15 @@ interface ChartSettings {
   showThresholdLines: boolean
   colorThresholds: boolean
   showAlertThresholds: boolean
+  minimalMode: boolean
 }
 
 const defaultSettings: ChartSettings = {
   showCharts: true,
   showThresholdLines: false,
   colorThresholds: true,
-  showAlertThresholds: true
+  showAlertThresholds: true,
+  minimalMode: false
 }
 
 // Global reactive settings
@@ -85,6 +87,14 @@ export function useChartSettings() {
     }
   })
 
+  const minimalMode = computed({
+    get: () => settings.value.minimalMode,
+    set: (value: boolean) => {
+      settings.value.minimalMode = value
+      saveSettings()
+    }
+  })
+
   const toggleShowCharts = () => {
     showCharts.value = !showCharts.value
   }
@@ -101,14 +111,20 @@ export function useChartSettings() {
     showAlertThresholds.value = !showAlertThresholds.value
   }
 
+  const toggleMinimalMode = () => {
+    minimalMode.value = !minimalMode.value
+  }
+
   return {
     showCharts,
     showThresholdLines,
     colorThresholds,
     showAlertThresholds,
+    minimalMode,
     toggleShowCharts,
     toggleThresholdLines,
     toggleColorThresholds,
-    toggleAlertThresholds
+    toggleAlertThresholds,
+    toggleMinimalMode
   }
 }

@@ -63,6 +63,7 @@
           :is-panel-open="isCardPanelOpen(group)"
           @toggle-graph="toggleGraph(group.sensors[0]?.key, activeSensorByGroup[group.type] || group.initialKey)"
           @update:active-sensor="handleActiveSensorChange(group.type, $event)"
+          @open-options="optionsPanelOpen = true"
         />
       </div>
 
