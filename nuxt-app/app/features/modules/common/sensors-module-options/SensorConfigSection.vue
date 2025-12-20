@@ -4,23 +4,31 @@
       <div class="flex items-center gap-2">
         <h3 class="text-[13px] text-gray-500 dark:text-white">Configuration des Capteurs</h3>
         <template v-if="storageStats">
-          <UITag variant="blue" size="xs">
-            {{ formatBytes(storageStats.estimatedSizeBytes) }}
-          </UITag>
+          <UITooltip text="Espace occupé en base de donnée">
+            <UITag variant="blue" size="xs">
+              {{ formatBytes(storageStats.estimatedSizeBytes) }}
+            </UITag>
+          </UITooltip>
         </template>
       </div>
       
       <!-- Projections (Compact) -->
       <div v-if="projectionsData" class="flex items-center gap-2">
-        <UITag variant="neutral" size="xs" :outlined="true">
-          {{ formatBytes(projectionsData.daily) }}/j
-        </UITag>
-        <UITag variant="neutral" size="xs" :outlined="true">
-          {{ formatBytes(projectionsData.monthly) }}/m
-        </UITag>
-        <UITag variant="neutral" size="xs" :outlined="true">
-          {{ formatBytes(projectionsData.yearly) }}/an
-        </UITag>
+        <UITooltip text="Estimation par jour">
+          <UITag variant="neutral" size="xs" :outlined="true">
+            {{ formatBytes(projectionsData.daily) }}/j
+          </UITag>
+        </UITooltip>
+        <UITooltip text="Estimation par mois">
+          <UITag variant="neutral" size="xs" :outlined="true">
+            {{ formatBytes(projectionsData.monthly) }}/m
+          </UITag>
+        </UITooltip>
+        <UITooltip text="Estimation par an" position="top-right">
+          <UITag variant="neutral" size="xs" :outlined="true">
+            {{ formatBytes(projectionsData.yearly) }}/an
+          </UITag>
+        </UITooltip>
       </div>
     </div>
     
@@ -38,7 +46,7 @@
       <div v-if="hardwareSensorList.length === 0" class="p-4 text-center text-xs text-gray-400">
         Aucun capteur détecté
       </div>
-    </div>
+    </div> 
   </div>
 </template>
 
@@ -46,6 +54,7 @@
 import { computed, toRef, onMounted, watch } from 'vue'
 import HardwareSensorRow from '~/components/HardwareSensorRow.vue'
 import UITag from '~/components/design-system/UITag/UITag.vue'
+import UITooltip from '~/components/design-system/UITooltip/UITooltip.vue'
 import { HARDWARE_SENSORS } from './config/hardwareSensors'
 import { useModuleStorage } from './composables/useModuleStorage'
 import type { DeviceStatus, SensorDataPoint } from '../types'
