@@ -51,8 +51,8 @@
           class="flex items-center gap-1"
           :class="{ 'animate-blink': thresholdAlert.level === 'hazardous' }"
         >
-          <Icon name="tabler:alert-triangle" class="w-3.5 h-3.5" :class="thresholdTextClass" />
-          <span class="text-sm font-bold" :class="thresholdTextClass">
+          <Icon name="tabler:alert-triangle" class="w-3.5 h-3.5" :class="isPanelOpen ? 'text-white' : thresholdTextClass" />
+          <span class="text-sm font-bold" :class="isPanelOpen ? 'text-white' : thresholdTextClass">
             {{ thresholdAlert.label }}
           </span>
         </div>
@@ -85,10 +85,13 @@
                  <button 
                    @click.stop="toggle"
                    class="p-1 rounded-tr-lg transition-colors flex items-center group/cta"
-                   :class="[isOpen ? [themeBgClass, 'rounded-b-none'] : ctaHoverBgClass]"
+                   :class="[
+                     (isOpen || isPanelOpen) ? activeItemBgClass : ctaHoverBgClass,
+                     isOpen ? 'rounded-b-none' : ''
+                   ]"
                    title="Changer de capteur"
                  >
-                   <Icon name="tabler:cpu" class="w-4 h-4 transition-colors" :class="isOpen ? 'text-white' : [valueColorClass, 'group-hover/cta:text-white']" />
+                   <Icon name="tabler:cpu" class="w-4 h-4 transition-colors" :class="(isOpen || isPanelOpen) ? 'text-white' : [valueColorClass, 'group-hover/cta:text-white']" />
                  </button>
                </template>
 
@@ -152,8 +155,8 @@
           class="flex items-center gap-1"
           :class="{ 'animate-blink': thresholdAlert.level === 'hazardous' }"
         >
-          <Icon name="tabler:alert-triangle" class="w-3.5 h-3.5" :class="thresholdTextClass" />
-          <span class="text-sm font-bold" :class="thresholdTextClass">
+          <Icon name="tabler:alert-triangle" class="w-3.5 h-3.5" :class="isPanelOpen ? 'text-white' : thresholdTextClass" />
+          <span class="text-sm font-bold" :class="isPanelOpen ? 'text-white' : thresholdTextClass">
             {{ thresholdAlert.label }}
           </span>
         </div>

@@ -6,14 +6,16 @@
     </div>
 
     <!-- Dropdown Content -->
-    <div
-      v-if="isOpen"
-      class="absolute z-[100]"
-      :class="dropdownClasses"
-      @click.stop
-    >
-      <slot name="content" :isOpen="isOpen" :close="close"></slot>
-    </div>
+    <Transition name="dropdown">
+      <div
+        v-if="isOpen"
+        class="absolute z-[100]"
+        :class="dropdownClasses"
+        @click.stop
+      >
+        <slot name="content" :isOpen="isOpen" :close="close"></slot>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -88,11 +90,11 @@ const handleGlobalClick = (event: Event) => {
 }
 
 onMounted(() => {
-  document.addEventListener('click', handleGlobalClick)
+  document.addEventListener('mousedown', handleGlobalClick)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleGlobalClick)
+  document.removeEventListener('mousedown', handleGlobalClick)
 })
 
 // Classes
@@ -100,3 +102,18 @@ const dropdownClasses = computed(() => {
   return props.dropdownClass
 })
 </script>
+
+<style scoped>
+/* Dropdown slide animation */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.15s ease-out;
+  transform-origin: top;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: scaleY(0.9);
+}
+</style>
