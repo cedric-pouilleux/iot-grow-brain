@@ -83,7 +83,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { DeviceStatus, SensorData, SensorDataPoint } from '~/types'
+import type { DeviceStatus, SensorData, SensorDataPoint } from '../../common/types'
 import BenchModuleHeader from './BenchModuleHeader.vue'
 import SensorsModuleOptions from '~/features/modules/common/sensors-module-options/SensorsModuleOptions.vue'
 import SensorDetailGraph from '../../common/card/SensorDetailGraph.vue' 
@@ -94,7 +94,7 @@ import {
   getSensorColor,
   getSensorUnit,
   normalizeSensorType,
-} from '~/utils/sensors'
+} from '../../common/utils/sensors'
 
 interface Props {
   moduleId: string

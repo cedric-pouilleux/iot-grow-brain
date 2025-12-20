@@ -13,9 +13,18 @@ export type PostApiModulesIdResetSensorBodySensor = typeof PostApiModulesIdReset
 export const PostApiModulesIdResetSensorBodySensor = {
   co2: 'co2',
   temp: 'temp',
+  temperature: 'temperature',
   humidity: 'humidity',
   voc: 'voc',
   pressure: 'pressure',
   temperature_bmp: 'temperature_bmp',
+  pm1: 'pm1',
+  pm25: 'pm25',
+  pm4: 'pm4',
+  pm10: 'pm10',
+  eco2: 'eco2',
+  tvoc: 'tvoc',
+  temp_sht: 'temp_sht',
+  hum_sht: 'hum_sht',
   all: 'all',
 } as const;

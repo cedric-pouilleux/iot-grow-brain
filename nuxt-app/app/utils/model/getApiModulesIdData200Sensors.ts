@@ -11,6 +11,14 @@ import type { GetApiModulesIdData200SensorsHumItem } from './getApiModulesIdData
 import type { GetApiModulesIdData200SensorsVocItem } from './getApiModulesIdData200SensorsVocItem';
 import type { GetApiModulesIdData200SensorsPressureItem } from './getApiModulesIdData200SensorsPressureItem';
 import type { GetApiModulesIdData200SensorsTemperatureBmpItem } from './getApiModulesIdData200SensorsTemperatureBmpItem';
+import type { GetApiModulesIdData200SensorsPm1Item } from './getApiModulesIdData200SensorsPm1Item';
+import type { GetApiModulesIdData200SensorsPm25Item } from './getApiModulesIdData200SensorsPm25Item';
+import type { GetApiModulesIdData200SensorsPm4Item } from './getApiModulesIdData200SensorsPm4Item';
+import type { GetApiModulesIdData200SensorsPm10Item } from './getApiModulesIdData200SensorsPm10Item';
+import type { GetApiModulesIdData200SensorsEco2Item } from './getApiModulesIdData200SensorsEco2Item';
+import type { GetApiModulesIdData200SensorsTvocItem } from './getApiModulesIdData200SensorsTvocItem';
+import type { GetApiModulesIdData200SensorsTempShtItem } from './getApiModulesIdData200SensorsTempShtItem';
+import type { GetApiModulesIdData200SensorsHumShtItem } from './getApiModulesIdData200SensorsHumShtItem';
 
 export type GetApiModulesIdData200Sensors = {
   co2: GetApiModulesIdData200SensorsCo2Item[];
@@ -19,4 +27,12 @@ export type GetApiModulesIdData200Sensors = {
   voc: GetApiModulesIdData200SensorsVocItem[];
   pressure: GetApiModulesIdData200SensorsPressureItem[];
   temperature_bmp: GetApiModulesIdData200SensorsTemperatureBmpItem[];
+  pm1: GetApiModulesIdData200SensorsPm1Item[];
+  pm25: GetApiModulesIdData200SensorsPm25Item[];
+  pm4: GetApiModulesIdData200SensorsPm4Item[];
+  pm10: GetApiModulesIdData200SensorsPm10Item[];
+  eco2: GetApiModulesIdData200SensorsEco2Item[];
+  tvoc: GetApiModulesIdData200SensorsTvocItem[];
+  temp_sht: GetApiModulesIdData200SensorsTempShtItem[];
+  hum_sht: GetApiModulesIdData200SensorsHumShtItem[];
 };

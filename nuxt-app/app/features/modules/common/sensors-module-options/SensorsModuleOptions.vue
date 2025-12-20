@@ -78,7 +78,7 @@
  * - SensorConfigSection: Hardware sensor list
  */
 import { computed } from 'vue'
-import type { DeviceStatus, SensorDataPoint } from '~/types'
+import type { DeviceStatus, SensorDataPoint } from '../types'
 import { useZones } from '~/composables/useZones'
 import UIButton from '~/components/design-system/UIButton/UIButton.vue'
 import DeviceInfoSection from './DeviceInfoSection.vue'

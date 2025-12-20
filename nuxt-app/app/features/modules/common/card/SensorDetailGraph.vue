@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import type { SensorDataPoint } from '~/types'
+import type { SensorDataPoint } from '../types'
 import type { ChartData, ChartOptions } from 'chart.js'
 import {
   Chart as ChartJS,
@@ -79,7 +79,7 @@ import {
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
 import 'chartjs-adapter-date-fns'
-import { getSensorRange, getNormalizationRatio } from '~/config/sensors'
+import { getSensorRange, getNormalizationRatio } from './config/sensors'
 
 if (process.client) {
   ChartJS.register(

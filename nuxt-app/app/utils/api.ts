@@ -7,6 +7,7 @@
  */
 import type {
   DeleteApiLogs200,
+  DeleteApiModulesIdZone200,
   GetApiDbSize200,
   GetApiLogs200,
   GetApiLogsHistogram200Item,
@@ -20,11 +21,20 @@ import type {
   GetApiModulesIdHistory200,
   GetApiModulesIdHistoryParams,
   GetApiModulesIdStatus200,
-  GetApiStorage200,
+  GetApiModulesTypes200Item,
+  GetApiModulesTypesTypeManifest200,
+  GetApiZones200Item,
+  GetApiZonesId200,
+  PatchApiModulesIdPreferences200,
+  PatchApiModulesIdPreferencesBody,
   PostApiModulesIdConfig200,
   PostApiModulesIdConfigBody,
   PostApiModulesIdResetSensor200,
-  PostApiModulesIdResetSensorBody
+  PostApiModulesIdResetSensorBody,
+  PostApiZones201,
+  PostApiZonesBody,
+  PutApiZonesId200,
+  PutApiZonesIdBody
 } from './model';
 
 
@@ -154,6 +164,92 @@ export const postApiModulesIdResetSensor = async (id: string,
   
   const data: postApiModulesIdResetSensorResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as postApiModulesIdResetSensorResponse
+}
+
+
+
+/**
+ * @summary Update module preferences
+ */
+export type patchApiModulesIdPreferencesResponse200 = {
+  data: PatchApiModulesIdPreferences200
+  status: 200
+}
+    
+export type patchApiModulesIdPreferencesResponseSuccess = (patchApiModulesIdPreferencesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type patchApiModulesIdPreferencesResponse = (patchApiModulesIdPreferencesResponseSuccess)
+
+export const getPatchApiModulesIdPreferencesUrl = (id: string,) => {
+
+
+  
+
+  return `http://localhost:3001/api/modules/${id}/preferences`
+}
+
+export const patchApiModulesIdPreferences = async (id: string,
+    patchApiModulesIdPreferencesBody: PatchApiModulesIdPreferencesBody, options?: RequestInit): Promise<patchApiModulesIdPreferencesResponse> => {
+  
+  const res = await fetch(getPatchApiModulesIdPreferencesUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      patchApiModulesIdPreferencesBody,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: patchApiModulesIdPreferencesResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as patchApiModulesIdPreferencesResponse
+}
+
+
+
+/**
+ * @summary Remove device from its zone
+ */
+export type deleteApiModulesIdZoneResponse200 = {
+  data: DeleteApiModulesIdZone200
+  status: 200
+}
+    
+export type deleteApiModulesIdZoneResponseSuccess = (deleteApiModulesIdZoneResponse200) & {
+  headers: Headers;
+};
+;
+
+export type deleteApiModulesIdZoneResponse = (deleteApiModulesIdZoneResponseSuccess)
+
+export const getDeleteApiModulesIdZoneUrl = (id: string,) => {
+
+
+  
+
+  return `http://localhost:3001/api/modules/${id}/zone`
+}
+
+export const deleteApiModulesIdZone = async (id: string, options?: RequestInit): Promise<deleteApiModulesIdZoneResponse> => {
+  
+  const res = await fetch(getDeleteApiModulesIdZoneUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: deleteApiModulesIdZoneResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as deleteApiModulesIdZoneResponse
 }
 
 
@@ -394,31 +490,31 @@ export const getApiMetricsHistory = async (params?: GetApiMetricsHistoryParams, 
 
 
 /**
- * @summary Get detailed storage information
+ * @summary List all available module types
  */
-export type getApiStorageResponse200 = {
-  data: GetApiStorage200
+export type getApiModulesTypesResponse200 = {
+  data: GetApiModulesTypes200Item[]
   status: 200
 }
     
-export type getApiStorageResponseSuccess = (getApiStorageResponse200) & {
+export type getApiModulesTypesResponseSuccess = (getApiModulesTypesResponse200) & {
   headers: Headers;
 };
 ;
 
-export type getApiStorageResponse = (getApiStorageResponseSuccess)
+export type getApiModulesTypesResponse = (getApiModulesTypesResponseSuccess)
 
-export const getGetApiStorageUrl = () => {
+export const getGetApiModulesTypesUrl = () => {
 
 
   
 
-  return `http://localhost:3001/api/storage`
+  return `http://localhost:3001/api/modules/types`
 }
 
-export const getApiStorage = async ( options?: RequestInit): Promise<getApiStorageResponse> => {
+export const getApiModulesTypes = async ( options?: RequestInit): Promise<getApiModulesTypesResponse> => {
   
-  const res = await fetch(getGetApiStorageUrl(),
+  const res = await fetch(getGetApiModulesTypesUrl(),
   {      
     ...options,
     method: 'GET'
@@ -429,8 +525,351 @@ export const getApiStorage = async ( options?: RequestInit): Promise<getApiStora
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   
-  const data: getApiStorageResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as getApiStorageResponse
+  const data: getApiModulesTypesResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getApiModulesTypesResponse
+}
+
+
+
+/**
+ * @summary Get full manifest for a module type
+ */
+export type getApiModulesTypesTypeManifestResponse200 = {
+  data: GetApiModulesTypesTypeManifest200
+  status: 200
+}
+    
+export type getApiModulesTypesTypeManifestResponseSuccess = (getApiModulesTypesTypeManifestResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getApiModulesTypesTypeManifestResponse = (getApiModulesTypesTypeManifestResponseSuccess)
+
+export const getGetApiModulesTypesTypeManifestUrl = (type: string,) => {
+
+
+  
+
+  return `http://localhost:3001/api/modules/types/${type}/manifest`
+}
+
+export const getApiModulesTypesTypeManifest = async (type: string, options?: RequestInit): Promise<getApiModulesTypesTypeManifestResponse> => {
+  
+  const res = await fetch(getGetApiModulesTypesTypeManifestUrl(type),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getApiModulesTypesTypeManifestResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getApiModulesTypesTypeManifestResponse
+}
+
+
+
+/**
+ * @summary List all zones
+ */
+export type getApiZonesResponse200 = {
+  data: GetApiZones200Item[]
+  status: 200
+}
+    
+export type getApiZonesResponseSuccess = (getApiZonesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getApiZonesResponse = (getApiZonesResponseSuccess)
+
+export const getGetApiZonesUrl = () => {
+
+
+  
+
+  return `http://localhost:3001/api/zones`
+}
+
+export const getApiZones = async ( options?: RequestInit): Promise<getApiZonesResponse> => {
+  
+  const res = await fetch(getGetApiZonesUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getApiZonesResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getApiZonesResponse
+}
+
+
+
+/**
+ * @summary Create a new zone
+ */
+export type postApiZonesResponse201 = {
+  data: PostApiZones201
+  status: 201
+}
+    
+export type postApiZonesResponseSuccess = (postApiZonesResponse201) & {
+  headers: Headers;
+};
+;
+
+export type postApiZonesResponse = (postApiZonesResponseSuccess)
+
+export const getPostApiZonesUrl = () => {
+
+
+  
+
+  return `http://localhost:3001/api/zones`
+}
+
+export const postApiZones = async (postApiZonesBody: PostApiZonesBody, options?: RequestInit): Promise<postApiZonesResponse> => {
+  
+  const res = await fetch(getPostApiZonesUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      postApiZonesBody,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: postApiZonesResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as postApiZonesResponse
+}
+
+
+
+/**
+ * @summary Get zone with its devices
+ */
+export type getApiZonesIdResponse200 = {
+  data: GetApiZonesId200
+  status: 200
+}
+    
+export type getApiZonesIdResponseSuccess = (getApiZonesIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getApiZonesIdResponse = (getApiZonesIdResponseSuccess)
+
+export const getGetApiZonesIdUrl = (id: string,) => {
+
+
+  
+
+  return `http://localhost:3001/api/zones/${id}`
+}
+
+export const getApiZonesId = async (id: string, options?: RequestInit): Promise<getApiZonesIdResponse> => {
+  
+  const res = await fetch(getGetApiZonesIdUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getApiZonesIdResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getApiZonesIdResponse
+}
+
+
+
+/**
+ * @summary Update zone name
+ */
+export type putApiZonesIdResponse200 = {
+  data: PutApiZonesId200
+  status: 200
+}
+    
+export type putApiZonesIdResponseSuccess = (putApiZonesIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type putApiZonesIdResponse = (putApiZonesIdResponseSuccess)
+
+export const getPutApiZonesIdUrl = (id: string,) => {
+
+
+  
+
+  return `http://localhost:3001/api/zones/${id}`
+}
+
+export const putApiZonesId = async (id: string,
+    putApiZonesIdBody: PutApiZonesIdBody, options?: RequestInit): Promise<putApiZonesIdResponse> => {
+  
+  const res = await fetch(getPutApiZonesIdUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      putApiZonesIdBody,)
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: putApiZonesIdResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as putApiZonesIdResponse
+}
+
+
+
+/**
+ * @summary Delete zone (devices are unassigned)
+ */
+export type deleteApiZonesIdResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type deleteApiZonesIdResponseSuccess = (deleteApiZonesIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type deleteApiZonesIdResponse = (deleteApiZonesIdResponseSuccess)
+
+export const getDeleteApiZonesIdUrl = (id: string,) => {
+
+
+  
+
+  return `http://localhost:3001/api/zones/${id}`
+}
+
+export const deleteApiZonesId = async (id: string, options?: RequestInit): Promise<deleteApiZonesIdResponse> => {
+  
+  const res = await fetch(getDeleteApiZonesIdUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: deleteApiZonesIdResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as deleteApiZonesIdResponse
+}
+
+
+
+/**
+ * @summary Assign a device to this zone
+ */
+export type postApiZonesIdDevicesDeviceIdResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type postApiZonesIdDevicesDeviceIdResponseSuccess = (postApiZonesIdDevicesDeviceIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type postApiZonesIdDevicesDeviceIdResponse = (postApiZonesIdDevicesDeviceIdResponseSuccess)
+
+export const getPostApiZonesIdDevicesDeviceIdUrl = (id: string,
+    deviceId: string,) => {
+
+
+  
+
+  return `http://localhost:3001/api/zones/${id}/devices/${deviceId}`
+}
+
+export const postApiZonesIdDevicesDeviceId = async (id: string,
+    deviceId: string, options?: RequestInit): Promise<postApiZonesIdDevicesDeviceIdResponse> => {
+  
+  const res = await fetch(getPostApiZonesIdDevicesDeviceIdUrl(id,deviceId),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: postApiZonesIdDevicesDeviceIdResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as postApiZonesIdDevicesDeviceIdResponse
+}
+
+
+
+/**
+ * @summary Remove a device from this zone
+ */
+export type deleteApiZonesIdDevicesDeviceIdResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type deleteApiZonesIdDevicesDeviceIdResponseSuccess = (deleteApiZonesIdDevicesDeviceIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type deleteApiZonesIdDevicesDeviceIdResponse = (deleteApiZonesIdDevicesDeviceIdResponseSuccess)
+
+export const getDeleteApiZonesIdDevicesDeviceIdUrl = (id: string,
+    deviceId: string,) => {
+
+
+  
+
+  return `http://localhost:3001/api/zones/${id}/devices/${deviceId}`
+}
+
+export const deleteApiZonesIdDevicesDeviceId = async (id: string,
+    deviceId: string, options?: RequestInit): Promise<deleteApiZonesIdDevicesDeviceIdResponse> => {
+  
+  const res = await fetch(getDeleteApiZonesIdDevicesDeviceIdUrl(id,deviceId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: deleteApiZonesIdDevicesDeviceIdResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as deleteApiZonesIdDevicesDeviceIdResponse
 }
 
 

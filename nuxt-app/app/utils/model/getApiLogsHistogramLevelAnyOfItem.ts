@@ -13,6 +13,7 @@ export type GetApiLogsHistogramLevelAnyOfItem = typeof GetApiLogsHistogramLevelA
 export const GetApiLogsHistogramLevelAnyOfItem = {
   trace: 'trace',
   debug: 'debug',
+  success: 'success',
   info: 'info',
   warn: 'warn',
   error: 'error',

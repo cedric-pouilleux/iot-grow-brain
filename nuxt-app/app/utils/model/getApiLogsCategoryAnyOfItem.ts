@@ -11,10 +11,9 @@ export type GetApiLogsCategoryAnyOfItem = typeof GetApiLogsCategoryAnyOfItem[key
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const GetApiLogsCategoryAnyOfItem = {
-  ESP32: 'ESP32',
+  HARDWARE: 'HARDWARE',
   MQTT: 'MQTT',
   DB: 'DB',
   API: 'API',
-  SYSTEM: 'SYSTEM',
   WEBSOCKET: 'WEBSOCKET',
 } as const;

@@ -15,7 +15,7 @@ export type GetApiLogsHistogramParams = {
 date?: string;
 startDate?: string;
 endDate?: string;
-category?: 'ESP32' | 'MQTT' | 'DB' | 'API' | 'SYSTEM' | 'WEBSOCKET' | GetApiLogsHistogramCategoryAnyOfItem[];
-level?: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | GetApiLogsHistogramLevelAnyOfItem[];
+category?: 'HARDWARE' | 'MQTT' | 'DB' | 'API' | 'SYSTEM' | 'WEBSOCKET' | GetApiLogsHistogramCategoryAnyOfItem[];
+level?: 'trace' | 'debug' | 'success' | 'info' | 'warn' | 'error' | 'fatal' | GetApiLogsHistogramLevelAnyOfItem[];
 search?: string;
 };

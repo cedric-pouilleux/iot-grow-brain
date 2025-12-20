@@ -9,10 +9,16 @@ import type { GetApiModulesIdData200StatusSystem } from './getApiModulesIdData20
 import type { GetApiModulesIdData200StatusHardware } from './getApiModulesIdData200StatusHardware';
 import type { GetApiModulesIdData200StatusSensors } from './getApiModulesIdData200StatusSensors';
 import type { GetApiModulesIdData200StatusSensorsConfig } from './getApiModulesIdData200StatusSensorsConfig';
+import type { GetApiModulesIdData200StatusPreferences } from './getApiModulesIdData200StatusPreferences';
 
 export type GetApiModulesIdData200Status = {
   system?: GetApiModulesIdData200StatusSystem;
   hardware?: GetApiModulesIdData200StatusHardware;
   sensors?: GetApiModulesIdData200StatusSensors;
   sensorsConfig?: GetApiModulesIdData200StatusSensorsConfig;
+  preferences?: GetApiModulesIdData200StatusPreferences;
+  /** @nullable */
+  zoneName?: string | null;
+  /** @nullable */
+  moduleType?: string | null;
 };

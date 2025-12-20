@@ -40,6 +40,7 @@ export const useDashboard = () => {
     days: number = 1
   ): Promise<{
     co2: SensorDataPoint[]
+    co: SensorDataPoint[]
     temp: SensorDataPoint[]
     hum: SensorDataPoint[]
     voc: SensorDataPoint[]
@@ -61,6 +62,7 @@ export const useDashboard = () => {
       const sensors = (response.data as DashboardSensorData) || {}
 
       const co2Data = isSensorDataArray(sensors?.co2) ? sensors.co2 : []
+      const coData = isSensorDataArray(sensors?.co) ? sensors.co : []
       const tempData = isSensorDataArray(sensors?.temp) ? sensors.temp : []
       const humData = isSensorDataArray(sensors?.hum) ? sensors.hum : []
       const vocData = isSensorDataArray(sensors?.voc) ? sensors.voc : []
@@ -79,6 +81,7 @@ export const useDashboard = () => {
 
       return {
         co2: processSensorData(co2Data),
+        co: processSensorData(coData),
         temp: processSensorData(tempData),
         hum: processSensorData(humData),
         voc: processSensorData(vocData),
@@ -109,6 +112,7 @@ export const useDashboard = () => {
     status: DeviceStatus | null
     sensors: {
       co2: SensorDataPoint[]
+      co: SensorDataPoint[]
       temp: SensorDataPoint[]
       hum: SensorDataPoint[]
       voc: SensorDataPoint[]
@@ -139,6 +143,7 @@ export const useDashboard = () => {
         status,
         sensors: sensors || {
           co2: [],
+          co: [],
           temp: [],
           hum: [],
           voc: [],

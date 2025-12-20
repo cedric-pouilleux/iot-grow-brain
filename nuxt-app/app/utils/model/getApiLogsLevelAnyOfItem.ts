@@ -12,7 +12,7 @@ export type GetApiLogsLevelAnyOfItem = typeof GetApiLogsLevelAnyOfItem[keyof typ
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const GetApiLogsLevelAnyOfItem = {
   trace: 'trace',
-  debug: 'debug',
+  success: 'success',
   info: 'info',
   warn: 'warn',
   error: 'error',

@@ -1,6 +1,7 @@
-import type { DeviceStatus, SensorData, SensorDataPoint, MqttMessage } from '../types'
-import { processSensorData } from '../utils/data-processing'
-import { useMqttMessageHandler } from './useMqttMessageHandler'
+import type { DeviceStatus, SensorData, SensorDataPoint } from '../types'
+import type { MqttMessage } from '~/types'
+import { processSensorData } from '~/utils/data-processing'
+import { useMqttMessageHandler } from '~/composables/useMqttMessageHandler'
 
 const MAX_DATA_POINTS = 5000
 
@@ -36,6 +37,7 @@ export const useModulesData = () => {
   const getModuleSensorData = (moduleId: string): SensorData => {
     return modulesSensorData.value.get(moduleId) || { 
       co2: [], 
+      co: [],
       temp: [], 
       hum: [], 
       voc: [], 
@@ -67,6 +69,7 @@ export const useModulesData = () => {
     if (!modulesSensorData.value.has(moduleId)) {
       modulesSensorData.value.set(moduleId, { 
         co2: [], 
+        co: [],
         temp: [], 
         hum: [], 
         voc: [], 
@@ -204,6 +207,7 @@ export const useModulesData = () => {
       const existingData = modulesSensorData.value.get(moduleId)!
       const newData = {
         co2: processSensorData(dashboardData.sensors?.co2 || []) as SensorDataPoint[],
+        co: processSensorData(dashboardData.sensors?.co || []) as SensorDataPoint[],
         temp: processSensorData(dashboardData.sensors?.temp || []) as SensorDataPoint[],
         hum: processSensorData(dashboardData.sensors?.hum || []) as SensorDataPoint[],
         voc: processSensorData(dashboardData.sensors?.voc || []) as SensorDataPoint[],
@@ -221,6 +225,7 @@ export const useModulesData = () => {
 
       modulesSensorData.value.set(moduleId, {
         co2: mergeSensorData(existingData.co2, newData.co2),
+        co: mergeSensorData(existingData.co, newData.co),
         temp: mergeSensorData(existingData.temp, newData.temp),
         hum: mergeSensorData(existingData.hum, newData.hum),
         voc: mergeSensorData(existingData.voc, newData.voc),
@@ -246,6 +251,7 @@ export const useModulesData = () => {
     moduleId: string,
     sensors: {
       co2: SensorDataPoint[]
+      co: SensorDataPoint[]
       temp: SensorDataPoint[]
       hum: SensorDataPoint[]
       voc: SensorDataPoint[]

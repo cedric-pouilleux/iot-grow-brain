@@ -69,8 +69,8 @@
  * Options toggle and logs link.
  */
 import { computed } from 'vue'
-import type { DeviceStatus } from '~/types'
-import { getWifiClass } from '~/utils/hardware'
+import type { DeviceStatus } from '../../common/types'
+import { getWifiClass } from '../../common/utils/hardware'
 
 // ============================================================================
 // Props

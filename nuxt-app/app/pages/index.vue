@@ -80,8 +80,7 @@ import ZoneDrawer from '../components/ZoneDrawer.vue'
 
 // Composables
 import { useDatabase } from '../composables/useDatabase'
-import { useModules } from '../composables/useModules'
-import { useModulesData } from '../composables/useModulesData'
+import { useModules, useModulesData } from '../features/modules/common/composables'
 import { useDashboard } from '../composables/useDashboard'
 import { useMqtt } from '../composables/useMqtt'
 import { useZones } from '../composables/useZones'

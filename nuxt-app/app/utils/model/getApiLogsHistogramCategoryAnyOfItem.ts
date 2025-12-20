@@ -11,7 +11,7 @@ export type GetApiLogsHistogramCategoryAnyOfItem = typeof GetApiLogsHistogramCat
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const GetApiLogsHistogramCategoryAnyOfItem = {
-  ESP32: 'ESP32',
+  HARDWARE: 'HARDWARE',
   MQTT: 'MQTT',
   DB: 'DB',
   API: 'API',

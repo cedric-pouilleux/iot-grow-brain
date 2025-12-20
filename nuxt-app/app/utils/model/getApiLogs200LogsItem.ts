@@ -10,6 +10,9 @@ import type { GetApiLogs200LogsItemDetails } from './getApiLogs200LogsItemDetail
 export type GetApiLogs200LogsItem = {
   id: string;
   category: string;
+  source: string;
+  /** @nullable */
+  direction: string | null;
   level: string;
   msg: string;
   time: string;

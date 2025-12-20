@@ -11,6 +11,14 @@ import type { GetApiModulesIdHistory200HumItem } from './getApiModulesIdHistory2
 import type { GetApiModulesIdHistory200VocItem } from './getApiModulesIdHistory200VocItem';
 import type { GetApiModulesIdHistory200PressureItem } from './getApiModulesIdHistory200PressureItem';
 import type { GetApiModulesIdHistory200TemperatureBmpItem } from './getApiModulesIdHistory200TemperatureBmpItem';
+import type { GetApiModulesIdHistory200Pm1Item } from './getApiModulesIdHistory200Pm1Item';
+import type { GetApiModulesIdHistory200Pm25Item } from './getApiModulesIdHistory200Pm25Item';
+import type { GetApiModulesIdHistory200Pm4Item } from './getApiModulesIdHistory200Pm4Item';
+import type { GetApiModulesIdHistory200Pm10Item } from './getApiModulesIdHistory200Pm10Item';
+import type { GetApiModulesIdHistory200Eco2Item } from './getApiModulesIdHistory200Eco2Item';
+import type { GetApiModulesIdHistory200TvocItem } from './getApiModulesIdHistory200TvocItem';
+import type { GetApiModulesIdHistory200TempShtItem } from './getApiModulesIdHistory200TempShtItem';
+import type { GetApiModulesIdHistory200HumShtItem } from './getApiModulesIdHistory200HumShtItem';
 
 export type GetApiModulesIdHistory200 = {
   co2: GetApiModulesIdHistory200Co2Item[];
@@ -19,4 +27,12 @@ export type GetApiModulesIdHistory200 = {
   voc: GetApiModulesIdHistory200VocItem[];
   pressure: GetApiModulesIdHistory200PressureItem[];
   temperature_bmp: GetApiModulesIdHistory200TemperatureBmpItem[];
+  pm1: GetApiModulesIdHistory200Pm1Item[];
+  pm25: GetApiModulesIdHistory200Pm25Item[];
+  pm4: GetApiModulesIdHistory200Pm4Item[];
+  pm10: GetApiModulesIdHistory200Pm10Item[];
+  eco2: GetApiModulesIdHistory200Eco2Item[];
+  tvoc: GetApiModulesIdHistory200TvocItem[];
+  temp_sht: GetApiModulesIdHistory200TempShtItem[];
+  hum_sht: GetApiModulesIdHistory200HumShtItem[];
 };

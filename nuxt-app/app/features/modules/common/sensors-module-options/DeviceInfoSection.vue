@@ -81,7 +81,7 @@ import { computed } from 'vue'
 import { Doughnut } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { formatUptime } from '~/utils/time'
-import type { DeviceStatus } from '~/types'
+import type { DeviceStatus } from '../types'
 
 if (process.client) {
   ChartJS.register(ArcElement, Tooltip, Legend)

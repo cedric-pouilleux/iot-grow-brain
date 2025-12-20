@@ -14,7 +14,7 @@ export type GetApiModulesIdData200StatusSystem = {
   /** @nullable */
   mac: string | null;
   /** @nullable */
-  uptimeStart: number | null;
+  bootedAt: string | null;
   /** @nullable */
   rssi: number | null;
   flash: GetApiModulesIdData200StatusSystemFlash;

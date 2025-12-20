@@ -6,11 +6,16 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { GetApiLogsCategoryAnyOfItem } from './getApiLogsCategoryAnyOfItem';
+import type { GetApiLogsSource } from './getApiLogsSource';
+import type { GetApiLogsDirection } from './getApiLogsDirection';
 import type { GetApiLogsLevelAnyOfItem } from './getApiLogsLevelAnyOfItem';
 
 export type GetApiLogsParams = {
-category?: 'ESP32' | 'MQTT' | 'DB' | 'API' | 'SYSTEM' | 'WEBSOCKET' | GetApiLogsCategoryAnyOfItem[];
-level?: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | GetApiLogsLevelAnyOfItem[];
+category?: 'HARDWARE' | 'MQTT' | 'DB' | 'API' | 'WEBSOCKET' | GetApiLogsCategoryAnyOfItem[];
+source?: GetApiLogsSource;
+direction?: GetApiLogsDirection;
+moduleId?: string;
+level?: 'trace' | 'success' | 'info' | 'warn' | 'error' | 'fatal' | GetApiLogsLevelAnyOfItem[];
 search?: string;
 startDate?: string;
 endDate?: string;
