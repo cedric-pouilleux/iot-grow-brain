@@ -14,6 +14,7 @@ import {
   ModuleHistoryResponseSchema,
   PreferencesSchema,
   UpdatePreferencesResponseSchema,
+  ModuleStorageResponseSchema,
 } from './schema'
 
 const devicesRoutes: FastifyPluginAsync = async fastify => {
@@ -133,6 +134,22 @@ const devicesRoutes: FastifyPluginAsync = async fastify => {
       },
     },
     controller.getModuleHistory
+  )
+
+  // GET /modules/:id/storage - Get module storage stats
+  app.get(
+    '/modules/:id/storage',
+    {
+      schema: {
+        tags: ['Devices'],
+        summary: 'Get module storage statistics and projections',
+        params: ModuleParamsSchema,
+        response: {
+          200: ModuleStorageResponseSchema,
+        },
+      },
+    },
+    controller.getModuleStorage
   )
 
   // GET /modules/:id/data - Legacy: Get module status and time series (kept for compatibility)

@@ -1,4 +1,4 @@
-import { z } from 'zod'
+cd import { z } from 'zod'
 
 // --- Shared ---
 export const ModuleConfigSchema = z.object({
@@ -157,4 +157,16 @@ export const ModuleHistoryResponseSchema = z.object({
 export const ConfigUpdateResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
+})
+
+export const ModuleStorageResponseSchema = z.object({
+  rowCount: z.number(),
+  estimatedSizeBytes: z.number(),
+  oldestMeasurement: z.string().nullable(),
+  newestMeasurement: z.string().nullable(),
+  activeSensors: z.array(z.object({
+    sensorType: z.string(),
+    intervalSeconds: z.number().nullable(),
+    rowCount: z.number(),
+  })),
 })

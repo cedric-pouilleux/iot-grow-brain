@@ -3,37 +3,38 @@
     
     <!-- Hardware Section -->
     <div>
-      <h3 class="text-[13px] text-gray-500 dark:text-white">Hardware</h3>
+      <div class="flex items-center justify-between">
+        <h3 class="text-[13px] text-gray-500 dark:text-white">Hardware</h3>
+        <div 
+          class="w-2.5 h-2.5 rounded-full cursor-help"
+          :class="isOnline ? 'bg-green-500' : 'bg-red-500'"
+          :title="'Uptime: ' + formattedUptime"
+        ></div>
+      </div>
       <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm mt-3 p-3">
-        <div class="flex items-center justify-between mb-1"> 
-          <span class="text-[12px] font-medium text-gray-500 dark:text-gray-200">{{ hardwareModel }}</span>
-          <div 
-            class="w-2.5 h-2.5 rounded-full cursor-help"
-            :class="isOnline ? 'bg-green-500' : 'bg-red-500'"
-            :title="'Uptime: ' + formattedUptime"
-          ></div> 
-        </div>
         <div class="text-xs space-y-0.5 text-gray-500 dark:text-gray-400">
+          <div class="flex justify-between items-center mb-1">
+            <div class="font-medium text-gray-600 dark:text-gray-300">{{ hardwareModel }}</div>
+            <div class="text-[10px]">{{ cpuFreq }} MHz</div>
+          </div>
           <div>{{ moduleId }}</div>
-          <div>Cpu {{ cpuFreq }} MHz</div>
         </div>
       </div>
     </div>
 
     <!-- Network Section -->
     <div>
-      <h3 class="text-[13px] text-gray-500 dark:text-white">Réseau</h3>
-      <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm mt-3 p-3">
-        <div class="flex items-center justify-between mb-1">
-          <span class="text-[12px] font-medium text-gray-500 dark:text-gray-200">Wi-Fi</span>
-          <div class="cursor-help" :title="`Signal: ${rssi || '--'} dBm`">
-            <Icon v-if="!rssi" name="tabler:wifi-off" class="w-5 h-5" :class="rssiClass" />
-            <Icon v-else-if="rssi > -60" name="tabler:wifi" class="w-5 h-5" :class="rssiClass" />
-            <Icon v-else-if="rssi > -75" name="tabler:wifi-2" class="w-5 h-5" :class="rssiClass" />
-            <Icon v-else-if="rssi > -85" name="tabler:wifi-1" class="w-5 h-5" :class="rssiClass" />
-            <Icon v-else name="tabler:wifi-0" class="w-5 h-5" :class="rssiClass" />
-          </div>
+      <div class="flex items-center justify-between">
+        <h3 class="text-[13px] text-gray-500 dark:text-white">Réseau</h3>
+        <div class="cursor-help" :title="`Signal: ${rssi || '--'} dBm`">
+          <Icon v-if="!rssi" name="tabler:wifi-off" class="w-5 h-5" :class="rssiClass" />
+          <Icon v-else-if="rssi > -60" name="tabler:wifi" class="w-5 h-5" :class="rssiClass" />
+          <Icon v-else-if="rssi > -75" name="tabler:wifi-2" class="w-5 h-5" :class="rssiClass" />
+          <Icon v-else-if="rssi > -85" name="tabler:wifi-1" class="w-5 h-5" :class="rssiClass" />
+          <Icon v-else name="tabler:wifi-0" class="w-5 h-5" :class="rssiClass" />
         </div>
+      </div>
+      <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm mt-3 p-3">
         <div class="text-xs space-y-0.5">
           <div class="flex justify-between">
             <span class="text-gray-500 dark:text-gray-400">IP</span>
@@ -46,6 +47,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Storage Section -->
+    <ModuleStorageSection :module-id="moduleId" />
 
     <!-- Memory Section -->
     <div>
@@ -80,6 +84,7 @@
 import { computed } from 'vue'
 import { Doughnut } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
+import ModuleStorageSection from './ModuleStorageSection.vue'
 import { formatUptime } from '~/utils/time'
 import type { DeviceStatus } from '../types'
 

@@ -137,4 +137,20 @@ export class DeviceRepository {
       })
       .where(eq(schema.deviceSystemStatus.moduleId, moduleId))
   }
+  async getModuleStorageStats(moduleId: string) {
+    const result = await this.db.execute<{
+      row_count: string
+      oldest_measurement: string
+      newest_measurement: string
+    }>(sql`
+      SELECT 
+        COUNT(*) as row_count,
+        MIN(time) as oldest_measurement,
+        MAX(time) as newest_measurement
+      FROM measurements
+      WHERE module_id = ${moduleId}
+    `)
+
+    return result.rows[0]
+  }
 }

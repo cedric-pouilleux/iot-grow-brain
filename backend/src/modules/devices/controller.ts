@@ -204,6 +204,48 @@ export class DeviceController {
     }
   }
 
+  // GET /modules/:id/storage
+  getModuleStorage = async (
+    req: FastifyRequest<{ Params: ModuleParams }>,
+    reply: FastifyReply
+  ) => {
+    const { id } = req.params
+    try {
+      const [storageStats, sensorConfigRows] = await Promise.all([
+        this.deviceRepo.getModuleStorageStats(id),
+        this.deviceRepo.getSensorConfig(id),
+      ])
+
+      const activeSensors = sensorConfigRows.map(row => ({
+        sensorType: row.sensorType,
+        intervalSeconds: row.intervalSeconds,
+        rowCount: 0 
+      }))
+
+      if (!storageStats) {
+         return {
+            rowCount: 0,
+            estimatedSizeBytes: 0,
+            oldestMeasurement: null,
+            newestMeasurement: null,
+            activeSensors
+         }
+      }
+
+      return {
+        rowCount: Number(storageStats.row_count),
+        estimatedSizeBytes: Number(storageStats.row_count) * 100, // Estimate ~100 bytes/row
+        oldestMeasurement: storageStats.oldest_measurement ? new Date(storageStats.oldest_measurement).toISOString() : null,
+        newestMeasurement: storageStats.newest_measurement ? new Date(storageStats.newest_measurement).toISOString() : null,
+        activeSensors
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      this.fastify.log.error(`Error fetching storage stats: ${errorMessage}`)
+      throw this.fastify.httpErrors.internalServerError('Failed to fetch storage stats')
+    }
+  }
+
   // --- Private helpers ---
 
   private async buildStatus(moduleId: string): Promise<DeviceStatus> {
