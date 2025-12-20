@@ -30,7 +30,6 @@
         :device-status="deviceStatus"
         :formatted-uptime="formatUptime(calculatedUptime)"
         :options-panel-open="optionsPanelOpen"
-        v-model:graph-duration="graphDuration"
         @toggle-options="optionsPanelOpen = !optionsPanelOpen"
       />
 
@@ -97,9 +96,9 @@
 import { computed, ref } from 'vue'
 import type { DeviceStatus, SensorData, SensorDataPoint } from '../types'
 import ModuleHeader from './ModuleHeader.vue'
-import ModuleOptionsPanel from './ModuleOptionsPanel.vue'
-import SensorDetailGraph from './SensorDetailGraph.vue'
-import UnifiedSensorCard from './UnifiedSensorCard.vue'
+import ModuleOptionsPanel from './module/options-panel/ModuleOptionsPanel.vue'
+import SensorDetailGraph from './card/SensorDetailGraph.vue'
+import UnifiedSensorCard from './card/UnifiedSensorCard.vue'
 import { formatUptime } from '../utils/time'
 import {
   getSensorLabel,
@@ -154,7 +153,9 @@ const optionsPanelOpen = ref(false)
 const selectedGraphSensor = ref<string | null>(null)
 const selectedGraphActiveSensor = ref<string | null>(null) // Active sensor from card to pre-select
 const isToggling = ref(false)
-const graphDuration = ref('24h')
+
+import { useChartSettings } from '../composables/useChartSettings'
+const { graphDuration } = useChartSettings()
 
 // Track active sensor per group type (updated by UnifiedSensorCard)
 const activeSensorByGroup = reactive<Record<string, string>>({})

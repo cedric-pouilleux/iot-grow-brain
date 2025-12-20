@@ -13,6 +13,7 @@ interface ChartSettings {
   colorThresholds: boolean
   showAlertThresholds: boolean
   minimalMode: boolean
+  graphDuration: string
 }
 
 const defaultSettings: ChartSettings = {
@@ -20,7 +21,8 @@ const defaultSettings: ChartSettings = {
   showThresholdLines: false,
   colorThresholds: true,
   showAlertThresholds: true,
-  minimalMode: false
+  minimalMode: false,
+  graphDuration: '24h'
 }
 
 // Global reactive settings
@@ -95,6 +97,14 @@ export function useChartSettings() {
     }
   })
 
+  const graphDuration = computed({
+    get: () => settings.value.graphDuration,
+    set: (value: string) => {
+      settings.value.graphDuration = value
+      saveSettings()
+    }
+  })
+
   const toggleShowCharts = () => {
     showCharts.value = !showCharts.value
   }
@@ -121,6 +131,7 @@ export function useChartSettings() {
     colorThresholds,
     showAlertThresholds,
     minimalMode,
+    graphDuration,
     toggleShowCharts,
     toggleThresholdLines,
     toggleColorThresholds,

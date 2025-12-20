@@ -57,44 +57,7 @@
           <Icon name="tabler:notes" class="w-5 h-5" />
         </NuxtLink>
 
-        <!-- Graph Duration Selector (only visible when charts enabled) -->
-        <AppDropdown
-          v-if="showCharts"
-          id="graph-duration"
-          position="relative"
-          dropdown-class="top-full right-0 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-50 overflow-hidden border border-gray-100 dark:border-gray-700 mt-2"
-        >
-          <template #trigger="{ isOpen, toggle }">
-             <button
-               class="h-8 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-300 text-gray-500 dark:text-gray-400 border-t border-transparent hover:text-white hover:bg-gradient-to-b hover:from-gray-900 hover:to-gray-800 hover:border-blue-400/50 hover:shadow-[0_0_2px_rgba(0,0,0,0.9)]"
-               :class="isOpen ? 'bg-gradient-to-b from-gray-900 to-gray-800 border-blue-400/50 text-white shadow-[0_0_2px_rgba(0,0,0,0.9)]' : ''"
-               title="Durée des graphiques"
-               @click.stop="toggle"
-             >
-               <Icon
-                 name="tabler:chart-dots"
-                 class="w-5 h-5"
-               />
-               <span class="text-xs font-semibold">
-                 {{ graphDuration }}
-               </span>
-             </button>
-          </template>
-          <template #content="{ close }">
-            <div class="p-1 space-y-0.5">
-               <button
-                 v-for="duration in ['1h', '6h', '12h', '24h', '7j']"
-                 :key="duration"
-                 @click="selectDuration(duration, close)"
-                 class="w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors flex items-center justify-between"
-                 :class="graphDuration === duration ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-bold' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
-               >
-                 <span>{{ duration }}</span>
-                 <Icon v-if="graphDuration === duration" name="tabler:check" class="w-3.5 h-3.5 text-gray-700 dark:text-gray-300" />
-               </button>
-            </div>
-          </template>
-        </AppDropdown>
+
 
       </div>
     </div>
@@ -116,8 +79,6 @@ import { computed } from 'vue'
 import type { DeviceStatus } from '../types'
 import { getWifiClass } from '../utils/hardware'
 
-import AppDropdown from './AppDropdown.vue'
-
 // ============================================================================
 // Props
 // ============================================================================
@@ -129,7 +90,6 @@ const props = defineProps<{
   rssi: number | null | undefined
   deviceStatus: DeviceStatus | null
   formattedUptime: string
-  graphDuration?: string
   optionsPanelOpen?: boolean
 }>()
 
@@ -138,7 +98,6 @@ const props = defineProps<{
 // ============================================================================
 
 const emit = defineEmits<{
-  (e: 'update:graphDuration', value: string): void
   (e: 'toggle-options'): void
 }>()
 
@@ -148,9 +107,6 @@ const emit = defineEmits<{
 
 import { useZones } from '../composables/useZones'
 const { zones } = useZones()
-
-import { useChartSettings } from '../composables/useChartSettings'
-const { showCharts } = useChartSettings()
 
 // ============================================================================
 // Computed
@@ -208,12 +164,4 @@ const moduleTypeLabel = computed(() => {
 
 const rssiClass = computed(() => getWifiClass(props.rssi))
 
-// ============================================================================
-// Methods
-// ============================================================================
-
-const selectDuration = (duration: string, closeFn: () => void) => {
-  emit('update:graphDuration', duration)
-  closeFn()
-}
 </script>

@@ -8,6 +8,8 @@
 - The store must not contain any logic, only its state.
 
 # General code rules
+- KISS
+- Feature architecture
 - Avoid callbacks in functions as much as possible.
 - A function must not mutate any of its parameters.
 - Business naming of variables is important.
@@ -21,4 +23,64 @@
 - No API options on the view side, only composable APIs.
 - Avoid setInterval, nextTick, and other hacks to solve problems as much as possible.
 - Prefer tailwind over custom css.
-- Dont forget darkmode when adding feature.
+- Dont forget darkmode when adding feature.333333333333333333333333333333662
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# IMPORTANT : Refactoring
+- Keep all design and integration when refactoring components, never take a change decision when refactoring, especially when files are moved !
