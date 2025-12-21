@@ -190,7 +190,6 @@ export const useModulesData = () => {
 
     // Merge sensor data
     if (dashboardData.sensors) {
-      console.log('[useModulesData] loadModuleDashboard sensors keys:', Object.keys(dashboardData.sensors))
       const existingData = modulesSensorData.value.get(moduleId)!
       const newData: SensorData = {}
 
@@ -211,7 +210,6 @@ export const useModulesData = () => {
         mergedData[key] = mergeSensorData(existingData[key] || [], points)
       })
 
-      console.log('[useModulesData] mergedData keys:', Object.keys(mergedData), 'temperature length:', mergedData['temperature']?.length)
       modulesSensorData.value.set(moduleId, mergedData)
     }
   }

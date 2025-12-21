@@ -2,78 +2,141 @@
 description: How to add a new sensor to the IoT system
 ---
 
-# Adding a New Sensor
+# Ajouter un nouveau capteur au système IoT
 
-This workflow documents all files that need to be modified when adding a new sensor type.
+Ce guide explique les étapes nécessaires pour ajouter un nouveau type de capteur, depuis l'ESP32 jusqu'à l'affichage frontend.
 
-## 1. ESP32 Firmware
+## Vue d'ensemble
 
-### 1.1 Configuration
-- [ ] `include/SensorData.h` - Add interval variable (e.g., `unsigned long coInterval = 60000;`)
-
-### 1.2 Sensor Reading
-- [ ] `include/SensorReader.h` - Add method declarations (`initXXX()`, `readXXX()`, `resetXXXBuffer()`)
-- [ ] `src/SensorReader.cpp` - Implement reading logic
-
-### 1.3 Controller
-- [ ] `include/AppController.h` - Add state variables (`lastXxxValue`, `statusXxx`, `errXxx`, `lastXxxReadTime`)
-- [ ] `src/AppController.cpp`:
-  - Add `handleXXX()` method
-  - Initialize timer in `initSensors()`
-  - Call handler in loop (via `main.cpp`)
-  - Update `publishSensorStatus()` calls with new params
-
-### 1.4 Status Publishing
-- [ ] `include/StatusPublisher.h` - Add params to `publishSensorStatus()` and `buildSensorStatusJson()`
-- [ ] `src/StatusPublisher.cpp`:
-  - Add sensor to JSON in `buildSensorStatusJson()`
-  - Add sensor model to `publishSensorConfig()`
-
-### 1.5 Main
-- [ ] `src/main.cpp` - Add `app.handleXXX()` call in loop
-
-## 2. Backend
-
-- [ ] `src/modules/air-quality/manifest.json`:
-  - Add hardware entry in `hardware` array
-  - Add sensor entry in `sensors` array with key, label, unit, range
-
-> **Important:** Restart backend after modifying manifest.json
-
-## 3. Frontend
-
-### 3.1 Types
-- [ ] `app/types/index.ts` - Add sensor to `SensorData` and `DashboardSensorData` interfaces
-
-### 3.2 Panel Configuration
-- [ ] `app/components/ModulePanel.vue`:
-  - Add to `sensorGroupsDefinition` (type, label, color, keys)
-  - Add to `sensorData` default in props
-  - Add to `sensorHistoryMap` computed
-  - Add to `getSensorHistory` map
-
-### 3.3 Options Panel
-- [ ] `app/components/ModuleOptionsPanel.vue` - Add to `HARDWARE_SENSORS` array
-
-### 3.4 Sensor List
-- [ ] `app/constants/sensors.ts` - Add to `SENSOR_LIST` (key, label, color)
-
-### 3.5 Thresholds
-- [ ] `app/composables/useThresholds.ts` - Add threshold definition if applicable
-
-### 3.6 Card Colors (if new color)
-- [ ] `app/components/UnifiedSensorCard.vue`:
-  - Add to `colorMap` (hex value)
-  - Add to `valueColorClass` (Tailwind class)
-
-## 4. Verification
-
-// turbo
-```bash
-cd air-quality-esp32 && pio run
+```
+ESP32 → MQTT → Backend → API → Frontend
 ```
 
-Check:
-- [ ] Firmware compiles without errors
-- [ ] Card appears in dashboard (status "missing" is OK without physical sensor)
-- [ ] Sensor appears in options panel
+L'architecture est **dynamique** : les capteurs sont enregistrés dans un **Registry** centralisé.
+
+---
+
+## Étapes
+
+### 1. ESP32 : Publier les données MQTT
+
+Sur l'ESP32, publiez les mesures sur le topic :
+
+```
+{module_id}/{sensor_key}
+```
+
+**Exemple** pour un capteur de luminosité (`lux`) :
+```cpp
+mqttClient.publish("croissance/lux", "1250");
+```
+
+⚠️ Le `sensor_key` doit être **unique** et **en minuscules**.
+
+---
+
+### 2. Frontend : Enregistrer le capteur
+
+#### 2.1. Définir la plage (range) dans `sensors.ts`
+
+**Fichier** : `nuxt-app/app/features/modules/common/config/sensors.ts`
+
+```typescript
+export const sensorRanges: Record<string, SensorRange> = {
+  // ... capteurs existants ...
+  
+  // Nouveau capteur luminosité
+  lux: { min: 0, max: 100000 },
+}
+```
+
+#### 2.2. Enregistrer dans le SensorRegistry
+
+**Fichier** : `nuxt-app/app/features/modules/common/config/registerStandardSensors.ts`
+
+```typescript
+// Luminosité
+sensorRegistry.register({
+  key: 'lux',
+  label: 'Luminosité',
+  unit: 'lx',
+  range: [sensorRanges.lux.min, sensorRanges.lux.max],
+  type: 'weather'  // 'pm' | 'gas' | 'weather' | 'other'
+})
+```
+
+---
+
+### 3. Frontend : Ajouter aux groupes de capteurs
+
+**Fichier** : `nuxt-app/app/features/modules/benchmark-module-sensor/components/BenchModulePanel.vue`
+
+Ajoutez le capteur dans `sensorGroupsDefinition` :
+
+```typescript
+const sensorGroupsDefinition = [
+  // ... groupes existants ...
+  
+  // Nouveau groupe ou ajout à un groupe existant
+  {
+    type: 'light',
+    label: 'Luminosité',
+    color: 'amber',  // emerald, orange, blue, violet, pink, cyan, amber
+    keys: ['lux']
+  },
+]
+```
+
+---
+
+### 4. Backend : Enregistrer le capteur
+
+**Fichier** : `backend/src/modules/mqtt/mqttService.ts`
+
+Le capteur doit être ajouté au `SensorDefinition` du backend pour être reconnu :
+
+```typescript
+// Dans registerSensors() ou équivalent
+registry.registerSensor({
+  type: 'lux',
+  model: 'BH1750',
+  capabilities: ['lux']
+})
+```
+
+---
+
+## Récapitulatif des fichiers à modifier
+
+| Étape | Fichier | Action |
+|-------|---------|--------|
+| Range | `config/sensors.ts` | Ajouter min/max |
+| Registry | `config/registerStandardSensors.ts` | Appeler `sensorRegistry.register()` |
+| UI | `BenchModulePanel.vue` | Ajouter aux groupes |
+| Backend | `mqtt/mqttService.ts` | Enregistrer le capteur |
+
+---
+
+## Types de capteurs
+
+| Type | Couleur suggérée | Exemples |
+|------|------------------|----------|
+| `weather` | orange, blue, cyan | temp, humidity, pressure |
+| `gas` | emerald, pink | co2, voc, co |
+| `pm` | violet | pm1, pm25, pm4, pm10 |
+| `other` | gray | lux, uv, etc. |
+
+---
+
+## Seuils d'alerte (optionnel)
+
+Pour ajouter des seuils d'alerte colorés sur les graphiques :
+
+**Fichier** : `nuxt-app/app/features/modules/common/card/composables/useThresholds.ts`
+
+```typescript
+const THRESHOLDS = {
+  // ... existants ...
+  lux: { good: 500, moderate: 1000, poor: 2000 }
+}
+```
