@@ -299,29 +299,9 @@ export class DeviceController {
       }
     }
 
-    // Map legacy sensor types to default hardware
-    const LEGACY_MAP: Record<string, string> = {
-      'co2': 'mhz14a',
-      'voc': 'sgp40',
-      'co': 'sc16co',
-      'eco2': 'sgp30',
-      'tvoc': 'sgp30',
-      'pm1': 'sps30', 'pm25': 'sps30', 'pm4': 'sps30', 'pm10': 'sps30',
-      'temperature': 'dht22', 'humidity': 'dht22', 'pressure': 'bmp280'
-    }
-
     status.sensors = {}
     sensorStatusRows.forEach(row => {
-      const typeLow = row.sensorType.toLowerCase()
-      let key = typeLow
-      
-      // If simple key, try to upgrade to composite
-      if (!key.includes(':')) {
-         const mappedHw = LEGACY_MAP[key]
-         if (mappedHw) key = `${mappedHw}:${key}`
-      }
-
-      status.sensors![key] = {
+      status.sensors![row.sensorType] = {
         status: row.status ?? 'unknown',
         value: row.value,
       }
@@ -350,24 +330,9 @@ export class DeviceController {
       const sensorTypeLow = row.sensorType.toLowerCase()
       let key = sensorTypeLow
       
-      const LEGACY_MAP: Record<string, string> = {
-         'co2': 'mhz14a', 'voc': 'sgp40', 'co': 'sc16co', 
-         'eco2': 'sgp30', 'tvoc': 'sgp30',
-         'pm1': 'sps30', 'pm25': 'sps30', 'pm4': 'sps30', 'pm10': 'sps30',
-         'temperature': 'dht22', 'humidity': 'dht22', 'pressure': 'bmp280'
+      if (row.hardwareId && row.hardwareId !== 'unknown') {
+        key = `${row.hardwareId.toLowerCase()}:${sensorTypeLow}`
       }
-
-      const hwId = (row.hardwareId && row.hardwareId !== 'unknown') 
-         ? row.hardwareId 
-         : LEGACY_MAP[sensorTypeLow]
-
-      if (hwId) {
-        key = `${hwId.toLowerCase()}:${sensorTypeLow}`
-      }
-      
-      // console.log(`[DEBUG History] Key: ${key}, Value: ${row.value}`)
-
-      
       if (!sensors[key]) {
         sensors[key] = []
       }
