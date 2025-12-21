@@ -5,11 +5,11 @@
     Collapsible options panel for sensor-based modules.
     Reusable across all modules that have sensors.
   -->
-  <Transition name="slide">
-    <div 
-      v-if="isOpen" 
-      class="overflow-visible mb-5"
-    >
+  <div 
+    class="options-wrapper"
+    :class="{ 'is-open': isOpen }"
+  >
+    <div class="options-content">
       <div class="grid grid-cols-6 gap-4 mb-5 items-stretch">
         <DeviceInfoSection
           :deviceStatus="deviceStatus"
@@ -28,7 +28,7 @@
         />
       </div>
     </div>
-  </Transition>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -65,18 +65,25 @@ watch(() => props.isOpen, (isOpen) => {
 </script>
 
 <style scoped>
-/* Slide transition */
-.slide-enter-active {
-  transition: all 0.3s ease-out;
+/* CSS Grid animation for smooth height transition */
+.options-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.slide-leave-active {
-  transition: all 0.2s ease-in;
+.options-wrapper.is-open {
+  grid-template-rows: 1fr;
 }
 
-.slide-enter-from,
-.slide-leave-to {
+.options-content {
+  min-height: 0;
   opacity: 0;
-  transform: translateY(-10px);
+  transition: opacity 0.3s ease-out 0.1s;
+}
+
+.options-wrapper.is-open .options-content {
+  opacity: 1;
+  padding-bottom: 1.25rem;
 }
 </style>
