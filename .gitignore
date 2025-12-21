@@ -16,6 +16,7 @@ terminals/
 !env.example
 
 air-quality-esp32/
+iot-mesurable/
 
 # Dependencies
 node_modules/
