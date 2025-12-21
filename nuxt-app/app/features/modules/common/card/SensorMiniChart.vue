@@ -130,31 +130,50 @@ const chartData = computed<ChartData<'line'> | null>(() => {
     ? sortedData.map(d => getThresholdColor(props.sensorKey, d.value))
     : []
 
+  // Prepare data points
+  const dataPoints = sortedData.map(m => ({ x: new Date(m.time).getTime(), y: m.value }))
+
   return {
-    datasets: [{
-      label: props.label,
-      backgroundColor: hexToRgba(chartStrokeColor.value, 0.15),
-      borderColor: chartStrokeColor.value,
-      borderWidth: 2,
-      data: sortedData.map(m => ({ x: new Date(m.time).getTime(), y: m.value })),
-      tension: 0.2,
-      fill: 'start',
-      pointRadius: 0,
-      segment: {
-        borderDash: (ctx: any) => gapIndices.has(ctx.p0DataIndex) ? [4, 4] : undefined,
-        borderColor: (ctx: any) => {
-          if (gapIndices.has(ctx.p0DataIndex)) {
-            return hexToRgba(strokeColor.value, 0.3)
+    datasets: [
+      // Dataset 1: Continuous fill background (no visible border, no interaction)
+      {
+        label: '', // Empty label to hide from tooltip
+        backgroundColor: hexToRgba(chartStrokeColor.value, 0.15),
+        borderColor: 'transparent',
+        borderWidth: 0,
+        data: dataPoints,
+        tension: 0.2,
+        fill: 'start',
+        pointRadius: 0,
+        pointHitRadius: 0, // Disable hover detection
+        spanGaps: true, // Fill is always continuous
+      },
+      // Dataset 2: Line with dashed gaps (no fill)
+      {
+        label: props.label,
+        backgroundColor: 'transparent',
+        borderColor: chartStrokeColor.value,
+        borderWidth: 2,
+        data: dataPoints,
+        tension: 0.2,
+        fill: false,
+        pointRadius: 0,
+        segment: {
+          borderDash: (ctx: any) => gapIndices.has(ctx.p0DataIndex) ? [4, 4] : undefined,
+          borderColor: (ctx: any) => {
+            if (gapIndices.has(ctx.p0DataIndex)) {
+              return hexToRgba(strokeColor.value, 0.3)
+            }
+            if (colorThresholds.value) {
+              const startColor = segmentColors[ctx.p0DataIndex]
+              const endColor = segmentColors[ctx.p1DataIndex]
+              return endColor || startColor || undefined
+            }
+            return undefined
           }
-          if (colorThresholds.value) {
-            const startColor = segmentColors[ctx.p0DataIndex]
-            const endColor = segmentColors[ctx.p1DataIndex]
-            return endColor || startColor || undefined
-          }
-          return undefined
         }
       }
-    }]
+    ]
   }
 })
 

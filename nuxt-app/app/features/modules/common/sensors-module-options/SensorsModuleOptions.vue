@@ -79,11 +79,14 @@ watch(() => props.isOpen, (isOpen) => {
 .options-content {
   min-height: 0;
   opacity: 0;
-  transition: opacity 0.3s ease-out 0.1s;
+  /* Fast opacity fade-out on close (no delay) */
+  transition: opacity 0.1s ease-out;
 }
 
 .options-wrapper.is-open .options-content {
   opacity: 1;
   padding-bottom: 1.25rem;
+  /* Slower fade-in with delay on open */
+  transition: opacity 0.3s ease-out 0.15s;
 }
 </style>
