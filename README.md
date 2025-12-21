@@ -4,6 +4,10 @@
 
 This project is a modular, high-performance IoT platform designed for real-time acquisition, storage, and visualization of environmental sensor data. It employs a microservices-oriented architecture orchestrated via Docker.
 
+## 📚 Feature Documentation
+
+- [Sensor Stop/Pause](docs/features/sensor-stop.md) - Pause individual hardware sensors from the UI
+
 ---
 
 ## 🏗️ System Architecture & Infrastructure

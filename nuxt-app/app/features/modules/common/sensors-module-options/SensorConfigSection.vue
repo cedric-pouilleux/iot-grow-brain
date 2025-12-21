@@ -60,7 +60,7 @@ import type { DeviceStatus, SensorDataPoint } from '../types'
 interface Measurement {
   key: string
   label: string
-  status: 'ok' | 'missing' | 'unknown'
+  status: 'ok' | 'missing' | 'unknown' | 'disabled'
   value?: number
 }
 
@@ -69,7 +69,8 @@ interface HardwareData {
   name: string
   measurements: Measurement[]
   interval: number
-  status: 'ok' | 'partial' | 'missing' | 'unknown'
+  status: 'ok' | 'partial' | 'missing' | 'unknown' | 'disabled'
+  enabled: boolean
 }
 
 
@@ -144,15 +145,20 @@ const hardwareSensorList = computed<HardwareData[]>(() => {
           
           // Determine status: Strictly use explicit status from deviceStatus
           // User Requirement: Data presence in history does NOT imply hardware status is OK.
-          let status: 'ok' | 'missing' | 'unknown' = 'unknown'
+          // If no sensor data received yet (empty sensors object), show loader
+          let status: 'ok' | 'missing' | 'unknown' | 'disabled' = 'unknown'
           
-          const deviceSensor = props.deviceStatus?.sensors?.[compositeKey] || 
-                               (props.deviceStatus?.sensors?.[measureKey])
+          const hasSensors = props.deviceStatus?.sensors && Object.keys(props.deviceStatus.sensors).length > 0
+          
+          if (hasSensors) {
+            const deviceSensor = props.deviceStatus?.sensors?.[compositeKey] || 
+                                 (props.deviceStatus?.sensors?.[measureKey])
 
-          if (deviceSensor && deviceSensor.status) {
-             status = deviceSensor.status as 'ok' | 'missing' | 'unknown'
+            if (deviceSensor && deviceSensor.status) {
+               status = deviceSensor.status as 'ok' | 'missing' | 'unknown' | 'disabled'
+            }
           }
-          // No fallback to lastPoint. If status is not reported, it remains 'unknown' (Loader).
+          // If hasSensors is false, status remains 'unknown' (Loader shown)
 
           return {
             key: measureKey,
@@ -162,12 +168,21 @@ const hardwareSensorList = computed<HardwareData[]>(() => {
           }
         })
       
-      
-      // Determine overall status
+      // Determine overall status and enabled state
+      const disabledCount = measurements.filter(m => m.status === 'disabled').length
       const okCount = measurements.filter(m => m.status === 'ok').length
-      let status: 'ok' | 'partial' | 'missing' = 'missing'
-      if (okCount === measurements.length) status = 'ok'
-      else if (okCount > 0) status = 'partial'
+      
+      // If all measurements are disabled, hardware is disabled
+      const enabled = disabledCount < measurements.length
+      
+      let status: 'ok' | 'partial' | 'missing' | 'disabled' = 'missing'
+      if (disabledCount === measurements.length) {
+        status = 'disabled'
+      } else if (okCount === measurements.length) {
+        status = 'ok'
+      } else if (okCount > 0) {
+        status = 'partial'
+      }
       
       // Get interval from sensorsConfig (prefer composite key, fallback to simple)
       const firstKey = hw.measurements[0]
@@ -181,7 +196,8 @@ const hardwareSensorList = computed<HardwareData[]>(() => {
         name: hw.name,
         measurements,
         interval: intervalMs,
-        status
+        status,
+        enabled
       }
     })
 })

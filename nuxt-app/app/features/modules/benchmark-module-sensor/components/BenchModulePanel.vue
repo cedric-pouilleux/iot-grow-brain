@@ -178,19 +178,10 @@ const sensorHistoryMap = computed<Record<string, SensorDataPoint[]>>(() => {
 const activeGroups = computed(() => {
   return sensorGroupsDefinition.map(group => {
     // Collect all composite keys from sensorData that match this group
-    const rawKeys = Object.keys(props.sensorData).filter(k => {
-      const type = getSensorTypeFromKey(k)
+    // Collect all composite keys from sensorData that match this group
+    const dataKeys = Object.keys(props.sensorData).filter(compositeKey => {
+      const type = getSensorTypeFromKey(compositeKey)
       return group.sensorTypes.includes(type)
-    })
-    
-    // Filter duplicates (prefer composite keys)
-    const dataKeys = rawKeys.filter(k => {
-      if (!k.includes(':')) {
-        const type = getSensorTypeFromKey(k)
-        const hasComposite = rawKeys.some(other => other.includes(':') && getSensorTypeFromKey(other) === type)
-        if (hasComposite) return false
-      }
-      return true
     })
     
     // Also check deviceStatus.sensors for sensors that might not have data yet
@@ -213,7 +204,6 @@ const activeGroups = computed(() => {
       const sensorType = getSensorTypeFromKey(compositeKey)
       const hardwareId = getHardwareIdFromKey(compositeKey)
       const hardware = hardwareId ? getHardware(hardwareId) : null
-      const statusData = getSensorData(sensorType)
       
       // Find the actual data key - if this is a simple key from status, find matching composite key
       let dataKey = compositeKey
@@ -224,6 +214,9 @@ const activeGroups = computed(() => {
           dataKey = matchingKey
         }
       }
+      
+      // Use dataKey (composite key) for status lookup since ESP32 now publishes with composite keys
+      const statusData = getSensorData(dataKey)
       
       // Get the last value from sensorData history (use dataKey for lookup)
       const history = props.sensorData[dataKey] || []
@@ -279,6 +272,8 @@ const activeGroups = computed(() => {
       initialKey
     }
   }).filter((g): g is NonNullable<typeof g> => g !== null)
+    // Also hide groups where all sensors are disabled
+    .filter(g => g.sensors.some(s => s.status !== 'disabled'))
 })
 
 // ============================================================================

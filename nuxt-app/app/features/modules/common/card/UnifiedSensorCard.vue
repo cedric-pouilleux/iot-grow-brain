@@ -70,7 +70,7 @@
 
             <div class="flex">
               <SensorDropdown
-                :sensors="sensors"
+                :sensors="enabledSensors"
                 :activeSensorKey="activeSensorKey"
                 :moduleId="moduleId"
                 :groupLabel="label"
@@ -202,9 +202,14 @@ const { showCharts, showAlertThresholds, minimalMode } = useChartSettings()
 
 const activeSensorKey = ref(props.initialActiveSensorKey || props.sensors[0]?.key)
 
-// Ensure valid sensor key
-if (!props.sensors.find(s => s.key === activeSensorKey.value)) {
-  activeSensorKey.value = props.sensors[0]?.key
+// Filter out disabled sensors for dropdown and graph
+const enabledSensors = computed(() => 
+  props.sensors.filter(s => s.status !== 'disabled')
+)
+
+// Ensure valid sensor key (must be from enabled sensors)
+if (!enabledSensors.value.find(s => s.key === activeSensorKey.value)) {
+  activeSensorKey.value = enabledSensors.value[0]?.key
 }
 
 // ============================================================================

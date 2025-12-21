@@ -15,9 +15,9 @@
               </div>
               
               <!-- Sensor selector chips -->
-              <div v-if="availableSensors && availableSensors.length > 1" class="flex flex-wrap gap-1.5">
+              <div v-if="enabledSensors && enabledSensors.length > 1" class="flex flex-wrap gap-1.5">
                 <button
-                  v-for="(sensor, index) in availableSensors"
+                  v-for="(sensor, index) in enabledSensors"
                   :key="sensor.key"
                   @click="toggleSensor(sensor.key)"
                   class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer"
@@ -127,6 +127,11 @@ defineEmits<{
 // Color mode detection for grid color
 const colorMode = useColorMode()
 const isDark = computed(() => colorMode.value === 'dark')
+
+// Filter out disabled sensors from the chip selector
+const enabledSensors = computed(() => 
+  (props.availableSensors || []).filter(s => s.status !== 'disabled')
+)
 
 // State for multi-sensor selection
 const selectedSensorKeys = ref<Set<string>>(new Set())

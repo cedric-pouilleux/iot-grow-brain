@@ -38,6 +38,20 @@ Le système utilise une **architecture plugin-based** permettant d'ajouter facil
 | **Manifest** | Définition d'un module type | `manifest.json` |
 | **Sensor** | Capteur individuel | `co2`, `temperature` |
 | **Hardware** | Composant physique | `DHT22`, `SPS30` |
+| **Composite Key** | Clé unique hardware:sensor | `dht22:temperature` |
+
+## Clés Composites
+
+Les capteurs sont identifiés par des **clés composites** au format `hardware:sensor` :
+
+```
+dht22:temperature   # Température du DHT22
+sht40:temperature   # Température du SHT40 (distinct)
+bmp280:pressure     # Pression du BMP280
+sps30:pm25          # PM2.5 du SPS30
+```
+
+Ce format permet de distinguer les mesures issues de différents hardwares produisant les mêmes types de données (ex: température DHT22 vs température SHT40).
 
 ## Structure des fichiers
 
@@ -88,7 +102,8 @@ Chaque type de module est défini par un fichier `manifest.json` :
   ],
   
   "actions": [
-    { "id": "reset", "label": "Redémarrer", "icon": "refresh", "scope": "hardware" }
+    { "id": "reset", "label": "Redémarrer", "icon": "refresh", "scope": "hardware" },
+    { "id": "enable", "label": "Activer/Pause", "icon": "play/stop", "scope": "hardware" }
   ]
 }
 ```
@@ -128,6 +143,12 @@ getSensorUnit('temperature')   // "°C"
 | PUT | `/api/zones/:id` | Modifier une zone |
 | DELETE | `/api/zones/:id` | Supprimer une zone |
 | POST | `/api/zones/:id/devices/:deviceId` | Assigner un device |
+
+### Devices (Hardware Control)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/modules/:id/hardware/enable` | Activer/désactiver un hardware |
 
 ## Base de données
 

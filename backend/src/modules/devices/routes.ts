@@ -9,6 +9,7 @@ import {
   ModuleDataResponseSchema,
   ConfigUpdateResponseSchema,
   SensorResetSchema,
+  HardwareEnableSchema,
   ModuleStatusResponseSchema,
   ModuleHistoryQuerySchema,
   ModuleHistoryResponseSchema,
@@ -68,6 +69,23 @@ const devicesRoutes: FastifyPluginAsync = async fastify => {
       },
     },
     controller.resetSensor
+  )
+
+  // POST /modules/:id/hardware/enable - Enable/disable hardware sensor
+  app.post(
+    '/modules/:id/hardware/enable',
+    {
+      schema: {
+        tags: ['Devices'],
+        summary: 'Enable or disable a hardware sensor',
+        params: ModuleParamsSchema,
+        body: HardwareEnableSchema,
+        response: {
+          200: ConfigUpdateResponseSchema,
+        },
+      },
+    },
+    controller.enableHardware
   )
 
   // PATCH /modules/:id/preferences - Update module preferences

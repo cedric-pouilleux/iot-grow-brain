@@ -8,8 +8,14 @@
   <div class="flex items-center gap-2">
     
     <!-- Status Indicator -->
+    <!-- When disabled: red square. When enabled: normal status dot -->
     <div 
-      v-if="hardware.status !== 'unknown'"
+      v-if="!isEnabled"
+      class="w-2 h-2 rounded-sm bg-red-500 flex-shrink-0"
+      title="Arrêté"
+    />
+    <div 
+      v-else-if="hardware.status !== 'unknown'"
       class="w-2 h-2 rounded-full flex-shrink-0"
       :class="statusClass"
       :title="statusLabel"
@@ -22,12 +28,15 @@
     />
     
     <!-- Hardware Name -->
-    <span class="text-xs font-semibold flex-shrink-0" :class="statusTextClass">
+    <span 
+      class="text-xs font-semibold flex-shrink-0" 
+      :class="isEnabled ? statusTextClass : 'text-gray-400 dark:text-gray-500'"
+    >
       {{ hardware.name }}
     </span>
     
-    <!-- Measurement badges -->
-    <div class="flex items-center gap-1 flex-shrink-0">
+    <!-- Measurement badges (only when enabled) -->
+    <div v-if="isEnabled" class="flex items-center gap-1 flex-shrink-0">
       <UITag 
         v-for="m in hardware.measurements" 
         :key="m.key"
@@ -42,14 +51,32 @@
     <!-- Spacer -->
     <div class="flex-1"></div>
     
-    <!-- Time Counter (compact) -->
-    <span class="text-[10px] text-gray-400 dark:text-gray-300 flex-shrink-0">
+    <!-- Time Counter (only when enabled) -->
+    <span v-if="isEnabled" class="text-[10px] text-gray-400 dark:text-gray-300 flex-shrink-0">
       {{ timeAgo || '--' }}
     </span>
     
-    <!-- Reset Button -->
-    <!-- Reset Button -->
-    <UITooltip text="Redémarrer le capteur">
+    <!-- Stop/Play Button -->
+    <UITooltip :text="isEnabled ? 'Arrêter le capteur' : 'Démarrer le capteur'">
+      <button
+        @click="toggleEnabled"
+        :disabled="toggling"
+        class="p-1 rounded transition-colors flex-shrink-0"
+        :class="[
+          isEnabled 
+            ? 'hover:bg-orange-50 dark:hover:bg-orange-900/30 text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400' 
+            : 'hover:bg-green-50 dark:hover:bg-green-900/30 text-green-500 dark:text-green-400 hover:text-green-600 dark:hover:text-green-300',
+          { 'opacity-50': toggling }
+        ]"
+      >
+        <Icon :name="toggling ? 'tabler:loader' : (isEnabled ? 'tabler:player-stop' : 'tabler:player-play')" 
+              class="w-3.5 h-3.5" 
+              :class="{ 'animate-spin': toggling }" />
+      </button>
+    </UITooltip>
+    
+    <!-- Reset Button (only when enabled) -->
+    <UITooltip v-if="isEnabled" text="Redémarrer le capteur">
       <button
         @click="resetSensor"
         :disabled="resetting"
@@ -60,14 +87,14 @@
       </button>
     </UITooltip>
     
-    <!-- Interval Control (glossy slider) -->
+    <!-- Interval Control (disabled when stopped) -->
     <UISlider
       v-model="localInterval"
       :min="10"
       :max="300"
       :step="10"
       suffix="s"
-      :disabled="hardware.status === 'missing'"
+      :disabled="!isEnabled || hardware.status === 'missing'"
       @change="saveInterval"
     />
   </div>
@@ -93,7 +120,7 @@ import UITooltip from '~/components/design-system/UITooltip/UITooltip.vue'
 interface Measurement {
   key: string
   label: string
-  status: 'ok' | 'missing' | 'unknown'
+  status: 'ok' | 'missing' | 'unknown' | 'disabled'
   value?: number
 }
 
@@ -102,7 +129,8 @@ interface HardwareData {
   name: string
   measurements: Measurement[]
   interval: number
-  status: 'ok' | 'partial' | 'missing' | 'unknown'
+  status: 'ok' | 'partial' | 'missing' | 'unknown' | 'disabled'
+  enabled: boolean  // From backend/ESP32 state
 }
 
 interface Props {
@@ -122,7 +150,17 @@ const props = withDefaults(defineProps<Props>(), {
 const localInterval = ref(props.hardware.interval)
 const saving = ref(false)
 const resetting = ref(false)
+const toggling = ref(false)
+// Initialize from ESP32-provided enabled state, with localStorage fallback for optimistic updates
+const isEnabled = ref(props.hardware.enabled)
 const { showSnackbar } = useSnackbar()
+
+// Sync isEnabled when props change (e.g., after ESP32 status update)
+watch(() => props.hardware.enabled, (newEnabled) => {
+  if (!toggling.value) {
+    isEnabled.value = newEnabled
+  }
+})
 
 // ============================================================================
 // Status Display
@@ -273,6 +311,42 @@ const resetSensor = async () => {
     showSnackbar(`Erreur reset ${props.hardware.name}`, 'error')
   } finally {
     resetting.value = false
+  }
+}
+
+// ============================================================================
+// Toggle Enable/Disable
+// ============================================================================
+
+const toggleEnabled = async () => {
+  if (toggling.value) return
+  toggling.value = true
+  
+  const newEnabled = !isEnabled.value
+  
+  try {
+    const response = await $fetch<{ success: boolean; message: string }>(
+      `/api/modules/${encodeURIComponent(props.moduleId)}/hardware/enable`,
+      {
+        method: 'POST',
+        body: { 
+          hardware: props.hardware.hardwareKey,
+          enabled: newEnabled
+        }
+      }
+    )
+    
+    if (response.success) {
+      isEnabled.value = newEnabled
+      showSnackbar(`${props.hardware.name} ${newEnabled ? 'activé' : 'arrêté'}`, 'success')
+    } else {
+      showSnackbar(`Erreur: ${response.message}`, 'error')
+    }
+  } catch (err) {
+    console.error('Failed to toggle hardware:', err)
+    showSnackbar(`Erreur ${newEnabled ? 'activation' : 'arrêt'} ${props.hardware.name}`, 'error')
+  } finally {
+    toggling.value = false
   }
 }
 </script>

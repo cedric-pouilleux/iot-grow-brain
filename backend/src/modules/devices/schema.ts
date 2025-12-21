@@ -24,6 +24,13 @@ export const SensorResetSchema = z.object({
   ]),
 })
 
+export const HardwareEnableSchema = z.object({
+  hardware: z.enum([
+    'dht22', 'bmp280', 'sgp40', 'sgp30', 'sps30', 'sht40', 'mhz14a', 'sc16co'
+  ]),
+  enabled: z.boolean(),
+})
+
 
 export const PreferencesSchema = z.record(z.any())
 

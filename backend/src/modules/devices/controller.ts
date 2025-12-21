@@ -8,7 +8,7 @@ import type {
   ConfigUpdateResponse,
 } from '../../types/api'
 import type { ModuleConfig } from '../../types/mqtt'
-import { ModuleParamsSchema, ModuleConfigSchema, ModuleDataQuerySchema, SensorResetSchema, ModuleHistoryQuerySchema } from './schema'
+import { ModuleParamsSchema, ModuleConfigSchema, ModuleDataQuerySchema, SensorResetSchema, HardwareEnableSchema, ModuleHistoryQuerySchema } from './schema'
 import { z } from 'zod'
 
 type ModuleParams = z.infer<typeof ModuleParamsSchema>
@@ -16,6 +16,7 @@ type ModuleConfigBody = z.infer<typeof ModuleConfigSchema>
 type ModuleDataQuery = z.infer<typeof ModuleDataQuerySchema>
 type ModuleHistoryQuery = z.infer<typeof ModuleHistoryQuerySchema>
 type SensorResetBody = z.infer<typeof SensorResetSchema>
+type HardwareEnableBody = z.infer<typeof HardwareEnableSchema>
 
 export class DeviceController {
   private deviceRepo: DeviceRepository
@@ -107,6 +108,53 @@ export class DeviceController {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
       this.fastify.log.error({ msg: `[API] Échec reset capteur`, source: 'USER', moduleId: id, sensor, error: errorMessage })
+      throw this.fastify.httpErrors.internalServerError(errorMessage)
+    }
+  }
+
+  enableHardware = async (
+    req: FastifyRequest<{ Params: ModuleParams; Body: HardwareEnableBody }>,
+    reply: FastifyReply
+  ) => {
+    const { id } = req.params
+    const { hardware, enabled } = req.body
+
+    try {
+      // Publish enable command to MQTT
+      const topic = `${id}/sensors/enable`
+      const payload = JSON.stringify({ hardware, enabled })
+      const published = this.fastify.mqtt.publish(topic, payload)
+
+      if (published) {
+        this.fastify.log.info({ 
+          msg: `[API] Hardware ${enabled ? 'enabled' : 'disabled'}`, 
+          source: 'USER', 
+          moduleId: id, 
+          hardware, 
+          enabled 
+        })
+        return {
+          success: true,
+          message: `${hardware} ${enabled ? 'enabled' : 'disabled'}`,
+        }
+      } else {
+        this.fastify.log.error({ 
+          msg: `[API] Failed to publish hardware enable command`, 
+          source: 'USER', 
+          moduleId: id, 
+          hardware 
+        })
+        throw this.fastify.httpErrors.internalServerError('Failed to publish enable command')
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      this.fastify.log.error({ 
+        msg: `[API] Failed to enable/disable hardware`, 
+        source: 'USER', 
+        moduleId: id, 
+        hardware, 
+        error: errorMessage 
+      })
       throw this.fastify.httpErrors.internalServerError(errorMessage)
     }
   }
