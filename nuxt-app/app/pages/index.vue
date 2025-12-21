@@ -73,6 +73,7 @@ import { useModules, useModulesData } from '~/features/modules/common/composable
 import { useDashboard } from '~/composables/useDashboard'
 import { useMqtt } from '~/features/mqtt/composables/useMqtt'
 import { useZones } from '~/features/zones/composables/useZones'
+import { useChartSettings } from '~/features/modules/common/sensors-module-options/composables'
 
 interface ModuleGroup {
   zoneId: string | null
@@ -94,7 +95,22 @@ const isInitialLoading = ref(true)
 const isHistoryLoading = ref(false)
 const isLoading = computed(() => isInitialLoading.value || dashboardLoading.value)
 const error = computed(() => modulesError.value || dashboardError.value)
-const selectedRange = ref(7) // Défaut: 7 jours pour supporter toutes les durées de graphe
+// Chart settings (persisted in localStorage)
+const { graphDuration } = useChartSettings()
+
+/**
+ * Convert graphDuration string to days for API
+ */
+const durationToDays = (duration: string): number => {
+  switch (duration) {
+    case '1h': return 1 // API minimum is 1 day, frontend filters further
+    case '6h': return 1
+    case '12h': return 1
+    case '24h': return 1
+    case '7j': return 7
+    default: return 7
+  }
+}
 
 // Zone drawer state
 const isZoneDrawerOpen = ref(false)
@@ -175,16 +191,46 @@ const { connect: connectMqtt, disconnect: disconnectMqtt } = useMqtt({
 
 /**
  * Load dashboard data for all modules (status + history)
+ * Uses graphDuration to determine how many days of history to load
  */
 const loadAllDashboards = async (): Promise<void> => {
+  const days = durationToDays(graphDuration.value)
   const promises = modules.value.map(async module => {
-    const result = await fetchDashboard(module.id, selectedRange.value)
+    const result = await fetchDashboard(module.id, days)
     if (result) {
       loadModuleDashboard(module.id, result)
     }
   })
   await Promise.all(promises)
 }
+
+
+
+/**
+ * Reload history only for all modules (when duration changes)
+ */
+const loadHistoryForAllModules = async (): Promise<void> => {
+  isHistoryLoading.value = true
+  const days = durationToDays(graphDuration.value)
+  
+  const { loadHistory } = useDashboard()
+  
+  const promises = modules.value.map(async module => {
+    const sensors = await loadHistory(module.id, days)
+    if (sensors) {
+      loadModuleDashboard(module.id, { status: null, sensors })
+    }
+  })
+  await Promise.all(promises)
+  isHistoryLoading.value = false
+}
+
+// Watch for graph duration changes
+watch(graphDuration, async () => {
+  if (modules.value.length > 0) {
+    await loadHistoryForAllModules()
+  }
+})
 
 /**
  * Reload the page (used for error recovery)

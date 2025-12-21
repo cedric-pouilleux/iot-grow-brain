@@ -2,6 +2,7 @@ import type { DeviceStatus, SensorData, SensorDataPoint } from '../types'
 import type { MqttMessage } from '~/types'
 import { processSensorData } from '~/utils/data-processing'
 import { useMqttMessageHandler } from '~/features/mqtt/composables/useMqttMessageHandler'
+import { sensorRegistry } from '../utils/SensorRegistry'
 
 const MAX_DATA_POINTS = 5000
 
@@ -12,7 +13,6 @@ const MAX_DATA_POINTS = 5000
 export const useModulesData = () => {
   const {
     MQTT_TOPICS,
-    SENSOR_TOPICS,
     isStatusTopic,
     mergeSystemData,
     mergeSystemConfig,
@@ -35,23 +35,7 @@ export const useModulesData = () => {
    * Get sensor data for a specific module
    */
   const getModuleSensorData = (moduleId: string): SensorData => {
-    return modulesSensorData.value.get(moduleId) || { 
-      co2: [], 
-      co: [],
-      temp: [], 
-      hum: [], 
-      voc: [], 
-      pressure: [], 
-      temperature_bmp: [],
-      pm1: [],
-      pm25: [],
-      pm4: [],
-      pm10: [],
-      eco2: [],
-      tvoc: [],
-      temp_sht: [],
-      hum_sht: []
-    }
+    return modulesSensorData.value.get(moduleId) || {}
   }
 
   /**
@@ -67,23 +51,7 @@ export const useModulesData = () => {
       })
     }
     if (!modulesSensorData.value.has(moduleId)) {
-      modulesSensorData.value.set(moduleId, { 
-        co2: [], 
-        co: [],
-        temp: [], 
-        hum: [], 
-        voc: [], 
-        pressure: [], 
-        temperature_bmp: [],
-        pm1: [],
-        pm25: [],
-        pm4: [],
-        pm10: [],
-        eco2: [],
-        tvoc: [],
-        temp_sht: [],
-        hum_sht: []
-      })
+      modulesSensorData.value.set(moduleId, {})
     }
   }
 
@@ -115,9 +83,8 @@ export const useModulesData = () => {
     }
     // Handle sensor measurement messages
     else if (message.value !== null) {
-      const sensorKey = Object.entries(SENSOR_TOPICS).find(([suffix]) =>
-        message.topic.endsWith(suffix)
-      )?.[1] as keyof SensorData | undefined
+      const sensorKey = sensorRegistry.matchesTopic(message.topic)
+      console.log('[Debug] Topic:', message.topic, 'Matched:', sensorKey, 'Value:', message.value)
 
       if (sensorKey) {
         const newData: SensorDataPoint = {
@@ -125,15 +92,34 @@ export const useModulesData = () => {
           value: message.value,
         }
 
-        sensorData[sensorKey].push(newData)
-
-        // Limit data points
-        if (sensorData[sensorKey].length > MAX_DATA_POINTS) {
-          sensorData[sensorKey].shift()
+        if (!sensorData[sensorKey]) {
+          sensorData[sensorKey] = []
         }
 
-        // Trigger reactivity
+        // Immutable update for reactivity
+        // We create a new array ref
+        const newHistory = [...sensorData[sensorKey], newData]
+        if (newHistory.length > MAX_DATA_POINTS) {
+          newHistory.shift()
+        }
+        sensorData[sensorKey] = newHistory
+
+        // Trigger reactivity for history
         modulesSensorData.value.set(moduleId, { ...sensorData })
+
+        // ALSO update DeviceStatus value (Real-time Value)
+        // This was missing after refactor
+        if (!deviceStatus.sensors) deviceStatus.sensors = {}
+        if (!deviceStatus.sensors[sensorKey]) deviceStatus.sensors[sensorKey] = { status: 'ok' }
+        
+        deviceStatus.sensors[sensorKey] = {
+          ...deviceStatus.sensors[sensorKey],
+          value: message.value,
+          status: 'ok'
+        }
+        
+        // Update reactivity for status
+        modulesDeviceStatus.value.set(moduleId, { ...deviceStatus })
       }
     }
   }
@@ -204,42 +190,29 @@ export const useModulesData = () => {
 
     // Merge sensor data
     if (dashboardData.sensors) {
+      console.log('[useModulesData] loadModuleDashboard sensors keys:', Object.keys(dashboardData.sensors))
       const existingData = modulesSensorData.value.get(moduleId)!
-      const newData = {
-        co2: processSensorData(dashboardData.sensors?.co2 || []) as SensorDataPoint[],
-        co: processSensorData(dashboardData.sensors?.co || []) as SensorDataPoint[],
-        temp: processSensorData(dashboardData.sensors?.temp || []) as SensorDataPoint[],
-        hum: processSensorData(dashboardData.sensors?.hum || []) as SensorDataPoint[],
-        voc: processSensorData(dashboardData.sensors?.voc || []) as SensorDataPoint[],
-        pressure: processSensorData(dashboardData.sensors?.pressure || []) as SensorDataPoint[],
-        temperature_bmp: processSensorData(dashboardData.sensors?.temperature_bmp || []) as SensorDataPoint[],
-        pm1: processSensorData(dashboardData.sensors?.pm1 || []) as SensorDataPoint[],
-        pm25: processSensorData(dashboardData.sensors?.pm25 || []) as SensorDataPoint[],
-        pm4: processSensorData(dashboardData.sensors?.pm4 || []) as SensorDataPoint[],
-        pm10: processSensorData(dashboardData.sensors?.pm10 || []) as SensorDataPoint[],
-        eco2: processSensorData(dashboardData.sensors?.eco2 || []) as SensorDataPoint[],
-        tvoc: processSensorData(dashboardData.sensors?.tvoc || []) as SensorDataPoint[],
-        temp_sht: processSensorData(dashboardData.sensors?.temp_sht || []) as SensorDataPoint[],
-        hum_sht: processSensorData(dashboardData.sensors?.hum_sht || []) as SensorDataPoint[],
-      }
+      const newData: SensorData = {}
 
-      modulesSensorData.value.set(moduleId, {
-        co2: mergeSensorData(existingData.co2, newData.co2),
-        co: mergeSensorData(existingData.co, newData.co),
-        temp: mergeSensorData(existingData.temp, newData.temp),
-        hum: mergeSensorData(existingData.hum, newData.hum),
-        voc: mergeSensorData(existingData.voc, newData.voc),
-        pressure: mergeSensorData(existingData.pressure, newData.pressure),
-        temperature_bmp: mergeSensorData(existingData.temperature_bmp, newData.temperature_bmp),
-        pm1: mergeSensorData(existingData.pm1, newData.pm1),
-        pm25: mergeSensorData(existingData.pm25, newData.pm25),
-        pm4: mergeSensorData(existingData.pm4, newData.pm4),
-        pm10: mergeSensorData(existingData.pm10, newData.pm10),
-        eco2: mergeSensorData(existingData.eco2, newData.eco2),
-        tvoc: mergeSensorData(existingData.tvoc, newData.tvoc),
-        temp_sht: mergeSensorData(existingData.temp_sht, newData.temp_sht),
-        hum_sht: mergeSensorData(existingData.hum_sht, newData.hum_sht),
+      // Process each sensor in the dashboard data
+      Object.entries(dashboardData.sensors).forEach(([key, values]) => {
+        // Validation: verify if it's a known sensor (optional, but good for safety)
+        // if (!sensorRegistry.get(key)) return 
+        
+        // Ensure values is an array
+        if (Array.isArray(values)) {
+          newData[key] = processSensorData(values) as SensorDataPoint[]
+        }
       })
+
+      const mergedData: SensorData = { ...existingData }
+      
+      Object.entries(newData).forEach(([key, points]) => {
+        mergedData[key] = mergeSensorData(existingData[key] || [], points)
+      })
+
+      console.log('[useModulesData] mergedData keys:', Object.keys(mergedData), 'temperature length:', mergedData['temperature']?.length)
+      modulesSensorData.value.set(moduleId, mergedData)
     }
   }
 
@@ -249,23 +222,7 @@ export const useModulesData = () => {
    */
   const updateModuleSensorData = (
     moduleId: string,
-    sensors: {
-      co2: SensorDataPoint[]
-      co: SensorDataPoint[]
-      temp: SensorDataPoint[]
-      hum: SensorDataPoint[]
-      voc: SensorDataPoint[]
-      pressure: SensorDataPoint[]
-      temperature_bmp: SensorDataPoint[]
-      pm1: SensorDataPoint[]
-      pm25: SensorDataPoint[]
-      pm4: SensorDataPoint[]
-      pm10: SensorDataPoint[]
-      eco2: SensorDataPoint[]
-      tvoc: SensorDataPoint[]
-      temp_sht: SensorDataPoint[]
-      hum_sht: SensorDataPoint[]
-    }
+    sensors: SensorData
   ): void => {
     initializeModule(moduleId)
     modulesSensorData.value.set(moduleId, { ...sensors })

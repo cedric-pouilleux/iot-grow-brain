@@ -244,9 +244,11 @@ export class MqttMessageHandler {
     // Format: module_id/sensor_type (ESP32 format)
     if (parts.length === 2) {
       const sensorType = parts[1]
-      const validTypes = ['co2', 'temperature', 'humidity', 'voc', 'pressure', 'temperature_bmp', 'pm1', 'pm25', 'pm4', 'pm10', 'eco2', 'tvoc', 'temp_sht', 'hum_sht']
-
-      if (!validTypes.includes(sensorType)) {
+      
+      // Validate sensor existence via Registry
+      const sensorDef = registry.getSensorDef(sensorType)
+      if (!sensorDef) {
+        this.fastify.log.warn(`⚠️ Rejected measurement for unknown sensor type: ${sensorType} (Module: ${moduleId})`)
         return false
       }
 

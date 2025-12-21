@@ -13,21 +13,7 @@ export interface SensorDataPoint {
 }
 
 export interface SensorData {
-  co2: SensorDataPoint[]
-  co: SensorDataPoint[]
-  temp: SensorDataPoint[]
-  hum: SensorDataPoint[]
-  voc: SensorDataPoint[]
-  pressure: SensorDataPoint[]
-  temperature_bmp: SensorDataPoint[]
-  pm1: SensorDataPoint[]
-  pm25: SensorDataPoint[]
-  pm4: SensorDataPoint[]
-  pm10: SensorDataPoint[]
-  eco2: SensorDataPoint[]
-  tvoc: SensorDataPoint[]
-  temp_sht: SensorDataPoint[]
-  hum_sht: SensorDataPoint[]
+  [key: string]: SensorDataPoint[]
 }
 
 export interface SensorStatus {

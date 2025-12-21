@@ -33,8 +33,11 @@ class ModuleRegistry {
           const content = await fs.readFile(manifestPath, 'utf-8')
           const manifest: ModuleManifest = JSON.parse(content)
           this.manifests.set(manifest.id, manifest)
-        } catch {
-          // No manifest in this directory, skip
+        } catch (e: any) {
+          // Ignore if manifest doesn't exist (expected for utility modules)
+          if (e.code !== 'ENOENT') {
+            console.error(`Failed to load manifest in ${dir}:`, e)
+          }
         }
       }
       

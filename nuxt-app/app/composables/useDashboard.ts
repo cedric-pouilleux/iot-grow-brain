@@ -34,68 +34,28 @@ export const useDashboard = () => {
   /**
    * Load only the historical sensor data
    * Used for time range changes - does NOT set global loading state
+   * Now dynamically handles all sensor keys from API response
    */
   const loadHistory = async (
     moduleId: string,
     days: number = 1
-  ): Promise<{
-    co2: SensorDataPoint[]
-    co: SensorDataPoint[]
-    temp: SensorDataPoint[]
-    hum: SensorDataPoint[]
-    voc: SensorDataPoint[]
-    pressure: SensorDataPoint[]
-    temperature_bmp: SensorDataPoint[]
-    pm1: SensorDataPoint[]
-    pm25: SensorDataPoint[]
-    pm4: SensorDataPoint[]
-    pm10: SensorDataPoint[]
-    eco2: SensorDataPoint[]
-    tvoc: SensorDataPoint[]
-    temp_sht: SensorDataPoint[]
-    hum_sht: SensorDataPoint[]
-  } | null> => {
+  ): Promise<Record<string, SensorDataPoint[]> | null> => {
     if (!moduleId) return null
 
     try {
       const response = await getApiModulesIdHistory(moduleId, { days: days.toString() })
-      const sensors = (response.data as DashboardSensorData) || {}
+      const sensors = (response.data as Record<string, unknown>) || {}
 
-      const co2Data = isSensorDataArray(sensors?.co2) ? sensors.co2 : []
-      const coData = isSensorDataArray(sensors?.co) ? sensors.co : []
-      const tempData = isSensorDataArray(sensors?.temp) ? sensors.temp : []
-      const humData = isSensorDataArray(sensors?.hum) ? sensors.hum : []
-      const vocData = isSensorDataArray(sensors?.voc) ? sensors.voc : []
-      const pressureData = isSensorDataArray(sensors?.pressure) ? sensors.pressure : []
-      const temperatureBmpData = isSensorDataArray(sensors?.temperature_bmp)
-        ? sensors.temperature_bmp
-        : []
-      const pm1Data = isSensorDataArray(sensors?.pm1) ? sensors.pm1 : []
-      const pm25Data = isSensorDataArray(sensors?.pm25) ? sensors.pm25 : []
-      const pm4Data = isSensorDataArray(sensors?.pm4) ? sensors.pm4 : []
-      const pm10Data = isSensorDataArray(sensors?.pm10) ? sensors.pm10 : []
-      const eco2Data = isSensorDataArray(sensors?.eco2) ? sensors.eco2 : []
-      const tvocData = isSensorDataArray(sensors?.tvoc) ? sensors.tvoc : []
-      const tempShtData = isSensorDataArray(sensors?.temp_sht) ? sensors.temp_sht : []
-      const humShtData = isSensorDataArray(sensors?.hum_sht) ? sensors.hum_sht : []
+      // Dynamically process all sensor keys
+      const result: Record<string, SensorDataPoint[]> = {}
+      
+      Object.entries(sensors).forEach(([key, values]) => {
+        if (isSensorDataArray(values)) {
+          result[key] = processSensorData(values)
+        }
+      })
 
-      return {
-        co2: processSensorData(co2Data),
-        co: processSensorData(coData),
-        temp: processSensorData(tempData),
-        hum: processSensorData(humData),
-        voc: processSensorData(vocData),
-        pressure: processSensorData(pressureData),
-        temperature_bmp: processSensorData(temperatureBmpData),
-        pm1: processSensorData(pm1Data),
-        pm25: processSensorData(pm25Data),
-        pm4: processSensorData(pm4Data),
-        pm10: processSensorData(pm10Data),
-        eco2: processSensorData(eco2Data),
-        tvoc: processSensorData(tvocData),
-        temp_sht: processSensorData(tempShtData),
-        hum_sht: processSensorData(humShtData),
-      }
+      return result
     } catch (e) {
       console.error('Erreur fetch history:', e)
       return null
@@ -110,23 +70,7 @@ export const useDashboard = () => {
     days: number = 1
   ): Promise<{
     status: DeviceStatus | null
-    sensors: {
-      co2: SensorDataPoint[]
-      co: SensorDataPoint[]
-      temp: SensorDataPoint[]
-      hum: SensorDataPoint[]
-      voc: SensorDataPoint[]
-      pressure: SensorDataPoint[]
-      temperature_bmp: SensorDataPoint[]
-      pm1: SensorDataPoint[]
-      pm25: SensorDataPoint[]
-      pm4: SensorDataPoint[]
-      pm10: SensorDataPoint[]
-      eco2: SensorDataPoint[]
-      tvoc: SensorDataPoint[]
-      temp_sht: SensorDataPoint[]
-      hum_sht: SensorDataPoint[]
-    }
+    sensors: Record<string, SensorDataPoint[]>
   } | null> => {
     if (!moduleId) return null
 
@@ -141,23 +85,7 @@ export const useDashboard = () => {
 
       return {
         status,
-        sensors: sensors || {
-          co2: [],
-          co: [],
-          temp: [],
-          hum: [],
-          voc: [],
-          pressure: [],
-          temperature_bmp: [],
-          pm1: [],
-          pm25: [],
-          pm4: [],
-          pm10: [],
-          eco2: [],
-          tvoc: [],
-          temp_sht: [],
-          hum_sht: [],
-        },
+        sensors: sensors || {},
       }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Erreur inconnue'

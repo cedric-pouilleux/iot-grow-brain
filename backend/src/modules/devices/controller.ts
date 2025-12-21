@@ -321,41 +321,15 @@ export class DeviceController {
   private async buildHistory(moduleId: string, days: number) {
     const historyRows = await this.deviceRepo.getHistoryData(moduleId, days)
 
-    const sensors = {
-      co2: [] as SensorDataPoint[],
-      temp: [] as SensorDataPoint[],
-      hum: [] as SensorDataPoint[],
-      voc: [] as SensorDataPoint[],
-      pressure: [] as SensorDataPoint[],
-      temperature_bmp: [] as SensorDataPoint[],
-      pm1: [] as SensorDataPoint[],
-      pm25: [] as SensorDataPoint[],
-      pm4: [] as SensorDataPoint[],
-      pm10: [] as SensorDataPoint[],
-      eco2: [] as SensorDataPoint[],
-      tvoc: [] as SensorDataPoint[],
-      temp_sht: [] as SensorDataPoint[],
-      hum_sht: [] as SensorDataPoint[],
-    }
+    const sensors: Record<string, SensorDataPoint[]> = {}
 
     historyRows.forEach(row => {
       const dataPoint: SensorDataPoint = { time: row.time, value: row.value }
-      switch (row.sensorType) {
-        case 'co2': sensors.co2.push(dataPoint); break
-        case 'temperature': sensors.temp.push(dataPoint); break
-        case 'humidity': sensors.hum.push(dataPoint); break
-        case 'voc': sensors.voc.push(dataPoint); break
-        case 'pressure': sensors.pressure.push(dataPoint); break
-        case 'temperature_bmp': sensors.temperature_bmp.push(dataPoint); break
-        case 'pm1': sensors.pm1.push(dataPoint); break
-        case 'pm25': sensors.pm25.push(dataPoint); break
-        case 'pm4': sensors.pm4.push(dataPoint); break
-        case 'pm10': sensors.pm10.push(dataPoint); break
-        case 'eco2': sensors.eco2.push(dataPoint); break
-        case 'tvoc': sensors.tvoc.push(dataPoint); break
-        case 'temp_sht': sensors.temp_sht.push(dataPoint); break
-        case 'hum_sht': sensors.hum_sht.push(dataPoint); break
+      
+      if (!sensors[row.sensorType]) {
+        sensors[row.sensorType] = []
       }
+      sensors[row.sensorType].push(dataPoint)
     })
 
     return sensors

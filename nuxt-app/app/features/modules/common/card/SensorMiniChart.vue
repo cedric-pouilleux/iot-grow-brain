@@ -33,7 +33,7 @@ import 'chartjs-adapter-date-fns'
 import annotationPlugin from 'chartjs-plugin-annotation'
 import type { ChartData, ChartOptions } from 'chart.js'
 import type { SensorDataPoint } from '../types'
-import { getSensorRange } from './config/sensors'
+import { getSensorRange } from '../config/sensors'
 import { useThresholds } from './composables'
 import { useChartSettings } from '~/features/modules/common/sensors-module-options/composables'
 

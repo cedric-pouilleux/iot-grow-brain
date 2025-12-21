@@ -79,7 +79,7 @@ import {
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
 import 'chartjs-adapter-date-fns'
-import { getSensorRange, getNormalizationRatio } from './config/sensors'
+import { getSensorRange, getNormalizationRatio } from '../config/sensors'
 
 if (process.client) {
   ChartJS.register(

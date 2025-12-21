@@ -142,6 +142,14 @@ const { graphDuration } = useChartSettings()
 // Track active sensor per group type (updated by UnifiedSensorCard)
 const activeSensorByGroup = reactive<Record<string, string>>({})
 
+// DEBUG: Watch props.sensorData to see what keys are being passed
+watchEffect(() => {
+  const keys = Object.keys(props.sensorData)
+  const tempLen = props.sensorData.temperature?.length ?? 0
+  const humLen = props.sensorData.humidity?.length ?? 0
+  console.log(`[BenchModulePanel] sensorData keys:`, keys, `temperature: ${tempLen}, humidity: ${humLen}`)
+})
+
 // Handler for when a card changes its active sensor
 const handleActiveSensorChange = (groupType: string, sensorKey: string) => {
   activeSensorByGroup[groupType] = sensorKey
@@ -195,9 +203,9 @@ const sensorHistoryMap = computed<Record<string, SensorDataPoint[]>>(() => {
     co2: props.sensorData.co2,
     co: props.sensorData.co,
     temp: props.sensorData.temp,
-    temperature: props.sensorData.temp,
+    temperature: props.sensorData.temperature || props.sensorData.temp, // Fallback for legacy
     hum: props.sensorData.hum,
-    humidity: props.sensorData.hum,
+    humidity: props.sensorData.humidity || props.sensorData.hum,
     voc: props.sensorData.voc,
     pressure: props.sensorData.pressure,
     temperature_bmp: props.sensorData.temperature_bmp,
@@ -258,25 +266,24 @@ const activeGroups = computed(() => {
 // ============================================================================
 
 const getSensorHistory = (type: string) => {
-  const normalizedType = normalizeSensorType(type)
-  const map: Record<string, SensorDataPoint[]> = {
-    co2: props.sensorData.co2,
-    co: props.sensorData.co,
-    temp: props.sensorData.temp,
-    hum: props.sensorData.hum,
-    voc: props.sensorData.voc,
-    pressure: props.sensorData.pressure,
-    temperature_bmp: props.sensorData.temperature_bmp,
-    pm1: props.sensorData.pm1,
-    pm25: props.sensorData.pm25,
-    pm4: props.sensorData.pm4,
-    pm10: props.sensorData.pm10,
-    eco2: props.sensorData.eco2,
-    tvoc: props.sensorData.tvoc,
-    temp_sht: props.sensorData.temp_sht,
-    hum_sht: props.sensorData.hum_sht
+  // Use original key directly - sensorData now uses dynamic keys from backend
+  // (e.g., 'temperature', 'humidity') not legacy normalized keys ('temp', 'hum')
+  const data = props.sensorData[type]
+  if (data && data.length > 0) {
+    return data
   }
-  return map[normalizedType] || []
+  
+  // Fallback to legacy keys if new key not found
+  const legacyMap: Record<string, string> = {
+    temperature: 'temp',
+    humidity: 'hum',
+  }
+  const legacyKey = legacyMap[type]
+  if (legacyKey && props.sensorData[legacyKey]) {
+    return props.sensorData[legacyKey]
+  }
+  
+  return []
 }
 
 const getHistoryMap = (group: any) => {
@@ -284,6 +291,8 @@ const getHistoryMap = (group: any) => {
   group.sensors.forEach((s: any) => {
     map[s.key] = getSensorHistory(s.key)
   })
+  // DEBUG: Log what getHistoryMap returns
+  console.log(`[getHistoryMap] ${group.label}:`, Object.entries(map).map(([k, v]) => `${k}:${v?.length || 0}`))
   return map
 }
 

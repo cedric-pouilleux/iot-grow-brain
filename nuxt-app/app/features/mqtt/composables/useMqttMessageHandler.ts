@@ -11,25 +11,7 @@ export const MQTT_TOPICS = {
   HARDWARE_CONFIG: '/hardware/config',
 } as const
 
-/**
- * Sensor topic mappings for MQTT
- */
-export const SENSOR_TOPICS = {
-  '/co2': 'co2',
-  '/temperature': 'temp',
-  '/humidity': 'hum',
-  '/voc': 'voc',
-  '/pressure': 'pressure',
-  '/temperature_bmp': 'temperature_bmp',
-  '/pm1': 'pm1',
-  '/pm25': 'pm25',
-  '/pm4': 'pm4',
-  '/pm10': 'pm10',
-  '/eco2': 'eco2',
-  '/tvoc': 'tvoc',
-  '/temp_sht': 'temp_sht',
-  '/hum_sht': 'hum_sht',
-} as const
+
 
 /**
  * Check if a topic is a status/config topic
@@ -173,7 +155,7 @@ export function mergeHardwareConfig(status: DeviceStatus, metadata: HardwareInfo
 export function useMqttMessageHandler() {
   return {
     MQTT_TOPICS,
-    SENSOR_TOPICS,
+
     isStatusTopic,
     mergeSystemData,
     mergeSystemConfig,

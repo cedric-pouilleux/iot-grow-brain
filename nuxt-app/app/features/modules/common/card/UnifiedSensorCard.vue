@@ -311,8 +311,16 @@ const formattedValue = computed(() => {
 // Unit Helper
 // ============================================================================
 
+import { sensorRegistry } from '~/features/modules/common/utils/SensorRegistry'
+
 const getUnit = (sensorKey: string) => {
   if (!sensorKey) return ''
+  
+  // Try registry first
+  const def = sensorRegistry.get(sensorKey)
+  if (def?.unit) return def.unit
+
+  // Fallback to hardcoded logic (legacy)
   const k = sensorKey.toLowerCase()
   
   if (k.includes('temp')) return '°C'

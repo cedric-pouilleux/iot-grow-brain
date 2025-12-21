@@ -137,22 +137,11 @@ export const ModuleHistoryQuerySchema = z.object({
   days: z.string().default('1').transform(Number),
 })
 
-export const ModuleHistoryResponseSchema = z.object({
-  co2: z.array(SensorDataPointSchema),
-  temp: z.array(SensorDataPointSchema),
-  hum: z.array(SensorDataPointSchema),
-  voc: z.array(SensorDataPointSchema),
-  pressure: z.array(SensorDataPointSchema),
-  temperature_bmp: z.array(SensorDataPointSchema),
-  pm1: z.array(SensorDataPointSchema),
-  pm25: z.array(SensorDataPointSchema),
-  pm4: z.array(SensorDataPointSchema),
-  pm10: z.array(SensorDataPointSchema),
-  eco2: z.array(SensorDataPointSchema),
-  tvoc: z.array(SensorDataPointSchema),
-  temp_sht: z.array(SensorDataPointSchema),
-  hum_sht: z.array(SensorDataPointSchema),
-})
+// Dynamic history schema - supports any sensor keys
+export const ModuleHistoryResponseSchema = z.record(
+  z.string(),
+  z.array(SensorDataPointSchema)
+)
 
 export const ConfigUpdateResponseSchema = z.object({
   success: z.boolean(),
