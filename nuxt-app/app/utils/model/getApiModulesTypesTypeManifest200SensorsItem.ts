@@ -5,14 +5,11 @@
  * API for IoT Dashboard
  * OpenAPI spec version: 1.0.0
  */
+import type { GetApiModulesTypesTypeManifest200SensorsItemRange } from './getApiModulesTypesTypeManifest200SensorsItemRange';
 
 export type GetApiModulesTypesTypeManifest200SensorsItem = {
   key: string;
   label: string;
   unit: string;
-  /**
-   * @minItems 2
-   * @maxItems 2
-   */
-  range: unknown[];
+  range: GetApiModulesTypesTypeManifest200SensorsItemRange;
 };

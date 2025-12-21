@@ -138,6 +138,15 @@ const getSensorStatus = (sensor: SensorItem) => {
   if (sensor.value === undefined || sensor.value === null) return { icon: 'tabler:circle-x-filled', color: 'text-red-500' }
   return { icon: 'tabler:circle-check-filled', color: 'text-green-500' }
 }
+// Debug sensors update
+/*
+watch(() => props.sensors, (newSensors) => {
+  const dht = newSensors.find(s => s.key.includes('temperature'))
+  if (dht) {
+    console.log('[DEBUG Dropdown] Updated Sensors. DHT Temp Value:', dht.value)
+  }
+}, { deep: true })
+*/
 </script>
 
 <style scoped>

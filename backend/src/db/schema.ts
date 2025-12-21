@@ -95,12 +95,13 @@ export const measurements = pgTable(
   {
     time: timestamp('time', { withTimezone: true }).notNull(),
     moduleId: text('module_id').notNull(),
-    sensorType: text('sensor_type').notNull(),
+    sensorType: text('sensor_type').notNull(),    // Canonical: temperature, humidity, co2, etc.
+    hardwareId: text('hardware_id').notNull(),    // Source hardware: dht22, bmp280, sht40, etc.
     value: doublePrecision('value').notNull(),
   },
   table => {
     return {
-      pk: primaryKey({ columns: [table.time, table.moduleId, table.sensorType] }),
+      pk: primaryKey({ columns: [table.time, table.moduleId, table.sensorType, table.hardwareId] }),
       moduleIdTimeIdx: index('measurements_module_id_time_idx').on(table.moduleId, table.time),
     }
   }

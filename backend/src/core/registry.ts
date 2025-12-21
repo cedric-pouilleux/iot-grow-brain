@@ -85,7 +85,7 @@ class ModuleRegistry {
   getValidationRange(sensorType: string): { min: number; max: number } | null {
     const sensor = this.getSensorDef(sensorType)
     if (!sensor) return null
-    return { min: sensor.range[0], max: sensor.range[1] }
+    return sensor.range
   }
 }
 

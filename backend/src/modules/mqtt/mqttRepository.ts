@@ -23,7 +23,7 @@ export class MqttRepository {
     try {
       // Use Drizzle batch insert for better performance
       // Note: onConflictDoUpdate() met à jour les doublons basés sur la clé primaire composite
-      // (time, module_id, sensor_type)
+      // (time, module_id, sensor_type, hardware_id)
       await this.db
         .insert(schema.measurements)
         .values(
@@ -31,6 +31,7 @@ export class MqttRepository {
             time: m.time,
             moduleId: m.moduleId,
             sensorType: m.sensorType,
+            hardwareId: m.hardwareId,
             value: m.value,
           }))
         )
@@ -39,6 +40,7 @@ export class MqttRepository {
             schema.measurements.time,
             schema.measurements.moduleId,
             schema.measurements.sensorType,
+            schema.measurements.hardwareId,
           ],
           set: {
             value: sql`EXCLUDED.value`,
@@ -51,6 +53,7 @@ export class MqttRepository {
         time: m.time.toISOString(),
         moduleId: m.moduleId,
         sensorType: m.sensorType,
+        hardwareId: m.hardwareId,
         value: m.value,
       }))
       throw new Error(

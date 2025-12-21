@@ -64,7 +64,7 @@ export const useMqtt = (options: {
       })
 
       socket.on('mqtt:data', (message: MqttMessage) => {
-        console.debug('[WEBSOCKET] Received MQTT data:', message.topic)
+        // console.debug('[WEBSOCKET] Received MQTT data:', message.topic)
         options.onMessage(message)
       })
     } catch (e) {

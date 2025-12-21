@@ -101,25 +101,22 @@ export interface DeviceStatus {
 }
 
 // ============================================================================
-// Dashboard Types
+// Dashboard Types (12 canonical sensor keys)
 // ============================================================================
 
 export interface DashboardSensorData {
   co2?: Array<{ time: string; value: number }>
-  co?: Array<{ time: string; value: number }>
-  temp?: Array<{ time: string; value: number }>
-  hum?: Array<{ time: string; value: number }>
-  voc?: Array<{ time: string; value: number }>
+  eco2?: Array<{ time: string; value: number }>
+  temperature?: Array<{ time: string; value: number }>
+  humidity?: Array<{ time: string; value: number }>
   pressure?: Array<{ time: string; value: number }>
-  temperature_bmp?: Array<{ time: string; value: number }>
+  voc?: Array<{ time: string; value: number }>
+  tvoc?: Array<{ time: string; value: number }>
+  co?: Array<{ time: string; value: number }>
   pm1?: Array<{ time: string; value: number }>
   pm25?: Array<{ time: string; value: number }>
   pm4?: Array<{ time: string; value: number }>
   pm10?: Array<{ time: string; value: number }>
-  eco2?: Array<{ time: string; value: number }>
-  tvoc?: Array<{ time: string; value: number }>
-  temp_sht?: Array<{ time: string; value: number }>
-  hum_sht?: Array<{ time: string; value: number }>
 }
 
 export interface DashboardData {

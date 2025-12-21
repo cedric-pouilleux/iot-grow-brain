@@ -9,9 +9,16 @@
     
     <!-- Status Indicator -->
     <div 
+      v-if="hardware.status !== 'unknown'"
       class="w-2 h-2 rounded-full flex-shrink-0"
       :class="statusClass"
       :title="statusLabel"
+    />
+    <Icon 
+      v-else
+      name="tabler:loader" 
+      class="w-3 h-3 text-gray-400 animate-spin flex-shrink-0" 
+      title="En attente..."
     />
     
     <!-- Hardware Name -->
@@ -74,7 +81,7 @@
 import { ref, computed, watch } from 'vue'
 import { useTimeAgo } from '~/composables/useTimeAgo'
 import { useSnackbar } from '~/components/design-system/UISnackbar/useSnackbar'
-import type { SensorDataPoint } from '../../../types'
+import type { SensorDataPoint } from '../../types'
 import UISlider from '~/components/design-system/UISlider/UISlider.vue'
 import UITag from '~/components/design-system/UITag/UITag.vue'
 import UITooltip from '~/components/design-system/UITooltip/UITooltip.vue'
@@ -95,7 +102,7 @@ interface HardwareData {
   name: string
   measurements: Measurement[]
   interval: number
-  status: 'ok' | 'partial' | 'missing'
+  status: 'ok' | 'partial' | 'missing' | 'unknown'
 }
 
 interface Props {
@@ -159,10 +166,23 @@ const getVariant = (status: string) => {
 // ============================================================================
 
 const timeAgo = useTimeAgo(() => {
-  const firstKey = props.hardware.measurements[0]?.key
-  if (!firstKey) return null
-  const history = props.sensorHistoryMap?.[firstKey]
+  const m = props.hardware.measurements[0]
+  if (!m) return null
+  
+  const measureKey = m.key
+  
+  // 1. Try composite key
+  const compositeKey = `${props.hardware.hardwareKey}:${measureKey}`
+  let history = props.sensorHistoryMap?.[compositeKey]
+  
+  // 2. Fallback to simple key
+  if ((!history || history.length === 0) && !measureKey.includes(':')) {
+    history = props.sensorHistoryMap?.[measureKey]
+  }
+  
   if (!history || history.length === 0) return null
+  
+  // History is sorted ASC (oldest first)
   return history[history.length - 1].time
 })
 
@@ -195,7 +215,10 @@ const saveInterval = async () => {
     try {
       const sensorsConfig: Record<string, { interval: number }> = {}
       for (const m of props.hardware.measurements) {
-        sensorsConfig[m.key] = { interval: localInterval.value }
+        // Use composite keys to decouple hardware configuration
+        // e.g. "dht22:temperature" instead of just "temperature"
+        const compositeKey = `${props.hardware.hardwareKey}:${m.key}`
+        sensorsConfig[compositeKey] = { interval: localInterval.value }
       }
       
       await $fetch(`/api/modules/${encodeURIComponent(props.moduleId)}/config`, {

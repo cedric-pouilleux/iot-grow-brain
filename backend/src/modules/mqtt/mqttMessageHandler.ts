@@ -218,28 +218,9 @@ export class MqttMessageHandler {
     parsed: TopicParts,
     now: Date
   ): boolean {
-    const { moduleId, category, sensorType, parts } = parsed
+    const { moduleId, category, parts } = parsed
 
-    // Format: module_id/sensors/sensor_type
-    if (category === 'sensors' && sensorType) {
-      const value = parseFloat(payload)
-      if (isNaN(value)) {
-        this.fastify.log.warn(`⚠️ Invalid measurement value from ${topic}: "${payload}"`)
-        return false
-      }
 
-      // Validate value range
-      if (!this.isValueValid(sensorType, value)) {
-        return true // Message was handled (rejected), don't try other handlers
-      }
-
-      this.measurementBuffer.push({ time: now, moduleId, sensorType, value })
-
-      if (this.measurementBuffer.length >= 100) {
-        void this.onMeasurementBufferFull()
-      }
-      return true
-    }
 
     // Format: module_id/hardware_id/measurement (NEW - Hardware-aware format)
     // Example: croissance/dht22/temperature, croissance/bmp280/pressure
@@ -247,19 +228,16 @@ export class MqttMessageHandler {
       const hardwareId = parts[1]
       const measurementType = parts[2]
       
-      // Map hardware + measurement to the expected sensor key
-      // This handles the translation from ESP32's generic names to the system's specific keys
-      let sensorType = measurementType
-      
-      // Hardware-specific key mappings
-      const keyMappings: Record<string, Record<string, string>> = {
+      // Canonical sensor key mappings - all hardware uses the same canonical keys
+      // The hardware_id is stored separately to track the source
+      const canonicalMappings: Record<string, Record<string, string>> = {
         'bmp280': {
-          'temperature': 'temperature_bmp',
+          'temperature': 'temperature',  // Now canonical
           'pressure': 'pressure'
         },
         'sht40': {
-          'temperature': 'temp_sht',
-          'humidity': 'hum_sht'
+          'temperature': 'temperature',  // Now canonical (was temp_sht)
+          'humidity': 'humidity'         // Now canonical (was hum_sht)
         },
         'dht22': {
           'temperature': 'temperature',
@@ -286,11 +264,9 @@ export class MqttMessageHandler {
         }
       }
       
-      // Look up the mapped key, fallback to original if not found
-      const hardwareMap = keyMappings[hardwareId]
-      if (hardwareMap && hardwareMap[measurementType]) {
-        sensorType = hardwareMap[measurementType]
-      }
+      // Look up the canonical key, fallback to original if not found
+      const hardwareMap = canonicalMappings[hardwareId]
+      const canonicalSensorType = hardwareMap?.[measurementType] ?? measurementType
 
       const value = parseFloat(payload)
       if (isNaN(value)) {
@@ -298,17 +274,25 @@ export class MqttMessageHandler {
       }
 
       // Validate value range
-      if (!this.isValueValid(sensorType, value)) {
+      if (!this.isValueValid(canonicalSensorType, value)) {
         return true // Message was handled (rejected), don't try other handlers
       }
 
-      this.measurementBuffer.push({ time: now, moduleId, sensorType, value })
+      this.measurementBuffer.push({ 
+        time: now, 
+        moduleId, 
+        sensorType: canonicalSensorType,
+        hardwareId,  // Store the hardware source
+        value 
+      })
 
       if (this.measurementBuffer.length >= 100) {
         void this.onMeasurementBufferFull()
       }
       return true
     }
+
+
 
     return false
   }
@@ -344,9 +328,12 @@ export class MqttMessageHandler {
       }
     }
     // Numeric sensor measurements
+    // Supports:
+    // - Legacy: module_id/sensors (2 parts) or module_id/sensors/sensor_type (3 parts with sensors)
+    // - New: module_id/hardware_id/measurement (3 parts with hardware-aware format)
     else if (
       parsed &&
-      (parsed.parts.length === 2 || (parsed.category === 'sensors' && parsed.parts.length === 3))
+      (parsed.parts.length === 3 && parsed.category && !['sensors', 'system', 'hardware', 'logs'].includes(parsed.category))
     ) {
       const numValue = parseFloat(payload)
       if (!isNaN(numValue)) {

@@ -35,7 +35,7 @@ export interface SensorDef {
   key: string             // "temperature"
   label: string           // "Température"
   unit: string            // "°C"
-  range: [number, number] // [-40, 85]
+  range: { min: number; max: number }  // { min: -40, max: 85 }
 }
 
 // ============================================================================

@@ -35,7 +35,7 @@ const ModuleManifestSchema = z.object({
     key: z.string(),
     label: z.string(),
     unit: z.string(),
-    range: z.tuple([z.number(), z.number()])
+    range: z.object({ min: z.number(), max: z.number() })
   })),
   actions: z.array(z.object({
     id: z.string(),

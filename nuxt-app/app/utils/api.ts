@@ -21,6 +21,7 @@ import type {
   GetApiModulesIdHistory200,
   GetApiModulesIdHistoryParams,
   GetApiModulesIdStatus200,
+  GetApiModulesIdStorage200,
   GetApiModulesTypes200Item,
   GetApiModulesTypesTypeManifest200,
   GetApiZones200Item,
@@ -343,6 +344,48 @@ export const getApiModulesIdHistory = async (id: string,
   
   const data: getApiModulesIdHistoryResponse['data'] = body ? JSON.parse(body) : {}
   return { data, status: res.status, headers: res.headers } as getApiModulesIdHistoryResponse
+}
+
+
+
+/**
+ * @summary Get module storage statistics and projections
+ */
+export type getApiModulesIdStorageResponse200 = {
+  data: GetApiModulesIdStorage200
+  status: 200
+}
+    
+export type getApiModulesIdStorageResponseSuccess = (getApiModulesIdStorageResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getApiModulesIdStorageResponse = (getApiModulesIdStorageResponseSuccess)
+
+export const getGetApiModulesIdStorageUrl = (id: string,) => {
+
+
+  
+
+  return `http://localhost:3001/api/modules/${id}/storage`
+}
+
+export const getApiModulesIdStorage = async (id: string, options?: RequestInit): Promise<getApiModulesIdStorageResponse> => {
+  
+  const res = await fetch(getGetApiModulesIdStorageUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+)
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  
+  const data: getApiModulesIdStorageResponse['data'] = body ? JSON.parse(body) : {}
+  return { data, status: res.status, headers: res.headers } as getApiModulesIdStorageResponse
 }
 
 

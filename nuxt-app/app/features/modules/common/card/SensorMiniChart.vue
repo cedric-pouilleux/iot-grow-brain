@@ -233,13 +233,14 @@ const chartOptions = computed<ChartOptions<'line'>>(() => {
       legend: { display: false },
       tooltip: {
         enabled: true,
-        backgroundColor: '#1f2937',
+        backgroundColor: '#111827',
         bodyColor: '#fff',
         padding: 8,
         cornerRadius: 6,
         displayColors: false,
         titleFont: { size: 10, weight: 'normal' as const },
         bodyFont: { size: 12, weight: 'bold' as const },
+        filter: (tooltipItem: any) => tooltipItem.dataset.label !== '',
         callbacks: {
           title: (items: any[]) => {
             const date = new Date(items[0].parsed.x)

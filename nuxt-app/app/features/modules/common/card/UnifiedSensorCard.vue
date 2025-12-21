@@ -143,6 +143,7 @@ import UITooltip from '~/components/design-system/UITooltip/UITooltip.vue'
 interface SensorItem {
   key: string
   label: string
+  sensorLabel?: string // Pure sensor type label for card title (CO2, eCO2, PM1.0)
   value?: number
   status?: string
   model?: string
@@ -311,28 +312,13 @@ const formattedValue = computed(() => {
 // Unit Helper
 // ============================================================================
 
-import { sensorRegistry } from '~/features/modules/common/utils/SensorRegistry'
+import { getUnit as getUnitFromConfig, getSensorTypeFromKey } from '~/features/modules/common/config/sensors'
 
 const getUnit = (sensorKey: string) => {
   if (!sensorKey) return ''
-  
-  // Try registry first
-  const def = sensorRegistry.get(sensorKey)
-  if (def?.unit) return def.unit
-
-  // Fallback to hardcoded logic (legacy)
-  const k = sensorKey.toLowerCase()
-  
-  if (k.includes('temp')) return '°C'
-  if (k.includes('hum')) return '%'
-  if (k.includes('pressure') || k.includes('pression')) return 'hPa'
-  if (k === 'co2' || k === 'eco2') return 'ppm'
-  if (k === 'co') return 'ppm'
-  if (k === 'tvoc') return 'ppb'
-  if (k === 'voc') return '/500'
-  if (k.includes('pm')) return 'µg/m³'
-  
-  return ''
+  // Extract sensor type from composite key (e.g., "dht22:temperature" -> "temperature")
+  const sensorType = getSensorTypeFromKey(sensorKey)
+  return getUnitFromConfig(sensorType)
 }
 
 const unit = computed(() => activeSensor.value ? getUnit(activeSensor.value.key) : '')
@@ -342,25 +328,34 @@ const unit = computed(() => activeSensor.value ? getUnit(activeSensor.value.key)
 // ============================================================================
 
 const currentTitle = computed(() => {
-  if (props.label === 'Particules fines' && activeSensor.value?.label) {
-    return activeSensor.value.label
+  // For PM: use the sensor label (PM1.0, PM2.5, etc.)
+  if (props.label === 'Particules fines' && activeSensor.value?.sensorLabel) {
+    return activeSensor.value.sensorLabel
   }
   
   if (props.sensors.length <= 1) return props.label
   
-  if ((props.label === 'COV' || props.label === 'TCOV') && activeSensor.value?.label) {
-    return activeSensor.value.label
+  // For CO2: show CO2 or eCO2 based on selected sensor
+  if (props.label === 'CO2' && activeSensor.value?.sensorLabel) {
+    return activeSensor.value.sensorLabel
+  }
+  
+  // For COV: show COV or TCOV based on selected sensor
+  if (props.label === 'COV' && activeSensor.value?.sensorLabel) {
+    return activeSensor.value.sensorLabel
   }
 
+  // For Temperature/Humidity: keep the group label
   if (props.label === 'Température' || props.label === 'Humidité') {
     return props.label
   }
 
-  if (activeSensor.value?.label && activeSensor.value.label !== props.label) {
-    return `${props.label} (${activeSensor.value.label})`
+  // Default: use sensor label if different from group label
+  if (activeSensor.value?.sensorLabel && activeSensor.value.sensorLabel !== props.label) {
+    return activeSensor.value.sensorLabel
   }
   
-  return activeSensor.value?.label || props.label
+  return activeSensor.value?.sensorLabel || props.label
 })
 
 // ============================================================================

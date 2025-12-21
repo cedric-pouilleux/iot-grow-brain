@@ -2,7 +2,7 @@ import type { DeviceStatus, SensorData, SensorDataPoint } from '../types'
 import type { MqttMessage } from '~/types'
 import { processSensorData } from '~/utils/data-processing'
 import { useMqttMessageHandler } from '~/features/mqtt/composables/useMqttMessageHandler'
-import { sensorRegistry } from '../utils/SensorRegistry'
+import { matchTopic } from '../config/sensors'
 
 const MAX_DATA_POINTS = 5000
 
@@ -83,7 +83,7 @@ export const useModulesData = () => {
     }
     // Handle sensor measurement messages
     else if (message.value !== null) {
-      const sensorKey = sensorRegistry.matchesTopic(message.topic)
+      const sensorKey = matchTopic(message.topic)
 
       if (sensorKey) {
         const newData: SensorDataPoint = {
@@ -107,12 +107,15 @@ export const useModulesData = () => {
         modulesSensorData.value.set(moduleId, { ...sensorData })
 
         // ALSO update DeviceStatus value (Real-time Value)
-        // This was missing after refactor
-        if (!deviceStatus.sensors) deviceStatus.sensors = {}
-        if (!deviceStatus.sensors[sensorKey]) deviceStatus.sensors[sensorKey] = { status: 'ok' }
+        // Extract sensor type from composite key for status lookup
+        const parts = sensorKey.split(':')
+        const sensorType = parts.length === 2 ? parts[1] : sensorKey
         
-        deviceStatus.sensors[sensorKey] = {
-          ...deviceStatus.sensors[sensorKey],
+        if (!deviceStatus.sensors) deviceStatus.sensors = {}
+        if (!deviceStatus.sensors[sensorType]) deviceStatus.sensors[sensorType] = { status: 'ok' }
+        
+        deviceStatus.sensors[sensorType] = {
+          ...deviceStatus.sensors[sensorType],
           value: message.value,
           status: 'ok'
         }

@@ -4,7 +4,7 @@
       <!-- Panel -->
       <div class="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
         <!-- Header -->
-        <div class="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+        <div class="px-4 py-2 border-b border-gray-100 dark:border-gray-700 relative z-10">
           <div class="flex items-center justify-between">
             <!-- Title + Sensor chips (grouped together) -->
             <div class="flex items-center gap-3 flex-wrap">
@@ -20,7 +20,7 @@
                   v-for="(sensor, index) in availableSensors"
                   :key="sensor.key"
                   @click="toggleSensor(sensor.key)"
-                  class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-all"
+                  class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-all cursor-pointer"
                   :class="selectedSensorKeys.has(sensor.key) 
                     ? 'bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white' 
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'"
@@ -37,7 +37,7 @@
             <!-- Close button -->
             <button 
               @click="$emit('close')"
-              class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors shrink-0"
+              class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors shrink-0 cursor-pointer"
               title="Fermer"
             >
               <Icon name="tabler:x" class="w-4 h-4" />
@@ -145,10 +145,11 @@ watch(() => [props.selectedSensor, props.initialActiveSensor] as const, ([select
 const exclusiveSensorGroups = [['voc', 'tvoc']]
 
 const toggleSensor = (sensorKey: string) => {
-  const keyLower = sensorKey.toLowerCase()
+  const parts = sensorKey.split(':')
+  const sensorType = parts.length > 1 ? parts[1].toLowerCase() : sensorKey.toLowerCase()
   
   // Check if this sensor belongs to an exclusive group
-  const exclusiveGroup = exclusiveSensorGroups.find(group => group.includes(keyLower))
+  const exclusiveGroup = exclusiveSensorGroups.find(group => group.includes(sensorType))
   
   if (exclusiveGroup) {
     // Exclusive selection: replace the current selection with this sensor
@@ -199,7 +200,10 @@ const getSensorColorByKey = (sensorKey: string): string => {
 // Get display label for a sensor (PM sensors show their type, others show model)
 const getSensorDisplayLabel = (sensor: SensorItem): string => {
   // PM sensors: show the PM type (PM1.0, PM2.5, etc.) instead of the model
-  if (/^pm\d/.test(sensor.key)) {
+  const keyParts = sensor.key.split(':')
+  const sensorType = keyParts.length > 1 ? keyParts[1] : sensor.key
+  
+  if (/^pm\d/.test(sensorType)) {
     return sensor.label
   }
   // Other sensors: prefer model name if available
@@ -212,7 +216,8 @@ const dynamicTitle = computed(() => {
   const firstKey = Array.from(selectedSensorKeys.value)[0]
   if (!firstKey) return props.sensorLabel
   
-  const keyLower = firstKey.toLowerCase()
+  const parts = firstKey.split(':')
+  const keyLower = parts.length > 1 ? parts[1].toLowerCase() : firstKey.toLowerCase()
   
   // COV sensors: show different titles based on active sensor
   if (keyLower === 'tvoc') {
@@ -233,7 +238,9 @@ const dynamicColor = computed(() => {
   if (!firstKey) return props.sensorColor
   
   // Only COV/TVOC can change color (exclusive selection)
-  const keyLower = firstKey.toLowerCase()
+  const parts = firstKey.split(':')
+  const keyLower = parts.length > 1 ? parts[1].toLowerCase() : firstKey.toLowerCase()
+  
   if (keyLower === 'voc' || keyLower === 'tvoc') {
     return getSensorColorByKey(firstKey)
   }
@@ -402,7 +409,8 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
   animation: false as const,
   interaction: {
     intersect: false,
-    mode: 'index',
+    mode: 'nearest',
+    axis: 'x',
   },
   scales: {
     x: {
@@ -447,7 +455,7 @@ const chartOptions = computed<ChartOptions<'line'>>(() => ({
     legend: { display: false },
     tooltip: {
       enabled: true,
-      backgroundColor: '#1f2937',
+      backgroundColor: '#111827',
       padding: 12,
       cornerRadius: 8,
       displayColors: true,

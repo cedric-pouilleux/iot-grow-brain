@@ -94,8 +94,8 @@ import {
   getSensorLabel,
   getSensorColor,
   getSensorUnit,
-  normalizeSensorType,
 } from '../../common/utils/sensors'
+import { getSensorTypeFromKey, getHardwareIdFromKey, getHardware } from '../../common/config/sensors'
 
 interface Props {
   moduleId: string
@@ -111,23 +111,7 @@ const emit = defineEmits<{
 }>()
 
 const props = withDefaults(defineProps<Props>(), {
-  sensorData: () => ({ 
-    co2: [], 
-    co: [],
-    temp: [], 
-    hum: [], 
-    voc: [], 
-    pressure: [], 
-    temperature_bmp: [], 
-    pm1: [], 
-    pm25: [], 
-    pm4: [], 
-    pm10: [],
-    eco2: [],
-    tvoc: [],
-    temp_sht: [],
-    hum_sht: [] 
-  }),
+  sensorData: () => ({}), // Now uses composite keys dynamically
   isHistoryLoading: false,
 })
 
@@ -148,29 +132,15 @@ const handleActiveSensorChange = (groupType: string, sensorKey: string) => {
   activeSensorByGroup[groupType] = sensorKey
 }
 
+// Define groups by sensor_type (the keys come from composite keys now)
 const sensorGroupsDefinition = [
-  {
-    type: 'temperature',
-    label: 'Température',
-    color: 'orange',
-    keys: ['temperature', 'temperature_bmp', 'temp_sht', 'temp']
-  },
-  {
-    type: 'humidity',
-    label: 'Humidité',
-    color: 'blue',
-    keys: ['humidity', 'hum_sht', 'hum']
-  },
-  { type: 'co2', label: 'CO2', color: 'emerald', keys: ['co2', 'eco2'] },
-  { type: 'co', label: 'CO', color: 'amber', keys: ['co'] },
-  { type: 'voc', label: 'COV', color: 'pink', keys: ['voc', 'tvoc'] },
-  { type: 'pressure', label: 'Pression', color: 'cyan', keys: ['pressure'] },
-  { 
-    type: 'pm', 
-    label: 'Particules fines', 
-    color: 'violet', 
-    keys: ['pm1', 'pm25', 'pm4', 'pm10'] 
-  },
+  { type: 'temperature', label: 'Température', color: 'orange', sensorTypes: ['temperature'] },
+  { type: 'humidity', label: 'Humidité', color: 'blue', sensorTypes: ['humidity'] },
+  { type: 'co2', label: 'CO2', color: 'emerald', sensorTypes: ['co2', 'eco2'] },
+  { type: 'co', label: 'CO', color: 'amber', sensorTypes: ['co'] },
+  { type: 'voc', label: 'COV', color: 'pink', sensorTypes: ['voc', 'tvoc'] },
+  { type: 'pressure', label: 'Pression', color: 'cyan', sensorTypes: ['pressure'] },
+  { type: 'pm', label: 'Particules fines', color: 'violet', sensorTypes: ['pm1', 'pm25', 'pm4', 'pm10'] },
 ]
 
 // ============================================================================
@@ -191,48 +161,105 @@ const getSensorData = (sensorName: string) => {
  * Flat map of sensor key -> latest history array.
  * Used by ModuleOptionsPanel for time counters.
  */
+// Pass through sensorData directly (now uses composite keys)
+// Pass through sensorData directly (now uses composite keys)
 const sensorHistoryMap = computed<Record<string, SensorDataPoint[]>>(() => {
-  return {
-    co2: props.sensorData.co2,
-    co: props.sensorData.co,
-    temp: props.sensorData.temp,
-    temperature: props.sensorData.temperature || props.sensorData.temp, // Fallback for legacy
-    hum: props.sensorData.hum,
-    humidity: props.sensorData.humidity || props.sensorData.hum,
-    voc: props.sensorData.voc,
-    pressure: props.sensorData.pressure,
-    temperature_bmp: props.sensorData.temperature_bmp,
-    pm1: props.sensorData.pm1,
-    pm25: props.sensorData.pm25,
-    pm4: props.sensorData.pm4,
-    pm10: props.sensorData.pm10,
-    eco2: props.sensorData.eco2,
-    tvoc: props.sensorData.tvoc,
-    temp_sht: props.sensorData.temp_sht,
-    hum_sht: props.sensorData.hum_sht
-  }
+  // console.log('[DEBUG Panel] Sensor Data Keys:', Object.keys(props.sensorData))
+  return props.sensorData
 })
+
+
 
 // ============================================================================
 // Computed: Active Groups
 // ============================================================================
 
+// Build active groups from both sensorData and deviceStatus
 const activeGroups = computed(() => {
   return sensorGroupsDefinition.map(group => {
-    const sensors = group.keys.map(key => {
-      const data = getSensorData(key)
-      const exists = data.status !== undefined || data.value !== undefined
-      if (!exists) return null
-
-      return {
-        key,
-        label: getSensorLabel(key),
-        model: data.model,
-        value: data.value,
-        status: data.status,
-        interval: data.interval
+    // Collect all composite keys from sensorData that match this group
+    const rawKeys = Object.keys(props.sensorData).filter(k => {
+      const type = getSensorTypeFromKey(k)
+      return group.sensorTypes.includes(type)
+    })
+    
+    // Filter duplicates (prefer composite keys)
+    const dataKeys = rawKeys.filter(k => {
+      if (!k.includes(':')) {
+        const type = getSensorTypeFromKey(k)
+        const hasComposite = rawKeys.some(other => other.includes(':') && getSensorTypeFromKey(other) === type)
+        if (hasComposite) return false
       }
-    }).filter((s): s is NonNullable<typeof s> => s !== null)
+      return true
+    })
+    
+    // Also check deviceStatus.sensors for sensors that might not have data yet
+    const statusSensorTypes = Object.keys(props.deviceStatus?.sensors || {})
+      .filter(sensorType => group.sensorTypes.includes(sensorType))
+    
+    // Create a set of all unique composite keys
+    // For status sensors without data, create placeholder keys
+    const allKeys = new Set<string>(dataKeys)
+    statusSensorTypes.forEach(sensorType => {
+      // Find if there's already a composite key for this sensor type
+      const hasDataKey = dataKeys.some(k => getSensorTypeFromKey(k) === sensorType)
+      if (!hasDataKey) {
+        // Add a simple key (will work as fallback)
+        allKeys.add(sensorType)
+      }
+    })
+    
+    const sensors = Array.from(allKeys).map(compositeKey => {
+      const sensorType = getSensorTypeFromKey(compositeKey)
+      const hardwareId = getHardwareIdFromKey(compositeKey)
+      const hardware = hardwareId ? getHardware(hardwareId) : null
+      const statusData = getSensorData(sensorType)
+      
+      // Find the actual data key - if this is a simple key from status, find matching composite key
+      let dataKey = compositeKey
+      if (!hardwareId) {
+        // This is a simple key from status, find matching composite key in sensorData
+        const matchingKey = Object.keys(props.sensorData).find(k => getSensorTypeFromKey(k) === sensorType)
+        if (matchingKey) {
+          dataKey = matchingKey
+        }
+      }
+      
+      // Get the last value from sensorData history (use dataKey for lookup)
+      const history = props.sensorData[dataKey] || []
+      const lastValue = history.length > 0 ? history[history.length - 1]?.value : statusData.value
+      
+      // Get hardware name from composite key or from config model
+      const hardwareName = hardware?.name || statusData.model
+      const sensorLabel = getSensorLabel(sensorType)
+      
+      // Build display label based on group type
+      let displayLabel: string
+      if (group.type === 'pm') {
+        // PM sensors: just sensor label (PM1.0, PM2.5, etc.)
+        displayLabel = sensorLabel
+      } else if (group.type === 'co2' || group.type === 'voc') {
+        // CO2 and COV: just hardware name
+        displayLabel = hardwareName || sensorLabel
+      } else if (hardwareName) {
+        // Other sensors with hardware: just hardware name
+        displayLabel = hardwareName
+      } else {
+        // Fallback: just sensor label
+        displayLabel = sensorLabel
+      }
+      
+      const sensorObj = {
+        key: dataKey, // Use the actual data key for history lookup
+        label: displayLabel,
+        sensorLabel, // Keep pure sensor label for card title
+        value: lastValue,
+        status: statusData.status,
+        interval: statusData.interval
+      }
+
+      return sensorObj
+    }).filter(s => s !== null)
 
     if (sensors.length === 0) return null
 
@@ -258,22 +285,21 @@ const activeGroups = computed(() => {
 // History Helpers
 // ============================================================================
 
-const getSensorHistory = (type: string) => {
-  // Use original key directly - sensorData now uses dynamic keys from backend
-  // (e.g., 'temperature', 'humidity') not legacy normalized keys ('temp', 'hum')
-  const data = props.sensorData[type]
-  if (data && data.length > 0) {
-    return data
+const getSensorHistory = (key: string) => {
+  // Try direct lookup first (works for composite keys like "dht22:temperature")
+  const directData = props.sensorData[key]
+  if (directData && directData.length > 0) {
+    return directData
   }
   
-  // Fallback to legacy keys if new key not found
-  const legacyMap: Record<string, string> = {
-    temperature: 'temp',
-    humidity: 'hum',
-  }
-  const legacyKey = legacyMap[type]
-  if (legacyKey && props.sensorData[legacyKey]) {
-    return props.sensorData[legacyKey]
+  // If key is not a composite key, search for matching composite key by sensor type
+  const sensorType = getSensorTypeFromKey(key)
+  if (sensorType === key) {
+    // This is a simple key, find matching composite key in sensorData
+    const matchingKey = Object.keys(props.sensorData).find(k => getSensorTypeFromKey(k) === sensorType)
+    if (matchingKey && props.sensorData[matchingKey]?.length > 0) {
+      return props.sensorData[matchingKey]
+    }
   }
   
   return []
@@ -294,7 +320,7 @@ const getHistoryMap = (group: any) => {
 const toggleGraph = (sensorType: string, activeSensorKey?: string) => {
   if (isToggling.value) return
   isToggling.value = true
-  const normalizedType = normalizeSensorType(sensorType)
+  const normalizedType = getSensorTypeFromKey(sensorType)
   
   if (selectedGraphSensor.value === normalizedType) {
     selectedGraphSensor.value = null
@@ -311,7 +337,7 @@ const toggleGraph = (sensorType: string, activeSensorKey?: string) => {
  */
 const isCardPanelOpen = (group: { sensors: { key: string }[] }) => {
   if (!selectedGraphSensor.value) return false
-  return group.sensors.some(s => normalizeSensorType(s.key) === selectedGraphSensor.value)
+  return group.sensors.some(s => getSensorTypeFromKey(s.key) === selectedGraphSensor.value)
 }
 
 /**
@@ -320,7 +346,7 @@ const isCardPanelOpen = (group: { sensors: { key: string }[] }) => {
 const selectedGraphGroup = computed(() => {
   if (!selectedGraphSensor.value) return null
   return activeGroups.value.find(g => 
-    g.sensors.some(s => normalizeSensorType(s.key) === selectedGraphSensor.value)
+    g.sensors.some(s => getSensorTypeFromKey(s.key) === selectedGraphSensor.value)
   ) || null
 })
 

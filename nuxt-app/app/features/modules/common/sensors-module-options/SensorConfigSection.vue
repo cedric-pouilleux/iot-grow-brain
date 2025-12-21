@@ -69,8 +69,10 @@ interface HardwareData {
   name: string
   measurements: Measurement[]
   interval: number
-  status: 'ok' | 'partial' | 'missing'
+  status: 'ok' | 'partial' | 'missing' | 'unknown'
 }
+
+
 
 interface Props {
   deviceStatus: DeviceStatus | null
@@ -124,15 +126,39 @@ const hardwareSensorList = computed<HardwareData[]>(() => {
   
   return HARDWARE_SENSORS
     .map(hw => {
-      // Check if any measurement from this hardware exists
+      // Check if any measurement from this hardware exists in history
       const measurements: Measurement[] = hw.measurements
         .map(measureKey => {
-          const sensorData = sensors[measureKey]
+          // 1. Try composite key (e.g. "dht22:temperature")
+          const compositeKey = `${hw.hardwareKey}:${measureKey}`
+          let history = props.sensorHistoryMap?.[compositeKey]
+
+          // 2. Fallback to simple key (e.g. "co2") if composite not found
+          // This handles legacy sensors (MHZ14A, SGP40) that map to simple keys
+          if ((!history || history.length === 0) && !measureKey.includes(':')) {
+             history = props.sensorHistoryMap?.[measureKey]
+          }
+
+          // Get latest value (assuming history is sorted ASCENDING by useModulesData)
+          const lastPoint = history && history.length > 0 ? history[history.length - 1] : null
+          
+          // Determine status: Strictly use explicit status from deviceStatus
+          // User Requirement: Data presence in history does NOT imply hardware status is OK.
+          let status: 'ok' | 'missing' | 'unknown' = 'unknown'
+          
+          const deviceSensor = props.deviceStatus?.sensors?.[compositeKey] || 
+                               (props.deviceStatus?.sensors?.[measureKey])
+
+          if (deviceSensor && deviceSensor.status) {
+             status = deviceSensor.status as 'ok' | 'missing' | 'unknown'
+          }
+          // No fallback to lastPoint. If status is not reported, it remains 'unknown' (Loader).
+
           return {
             key: measureKey,
             label: hw.measurementLabels[measureKey] || measureKey,
-            value: sensorData?.value,
-            status: (sensorData?.status === 'ok' ? 'ok' : 'missing') as 'ok' | 'missing' | 'unknown'
+            value: lastPoint?.value,
+            status
           }
         })
       
@@ -143,9 +169,12 @@ const hardwareSensorList = computed<HardwareData[]>(() => {
       if (okCount === measurements.length) status = 'ok'
       else if (okCount > 0) status = 'partial'
       
-      // Get interval from sensorsConfig (first measurement key)
+      // Get interval from sensorsConfig (prefer composite key, fallback to simple)
       const firstKey = hw.measurements[0]
-      const intervalMs = sensorsConfig?.[firstKey]?.interval || 60
+      const compositeKey = `${hw.hardwareKey}:${firstKey}`
+      const intervalMs = sensorsConfig?.[compositeKey]?.interval || 
+                         sensorsConfig?.[firstKey]?.interval || 
+                         60
       
       return {
         hardwareKey: hw.hardwareKey,

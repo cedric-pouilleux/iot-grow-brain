@@ -3,6 +3,7 @@
  * 
  * Mapping of physical hardware sensors to their measurement types.
  * Each hardware sensor reads multiple values simultaneously.
+ * Uses canonical sensor keys.
  */
 
 export interface HardwareSensorDefinition {
@@ -34,8 +35,8 @@ export const HARDWARE_SENSORS: HardwareSensorDefinition[] = [
   {
     hardwareKey: 'bmp280',
     name: 'BMP280',
-    measurements: ['pressure', 'temperature_bmp'],
-    measurementLabels: { pressure: 'Pression', temperature_bmp: 'Temp' }
+    measurements: ['pressure', 'temperature'],
+    measurementLabels: { pressure: 'Pression', temperature: 'Temp' }
   },
   {
     hardwareKey: 'sgp40',
@@ -50,10 +51,10 @@ export const HARDWARE_SENSORS: HardwareSensorDefinition[] = [
     measurementLabels: { eco2: 'eCO2', tvoc: 'TCOV' }
   },
   {
-    hardwareKey: 'sht30',
-    name: 'SHT31',
-    measurements: ['temp_sht', 'hum_sht'],
-    measurementLabels: { temp_sht: 'Temp', hum_sht: 'Hum' }
+    hardwareKey: 'sht40',
+    name: 'SHT40',
+    measurements: ['temperature', 'humidity'],
+    measurementLabels: { temperature: 'Temp', humidity: 'Hum' }
   },
   {
     hardwareKey: 'sps30',

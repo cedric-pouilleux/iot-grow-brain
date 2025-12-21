@@ -73,15 +73,15 @@ export class DeviceRepository {
     let query
     if (aggregation) {
       query = sql`
-        SELECT time_bucket(${aggregation}, time) as time, sensor_type as "sensorType", AVG(value) as value
+        SELECT time_bucket(${aggregation}, time) as time, sensor_type as "sensorType", hardware_id as "hardwareId", AVG(value) as value
         FROM measurements
         WHERE module_id = ${moduleId} AND time > ${cutoffDate}
-        GROUP BY 1, sensor_type
+        GROUP BY 1, sensor_type, hardware_id
         ORDER BY time DESC
       `
     } else {
       query = sql`
-        SELECT time, sensor_type as "sensorType", value
+        SELECT time, sensor_type as "sensorType", hardware_id as "hardwareId", value
         FROM measurements
         WHERE module_id = ${moduleId} AND time > ${cutoffDate}
         ORDER BY time DESC
@@ -92,6 +92,7 @@ export class DeviceRepository {
     return result.rows.map(row => ({
       time: new Date(row.time as string | Date),
       sensorType: row.sensorType as string,
+      hardwareId: row.hardwareId as string,
       value: Number(row.value),
     }))
   }

@@ -7,7 +7,8 @@
 export interface MqttMeasurement {
   time: Date
   moduleId: string
-  sensorType: string
+  sensorType: string    // Canonical: temperature, humidity, co2, etc.
+  hardwareId: string    // Source hardware: dht22, bmp280, sht40, etc.
   value: number
 }
 

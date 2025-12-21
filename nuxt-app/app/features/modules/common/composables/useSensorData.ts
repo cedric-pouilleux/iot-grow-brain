@@ -1,45 +1,30 @@
 import type { SensorData } from '../types'
 import type { MqttMessage } from '~/types'
 import { processSensorData } from '~/utils/data-processing'
-
-const SENSOR_TOPICS = {
-  '/co2': 'co2',
-  '/temperature': 'temp',
-  '/humidity': 'hum',
-  '/voc': 'voc',
-  '/pressure': 'pressure',
-  '/temperature_bmp': 'temperature_bmp',
-} as const
+import { SENSORS, type SensorKey } from '../config/sensors'
 
 const MAX_DATA_POINTS = 100
 
 export const useSensorData = () => {
-  const sensorData = ref<SensorData>({
-    co2: [],
-    co: [],
-    temp: [],
-    hum: [],
-    voc: [],
-    pressure: [],
-    temperature_bmp: [],
-    pm1: [],
-    pm25: [],
-    pm4: [],
-    pm10: [],
-    eco2: [],
-    tvoc: [],
-    temp_sht: [],
-    hum_sht: [],
-  })
+  // Initialize with all canonical sensor keys
+  const sensorData = ref<SensorData>(
+    Object.keys(SENSORS).reduce((acc, key) => {
+      acc[key] = []
+      return acc
+    }, {} as SensorData)
+  )
 
   const addDataPoint = (topic: string, value: number, time: string) => {
-    const sensorKey = Object.entries(SENSOR_TOPICS).find(([suffix]) =>
-      topic.endsWith(suffix)
-    )?.[1] as keyof SensorData | undefined
-
-    if (!sensorKey) return
+    // Extract sensor key from topic (last part after /)
+    const parts = topic.split('/')
+    const sensorKey = parts[parts.length - 1]
+    
+    if (!SENSORS[sensorKey as SensorKey]) return
 
     const newData = { time: new Date(time), value }
+    if (!sensorData.value[sensorKey]) {
+      sensorData.value[sensorKey] = []
+    }
     sensorData.value[sensorKey].push(newData)
 
     if (sensorData.value[sensorKey].length > MAX_DATA_POINTS) {
@@ -56,38 +41,17 @@ export const useSensorData = () => {
   }
 
   const loadFromDashboard = (dashboardSensors: Partial<SensorData> | undefined) => {
-    sensorData.value = {
-      co2: processSensorData(dashboardSensors?.co2 || []),
-      co: processSensorData(dashboardSensors?.co || []),
-      temp: processSensorData(dashboardSensors?.temp || []),
-      hum: processSensorData(dashboardSensors?.hum || []),
-      voc: processSensorData(dashboardSensors?.voc || []),
-      pressure: processSensorData(dashboardSensors?.pressure || []),
-      temperature_bmp: processSensorData(dashboardSensors?.temperature_bmp || []),
-      pm1: processSensorData(dashboardSensors?.pm1 || []),
-      pm25: processSensorData(dashboardSensors?.pm25 || []),
-      pm4: processSensorData(dashboardSensors?.pm4 || []),
-      pm10: processSensorData(dashboardSensors?.pm10 || []),
-      eco2: processSensorData(dashboardSensors?.eco2 || []),
-      tvoc: processSensorData(dashboardSensors?.tvoc || []),
-      temp_sht: processSensorData(dashboardSensors?.temp_sht || []),
-      hum_sht: processSensorData(dashboardSensors?.hum_sht || []),
-    }
+    // Initialize all canonical keys with empty arrays, then merge dashboard data
+    const result: SensorData = Object.keys(SENSORS).reduce((acc, key) => {
+      acc[key] = processSensorData(dashboardSensors?.[key] || [])
+      return acc
+    }, {} as SensorData)
+    
+    sensorData.value = result
   }
 
   const getSensorHistory = (type: string) => {
-    const typeMap: Record<string, keyof SensorData> = {
-      co2: 'co2',
-      temperature: 'temp',
-      humidity: 'hum',
-      temp: 'temp',
-      hum: 'hum',
-      voc: 'voc',
-      pressure: 'pressure',
-      temperature_bmp: 'temperature_bmp',
-    }
-    const dataKey = typeMap[type] || type
-    return sensorData.value[dataKey as keyof SensorData] || []
+    return sensorData.value[type] || []
   }
 
   return {
