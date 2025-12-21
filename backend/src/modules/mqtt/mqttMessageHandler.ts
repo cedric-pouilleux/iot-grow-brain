@@ -241,15 +241,55 @@ export class MqttMessageHandler {
       return true
     }
 
-    // Format: module_id/sensor_type (ESP32 format)
-    if (parts.length === 2) {
-      const sensorType = parts[1]
+    // Format: module_id/hardware_id/measurement (NEW - Hardware-aware format)
+    // Example: croissance/dht22/temperature, croissance/bmp280/pressure
+    if (parts.length === 3 && category !== 'sensors' && !topic.includes('/status') && !topic.includes('/config')) {
+      const hardwareId = parts[1]
+      const measurementType = parts[2]
       
-      // Validate sensor existence via Registry
-      const sensorDef = registry.getSensorDef(sensorType)
-      if (!sensorDef) {
-        this.fastify.log.warn(`⚠️ Rejected measurement for unknown sensor type: ${sensorType} (Module: ${moduleId})`)
-        return false
+      // Map hardware + measurement to the expected sensor key
+      // This handles the translation from ESP32's generic names to the system's specific keys
+      let sensorType = measurementType
+      
+      // Hardware-specific key mappings
+      const keyMappings: Record<string, Record<string, string>> = {
+        'bmp280': {
+          'temperature': 'temperature_bmp',
+          'pressure': 'pressure'
+        },
+        'sht40': {
+          'temperature': 'temp_sht',
+          'humidity': 'hum_sht'
+        },
+        'dht22': {
+          'temperature': 'temperature',
+          'humidity': 'humidity'
+        },
+        'sgp30': {
+          'eco2': 'eco2',
+          'tvoc': 'tvoc'
+        },
+        'sgp40': {
+          'voc': 'voc'
+        },
+        'sps30': {
+          'pm1': 'pm1',
+          'pm25': 'pm25',
+          'pm4': 'pm4',
+          'pm10': 'pm10'
+        },
+        'mhz14a': {
+          'co2': 'co2'
+        },
+        'mq7': {
+          'co': 'co'
+        }
+      }
+      
+      // Look up the mapped key, fallback to original if not found
+      const hardwareMap = keyMappings[hardwareId]
+      if (hardwareMap && hardwareMap[measurementType]) {
+        sensorType = hardwareMap[measurementType]
       }
 
       const value = parseFloat(payload)

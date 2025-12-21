@@ -84,7 +84,6 @@ export const useModulesData = () => {
     // Handle sensor measurement messages
     else if (message.value !== null) {
       const sensorKey = sensorRegistry.matchesTopic(message.topic)
-      console.log('[Debug] Topic:', message.topic, 'Matched:', sensorKey, 'Value:', message.value)
 
       if (sensorKey) {
         const newData: SensorDataPoint = {

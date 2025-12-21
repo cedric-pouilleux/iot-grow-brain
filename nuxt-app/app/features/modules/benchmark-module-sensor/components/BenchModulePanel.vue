@@ -142,13 +142,6 @@ const { graphDuration } = useChartSettings()
 // Track active sensor per group type (updated by UnifiedSensorCard)
 const activeSensorByGroup = reactive<Record<string, string>>({})
 
-// DEBUG: Watch props.sensorData to see what keys are being passed
-watchEffect(() => {
-  const keys = Object.keys(props.sensorData)
-  const tempLen = props.sensorData.temperature?.length ?? 0
-  const humLen = props.sensorData.humidity?.length ?? 0
-  console.log(`[BenchModulePanel] sensorData keys:`, keys, `temperature: ${tempLen}, humidity: ${humLen}`)
-})
 
 // Handler for when a card changes its active sensor
 const handleActiveSensorChange = (groupType: string, sensorKey: string) => {
@@ -291,8 +284,6 @@ const getHistoryMap = (group: any) => {
   group.sensors.forEach((s: any) => {
     map[s.key] = getSensorHistory(s.key)
   })
-  // DEBUG: Log what getHistoryMap returns
-  console.log(`[getHistoryMap] ${group.label}:`, Object.entries(map).map(([k, v]) => `${k}:${v?.length || 0}`))
   return map
 }
 

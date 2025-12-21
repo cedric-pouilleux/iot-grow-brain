@@ -4,84 +4,95 @@ description: How to add a new sensor to the IoT system
 
 # Ajouter un nouveau capteur au système IoT
 
-Ce guide explique les étapes nécessaires pour ajouter un nouveau type de capteur, depuis l'ESP32 jusqu'à l'affichage frontend.
+## Architecture MQTT
 
-## Vue d'ensemble
-
+**Nouveau format (recommandé) :**
 ```
-ESP32 → MQTT → Backend → API → Frontend
+{module_id}/{hardware_id}/{measurement}
+
+Exemples:
+croissance/dht22/temperature    → temperature
+croissance/dht22/humidity       → humidity
+croissance/bmp280/temperature   → temperature_bmp (auto-suffixé)
+croissance/bmp280/pressure      → pressure
+croissance/sps30/pm25           → pm25
 ```
 
-L'architecture est **dynamique** : les capteurs sont enregistrés dans un **Registry** centralisé.
-
----
-
-## Étapes
-
-### 1. ESP32 : Publier les données MQTT
-
-Sur l'ESP32, publiez les mesures sur le topic :
-
+**Format legacy (rétrocompatible) :**
 ```
 {module_id}/{sensor_key}
-```
 
-**Exemple** pour un capteur de luminosité (`lux`) :
-```cpp
-mqttClient.publish("croissance/lux", "1250");
+Exemple: croissance/co2
 ```
-
-⚠️ Le `sensor_key` doit être **unique** et **en minuscules**.
 
 ---
 
-### 2. Frontend : Enregistrer le capteur
+## Étapes pour ajouter un nouveau capteur
 
-#### 2.1. Définir la plage (range) dans `sensors.ts`
+### 1. ESP32 : Publier avec le nouveau format
 
-**Fichier** : `nuxt-app/app/features/modules/common/config/sensors.ts`
+```cpp
+// Nouveau format recommandé
+mqttClient.publish("croissance/bh1750/lux", "1250");
+
+// Le backend génère automatiquement la clé appropriée
+```
+
+---
+
+### 2. Frontend : Définir la plage
+
+**Fichier** : `config/sensors.ts`
 
 ```typescript
-export const sensorRanges: Record<string, SensorRange> = {
-  // ... capteurs existants ...
-  
-  // Nouveau capteur luminosité
+export const sensorRanges = {
   lux: { min: 0, max: 100000 },
 }
 ```
 
-#### 2.2. Enregistrer dans le SensorRegistry
+---
 
-**Fichier** : `nuxt-app/app/features/modules/common/config/registerStandardSensors.ts`
+### 3. Frontend : Enregistrer le hardware
+
+**Fichier** : `config/registerStandardHardware.ts`
 
 ```typescript
-// Luminosité
-sensorRegistry.register({
-  key: 'lux',
-  label: 'Luminosité',
-  unit: 'lx',
-  range: [sensorRanges.lux.min, sensorRanges.lux.max],
-  type: 'weather'  // 'pm' | 'gas' | 'weather' | 'other'
+hardwareRegistry.register({
+  id: 'bh1750',
+  name: 'BH1750',
+  capabilities: ['lux']
 })
 ```
 
 ---
 
-### 3. Frontend : Ajouter aux groupes de capteurs
+### 4. Frontend : Enregistrer la mesure
 
-**Fichier** : `nuxt-app/app/features/modules/benchmark-module-sensor/components/BenchModulePanel.vue`
+**Fichier** : `config/registerStandardSensors.ts`
 
-Ajoutez le capteur dans `sensorGroupsDefinition` :
+```typescript
+sensorRegistry.register({
+  key: 'lux',
+  label: 'Luminosité',
+  unit: 'lx',
+  range: [sensorRanges.lux.min, sensorRanges.lux.max],
+  type: 'weather',
+  sources: ['bh1750']
+})
+```
+
+---
+
+### 5. Frontend : Ajouter à l'UI
+
+**Fichier** : `BenchModulePanel.vue`
 
 ```typescript
 const sensorGroupsDefinition = [
-  // ... groupes existants ...
-  
-  // Nouveau groupe ou ajout à un groupe existant
   {
     type: 'light',
     label: 'Luminosité',
-    color: 'amber',  // emerald, orange, blue, violet, pink, cyan, amber
+    color: 'amber',
     keys: ['lux']
   },
 ]
@@ -89,54 +100,11 @@ const sensorGroupsDefinition = [
 
 ---
 
-### 4. Backend : Enregistrer le capteur
+## Gestion des conflits
 
-**Fichier** : `backend/src/modules/mqtt/mqttService.ts`
-
-Le capteur doit être ajouté au `SensorDefinition` du backend pour être reconnu :
-
-```typescript
-// Dans registerSensors() ou équivalent
-registry.registerSensor({
-  type: 'lux',
-  model: 'BH1750',
-  capabilities: ['lux']
-})
-```
-
----
-
-## Récapitulatif des fichiers à modifier
-
-| Étape | Fichier | Action |
-|-------|---------|--------|
-| Range | `config/sensors.ts` | Ajouter min/max |
-| Registry | `config/registerStandardSensors.ts` | Appeler `sensorRegistry.register()` |
-| UI | `BenchModulePanel.vue` | Ajouter aux groupes |
-| Backend | `mqtt/mqttService.ts` | Enregistrer le capteur |
-
----
-
-## Types de capteurs
-
-| Type | Couleur suggérée | Exemples |
-|------|------------------|----------|
-| `weather` | orange, blue, cyan | temp, humidity, pressure |
-| `gas` | emerald, pink | co2, voc, co |
-| `pm` | violet | pm1, pm25, pm4, pm10 |
-| `other` | gray | lux, uv, etc. |
-
----
-
-## Seuils d'alerte (optionnel)
-
-Pour ajouter des seuils d'alerte colorés sur les graphiques :
-
-**Fichier** : `nuxt-app/app/features/modules/common/card/composables/useThresholds.ts`
-
-```typescript
-const THRESHOLDS = {
-  // ... existants ...
-  lux: { good: 500, moderate: 1000, poor: 2000 }
-}
-```
+| Cas | Topic MQTT | Clé générée |
+|-----|------------|-------------|
+| DHT22 temp | `module/dht22/temperature` | `temperature` |
+| BMP280 temp | `module/bmp280/temperature` | `temperature_bmp` |
+| SHT40 temp | `module/sht40/temperature` | `temperature_sht40` |
+| CO2 unique | `module/mhz14a/co2` | `co2` |
