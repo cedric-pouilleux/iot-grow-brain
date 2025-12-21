@@ -1,5 +1,6 @@
-import type { SensorData, MqttMessage } from '../types'
-import { processSensorData } from '../utils/data-processing'
+import type { SensorData } from '../types'
+import type { MqttMessage } from '~/types'
+import { processSensorData } from '~/utils/data-processing'
 
 const SENSOR_TOPICS = {
   '/co2': 'co2',
@@ -15,11 +16,20 @@ const MAX_DATA_POINTS = 100
 export const useSensorData = () => {
   const sensorData = ref<SensorData>({
     co2: [],
+    co: [],
     temp: [],
     hum: [],
     voc: [],
     pressure: [],
     temperature_bmp: [],
+    pm1: [],
+    pm25: [],
+    pm4: [],
+    pm10: [],
+    eco2: [],
+    tvoc: [],
+    temp_sht: [],
+    hum_sht: [],
   })
 
   const addDataPoint = (topic: string, value: number, time: string) => {
@@ -48,11 +58,20 @@ export const useSensorData = () => {
   const loadFromDashboard = (dashboardSensors: Partial<SensorData> | undefined) => {
     sensorData.value = {
       co2: processSensorData(dashboardSensors?.co2 || []),
+      co: processSensorData(dashboardSensors?.co || []),
       temp: processSensorData(dashboardSensors?.temp || []),
       hum: processSensorData(dashboardSensors?.hum || []),
       voc: processSensorData(dashboardSensors?.voc || []),
       pressure: processSensorData(dashboardSensors?.pressure || []),
       temperature_bmp: processSensorData(dashboardSensors?.temperature_bmp || []),
+      pm1: processSensorData(dashboardSensors?.pm1 || []),
+      pm25: processSensorData(dashboardSensors?.pm25 || []),
+      pm4: processSensorData(dashboardSensors?.pm4 || []),
+      pm10: processSensorData(dashboardSensors?.pm10 || []),
+      eco2: processSensorData(dashboardSensors?.eco2 || []),
+      tvoc: processSensorData(dashboardSensors?.tvoc || []),
+      temp_sht: processSensorData(dashboardSensors?.temp_sht || []),
+      hum_sht: processSensorData(dashboardSensors?.hum_sht || []),
     }
   }
 

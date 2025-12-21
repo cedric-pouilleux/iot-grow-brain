@@ -78,8 +78,6 @@
 import { computed } from 'vue'
 import { Doughnut } from 'vue-chartjs'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
-import ModuleStorageSection from './ModuleStorageSection.vue'
-import { formatUptime } from '~/utils/time'
 import type { DeviceStatus } from '../types'
 import UITooltip from '~/components/design-system/UITooltip/UITooltip.vue'
 import UIPanel from '~/components/design-system/UIPanel/UIPanel.vue'

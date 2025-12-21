@@ -1,6 +1,6 @@
-import type { DeviceStatus, SensorDataPoint, DashboardSensorData } from '../types'
-import { getApiModulesIdStatus, getApiModulesIdHistory } from '../utils/api'
-import { processSensorData } from '../utils/data-processing'
+import type { DeviceStatus, SensorDataPoint, DashboardSensorData } from '~/features/modules/common/types'
+import { getApiModulesIdStatus, getApiModulesIdHistory } from '~/utils/api'
+import { processSensorData } from '~/utils/data-processing'
 
 interface RawSensorDataPoint {
   time: string | Date

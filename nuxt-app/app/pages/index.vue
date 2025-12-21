@@ -1,15 +1,12 @@
 <template>
   <div class="min-h-screen dark:bg-gray-900 text-gray-800 dark:text-gray-100 p-4 sm:p-8">
-    <!-- Zone Drawer -->
     <ZoneDrawer 
       :is-open="isZoneDrawerOpen"
       :current-device-id="activeDeviceForZone"
       @close="isZoneDrawerOpen = false" 
       @zone-changed="handleZoneChanged"
     />
-
     <div class="max-w-7xl mx-auto">
-
       <main>
         <ClientOnly>
           <div v-if="isLoading" class="text-center py-8">
@@ -35,16 +32,13 @@
           </div>
 
           <div v-else class="space-y-8">
-            <!-- Iterate over zone groups -->
             <div v-for="group in modulesByZone" :key="group.zoneId ?? 'unassigned'" class="space-y-4">
-              <!-- Zone Header -->
               <h2 class="text-lg font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-2">
                 <Icon name="tabler:map-pin" class="w-5 h-5" />
                 {{ group.zoneName }}
                 <span class="text-sm font-normal text-gray-400">({{ group.modules.length }})</span>
               </h2>
               
-              <!-- Modules in this zone -->
               <div class="space-y-6">
                 <ModulePanel
                   v-for="module in group.modules"
@@ -71,39 +65,31 @@
 </template>
 
 <script setup lang="ts">
-// Types
 import type { MqttMessage } from '../types'
-
-// Components
 import ModulePanel from '@benchmark-module-sensors/components/BenchModulePanel.vue' 
-import ZoneDrawer from '../components/ZoneDrawer.vue'
+import ZoneDrawer from '~/features/zones/components/ZoneDrawer.vue'
+import { useDatabase } from '~/features/modules/common/composables/useDatabase'
+import { useModules, useModulesData } from '~/features/modules/common/composables'
+import { useDashboard } from '~/composables/useDashboard'
+import { useMqtt } from '~/features/mqtt/composables/useMqtt'
+import { useZones } from '~/features/zones/composables/useZones'
 
-// Composables
-import { useDatabase } from '../composables/useDatabase'
-import { useModules, useModulesData } from '../features/modules/common/composables'
-import { useDashboard } from '../composables/useDashboard'
-import { useMqtt } from '../composables/useMqtt'
-import { useZones } from '../composables/useZones'
+interface ModuleGroup {
+  zoneId: string | null
+  zoneName: string
+  modules: typeof modules.value
+}
 
-// Database
 const { loadDbSize } = useDatabase()
-
-// Modules
 const { modules, error: modulesError, loadModules, addModuleFromTopic } = useModules()
+const { getModuleDeviceStatus, getModuleSensorData, handleModuleMessage, loadModuleDashboard } = useModulesData()
 
-// Module data (device status & sensor data)
-const { getModuleDeviceStatus, getModuleSensorData, handleModuleMessage, loadModuleDashboard, updateModuleSensorData } =
-  useModulesData()
-
-// Dashboard
 const {
   isLoading: dashboardLoading,
   error: dashboardError,
   loadDashboard: fetchDashboard,
-  loadHistory: fetchHistory,
 } = useDashboard()
 
-// Local state
 const isInitialLoading = ref(true)
 const isHistoryLoading = ref(false)
 const isLoading = computed(() => isInitialLoading.value || dashboardLoading.value)
@@ -116,16 +102,6 @@ const activeDeviceForZone = ref<string | null>(null)
 
 // Zones composable for refresh
 const { zones, fetchZones } = useZones()
-
-// ============================================================================
-// Modules grouped by zones
-// ============================================================================
-
-interface ModuleGroup {
-  zoneId: string | null
-  zoneName: string
-  modules: typeof modules.value
-}
 
 const modulesByZone = computed<ModuleGroup[]>(() => {
   const groups: ModuleGroup[] = []
@@ -211,26 +187,6 @@ const loadAllDashboards = async (): Promise<void> => {
 }
 
 /**
- * Handle time range change - only reload history, not status
- */
-const handleRangeChange = async () => {
-  console.log('handleRangeChange: setting isHistoryLoading = true')
-  isHistoryLoading.value = true
-  try {
-    const promises = modules.value.map(async module => {
-      const sensors = await fetchHistory(module.id, selectedRange.value)
-      if (sensors) {
-        updateModuleSensorData(module.id, sensors)
-      }
-    })
-    await Promise.all(promises)
-  } finally {
-    console.log('handleRangeChange: setting isHistoryLoading = false')
-    isHistoryLoading.value = false
-  }
-}
-
-/**
  * Reload the page (used for error recovery)
  */
 const reloadPage = (): void => {
@@ -239,19 +195,11 @@ const reloadPage = (): void => {
   }
 }
 
-// Initialization
 onMounted(async () => {
   isInitialLoading.value = true
-
-  // Load modules, zones and DB size in parallel
   await Promise.all([loadModules(), fetchZones(), loadDbSize()])
-
-  // Connect to MQTT
   connectMqtt()
-
-  // Load dashboards for all modules
   await loadAllDashboards()
-
   isInitialLoading.value = false
 })
 

@@ -24,6 +24,7 @@
           :deviceStatus="deviceStatus"
           :moduleId="moduleId"
           :sensorHistoryMap="sensorHistoryMap"
+          :dbSize="dbSize"
         />
       </div>
     </div>
@@ -31,10 +32,12 @@
 </template>
 
 <script setup lang="ts">
+import { watch } from 'vue'
 import type { DeviceStatus, SensorDataPoint } from '../types'
 import DeviceInfoSection from './DeviceInfoSection.vue'
 import ModuleConfigurationSection from './ModuleConfigurationSection.vue'
 import SensorConfigSection from './SensorConfigSection.vue'
+import { useDatabase } from '~/features/modules/common/composables/useDatabase'
 
 interface Props {
   isOpen: boolean
@@ -43,13 +46,22 @@ interface Props {
   sensorHistoryMap?: Record<string, SensorDataPoint[]>
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
-defineEmits<{
+const emit = defineEmits<{
   'toggle-zone': [zoneId: string]
   'open-zone-drawer': []
   'zone-changed': []
 }>()
+
+const { dbSize, loadDbSize } = useDatabase()
+
+// Load DB size when opened
+watch(() => props.isOpen, (isOpen) => {
+  if (isOpen) {
+    loadDbSize()
+  }
+})
 </script>
 
 <style scoped>

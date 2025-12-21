@@ -2,8 +2,8 @@
  * Composable pour gérer la logique de la base de données
  * (extrait de app.vue pour améliorer la lisibilité)
  */
-import type { GetApiDbSize200, GetApiMetricsHistory200HistoryItem } from '../utils/model'
-import { getApiDbSize, getApiMetricsHistory } from '../utils/api'
+import type { GetApiDbSize200, GetApiMetricsHistory200HistoryItem } from '~/utils/model'
+import { getApiDbSize, getApiMetricsHistory } from '~/utils/api'
 
 export const useDatabase = () => {
   const dbSize = ref<GetApiDbSize200 | null>(null)

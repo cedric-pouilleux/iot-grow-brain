@@ -552,7 +552,7 @@
 </template>
 
 <script setup lang="ts">
-import LogHistogram from '../components/LogHistogram.vue'
+import LogHistogram from '~/features/activity-logs/components/LogHistogram.vue'
 import UIDropdown from '../components/design-system/UIDropdown/UIDropdown.vue'
 
 interface LogEntry {

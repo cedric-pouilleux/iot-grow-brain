@@ -89,6 +89,12 @@ export interface SystemInfo {
   mac?: string
   /** ISO timestamp when ESP32 last booted (persistent) */
   bootedAt?: string | null
+  /** Value from system/config to calculate uptime */
+  uptimeStart?: number
+  /** Internal: timestamp when config was received */
+  _configReceivedAt?: number
+  /** Internal: offset for uptime calculation */
+  _uptimeStartOffset?: number
   flash?: FlashInfo
   memory?: SystemMemory
   rssi?: number

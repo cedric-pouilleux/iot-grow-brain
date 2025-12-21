@@ -178,7 +178,7 @@
  * Uses useZones composable for state management.
  */
 import { ref, watch, nextTick } from 'vue'
-import { useZones } from '../composables/useZones'
+import { useZones } from '~/features/zones/composables/useZones'
 
 // ============================================================================
 // Props & Emits
@@ -201,7 +201,7 @@ const emit = defineEmits<{
 const { zones, isLoading, fetchZones, createZone, updateZone, deleteZone, unassignDevice } = useZones()
 
 // Snackbar for feedback
-import { useSnackbar } from './design-system/UISnackbar/useSnackbar'
+import { useSnackbar } from '~/components/design-system/UISnackbar/useSnackbar'
 const { showSnackbar } = useSnackbar()
 
 // ============================================================================

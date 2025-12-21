@@ -72,12 +72,12 @@
  * Includes reset button for hard reset of stuck sensors
  */
 import { ref, computed, watch } from 'vue'
-import { useTimeAgo } from '../composables/useTimeAgo'
-import { useSnackbar } from './design-system/UISnackbar/useSnackbar'
-import type { SensorDataPoint } from '../types'
-import UISlider from './design-system/UISlider/UISlider.vue'
-import UITag from './design-system/UITag/UITag.vue'
-import UITooltip from './design-system/UITooltip/UITooltip.vue'
+import { useTimeAgo } from '~/composables/useTimeAgo'
+import { useSnackbar } from '~/components/design-system/UISnackbar/useSnackbar'
+import type { SensorDataPoint } from '../../../types'
+import UISlider from '~/components/design-system/UISlider/UISlider.vue'
+import UITag from '~/components/design-system/UITag/UITag.vue'
+import UITooltip from '~/components/design-system/UITooltip/UITooltip.vue'
 
 // ============================================================================
 // Types

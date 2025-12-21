@@ -1,5 +1,5 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { formatTimeAgo } from '../utils/time'
+import { formatTimeAgo } from '~/utils/time'
 
 /**
  * Composable simple pour calculer le temps écoulé depuis une date

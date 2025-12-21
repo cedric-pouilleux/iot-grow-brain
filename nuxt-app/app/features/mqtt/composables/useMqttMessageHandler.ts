@@ -1,4 +1,4 @@
-import type { DeviceStatus, SystemInfo, SensorStatus, SensorsConfigData, HardwareInfo } from '../types'
+import type { DeviceStatus, SystemInfo, SensorStatus, SensorsConfigData, HardwareInfo } from '~/features/modules/common/types'
 
 /**
  * MQTT Topic Constants

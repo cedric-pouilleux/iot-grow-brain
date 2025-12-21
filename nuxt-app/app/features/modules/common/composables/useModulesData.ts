@@ -1,7 +1,7 @@
 import type { DeviceStatus, SensorData, SensorDataPoint } from '../types'
 import type { MqttMessage } from '~/types'
 import { processSensorData } from '~/utils/data-processing'
-import { useMqttMessageHandler } from '~/composables/useMqttMessageHandler'
+import { useMqttMessageHandler } from '~/features/mqtt/composables/useMqttMessageHandler'
 
 const MAX_DATA_POINTS = 5000
 

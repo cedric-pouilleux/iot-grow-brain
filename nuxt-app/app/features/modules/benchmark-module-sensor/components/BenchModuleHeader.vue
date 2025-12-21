@@ -91,7 +91,7 @@ const emit = defineEmits<{
 // Composables
 // ============================================================================
 
-import { useZones } from '~/composables/useZones'
+import { useZones } from '~/features/zones/composables/useZones'
 const { zones } = useZones()
 
 // ============================================================================

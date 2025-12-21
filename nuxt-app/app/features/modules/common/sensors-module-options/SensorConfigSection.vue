@@ -2,15 +2,17 @@
   <div class="col-span-6 lg:col-span-3 flex flex-col space-y-3">
     <UIPanel title="Configuration des Capteurs">
       <template #options>
-        <template v-if="storageStats">
-          <UITooltip text="Espace occupé en base de donnée">
-            <UITag variant="blue" size="xs">
-              {{ formatBytes(storageStats.estimatedSizeBytes) }}
-            </UITag>
-          </UITooltip>
+        <template v-if="dbSize">
+           <div class="flex items-center gap-2">
+            <UITooltip text="Espace occupé en base de donnée (données capteurs)">
+              <UITag variant="blue" size="xs" icon="tabler:database">
+                {{ formatBytes(dbSize.totalSizeBytes) }}
+              </UITag>
+            </UITooltip>
+
+           </div>
         </template>
         
-        <!-- Projections (Compact) -->
         <!-- Projections (Grouped) -->
         <UITagList
           v-if="projectionsData"
@@ -45,8 +47,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, toRef, onMounted, watch } from 'vue'
-import HardwareSensorRow from '~/components/HardwareSensorRow.vue'
+import { computed, toRef, onMounted, watch, ref } from 'vue'
+import HardwareSensorRow from './components/HardwareSensorRow.vue'
 import UITag from '~/components/design-system/UITag/UITag.vue'
 import UITooltip from '~/components/design-system/UITooltip/UITooltip.vue'
 import UIPanel from '~/components/design-system/UIPanel/UIPanel.vue'
@@ -74,13 +76,14 @@ interface Props {
   deviceStatus: DeviceStatus | null
   moduleId: string
   sensorHistoryMap?: Record<string, SensorDataPoint[]>
+  dbSize?: { totalSizeBytes: number } | null
 }
 
 const props = defineProps<Props>()
 
-// Storage Logic
+// Storage Logic (legacy kept for projections)
 const moduleIdRef = toRef(props, 'moduleId')
-const { storageStats, projections, fetchStorageStats } = useModuleStorage(moduleIdRef)
+const { projections, fetchStorageStats } = useModuleStorage(moduleIdRef)
 
 onMounted(() => {
   fetchStorageStats()

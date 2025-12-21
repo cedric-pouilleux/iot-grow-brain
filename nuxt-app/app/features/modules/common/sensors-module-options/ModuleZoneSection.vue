@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useZones } from '~/composables/useZones'
+import { useZones } from '~/features/zones/composables/useZones'
 import UIButton from '~/components/design-system/UIButton/UIButton.vue'
 import UISelect from '~/components/design-system/UISelect/UISelect.vue'
 import UIPanel from '~/components/design-system/UIPanel/UIPanel.vue'

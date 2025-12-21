@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client'
-import type { MqttMessage } from '../types'
+import type { MqttMessage } from '~/types'
 
 export const useMqtt = (options: {
   onMessage: (message: MqttMessage) => void
