@@ -154,4 +154,33 @@ export class DeviceRepository {
 
     return result.rows[0]
   }
+
+  /**
+   * Delete a module and all its related data
+   */
+  async deleteModule(moduleId: string): Promise<{ deletedTables: string[] }> {
+    const deletedTables: string[] = []
+
+    // Delete measurements first (largest table)
+    await this.db.delete(schema.measurements).where(eq(schema.measurements.moduleId, moduleId))
+    deletedTables.push('measurements')
+
+    // Delete sensor status
+    await this.db.delete(schema.sensorStatus).where(eq(schema.sensorStatus.moduleId, moduleId))
+    deletedTables.push('sensor_status')
+
+    // Delete sensor config
+    await this.db.delete(schema.sensorConfig).where(eq(schema.sensorConfig.moduleId, moduleId))
+    deletedTables.push('sensor_config')
+
+    // Delete device hardware
+    await this.db.delete(schema.deviceHardware).where(eq(schema.deviceHardware.moduleId, moduleId))
+    deletedTables.push('device_hardware')
+
+    // Delete device system status (main record)
+    await this.db.delete(schema.deviceSystemStatus).where(eq(schema.deviceSystemStatus.moduleId, moduleId))
+    deletedTables.push('device_system_status')
+
+    return { deletedTables }
+  }
 }

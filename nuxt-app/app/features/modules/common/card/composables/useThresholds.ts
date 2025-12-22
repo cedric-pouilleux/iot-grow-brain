@@ -109,8 +109,12 @@ export function useThresholds() {
   const evaluateThreshold = (sensorKey: string, value?: number): ThresholdResult | null => {
     if (value === undefined || value === null) return null
     
-    // Normalize sensor key
-    const key = sensorKey.toLowerCase().replace(/[_-]/g, '')
+    // Extract sensor type from composite key (e.g., 'mhz14a:co2' -> 'co2')
+    const parts = sensorKey.split(':')
+    const sensorType = parts.length > 1 ? parts[1] : parts[0]
+    
+    // Normalize key (lowercase, remove underscores/dashes)
+    const key = sensorType.toLowerCase().replace(/[_-]/g, '')
     
     // Find matching threshold
     const threshold = THRESHOLDS[key]
@@ -138,7 +142,10 @@ export function useThresholds() {
    * Check if a sensor has threshold definitions
    */
   const hasThreshold = (sensorKey: string): boolean => {
-    const key = sensorKey.toLowerCase().replace(/[_-]/g, '')
+    // Extract sensor type from composite key (e.g., 'mhz14a:co2' -> 'co2')
+    const parts = sensorKey.split(':')
+    const sensorType = parts.length > 1 ? parts[1] : parts[0]
+    const key = sensorType.toLowerCase().replace(/[_-]/g, '')
     return key in THRESHOLDS
   }
   
@@ -162,9 +169,15 @@ export function useThresholds() {
   
   /**
    * Get threshold definition for a sensor
+   * Handles composite keys like 'mhz14a:co2' or 'sps30:pm25'
    */
   const getThresholdDefinition = (sensorKey: string): ThresholdDefinition | null => {
-    const key = sensorKey.toLowerCase().replace(/[_-]/g, '')
+    // Extract sensor type from composite key (e.g., 'mhz14a:co2' -> 'co2')
+    const parts = sensorKey.split(':')
+    const sensorType = parts.length > 1 ? parts[1] : parts[0]
+    
+    // Normalize key (lowercase, remove underscores/dashes)
+    const key = sensorType.toLowerCase().replace(/[_-]/g, '')
     return THRESHOLDS[key] || null
   }
   

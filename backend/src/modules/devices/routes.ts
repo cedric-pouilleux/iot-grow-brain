@@ -186,6 +186,22 @@ const devicesRoutes: FastifyPluginAsync = async fastify => {
     },
     controller.getModuleData
   )
+
+  // DELETE /modules/:id - Delete a module and all its data
+  app.delete(
+    '/modules/:id',
+    {
+      schema: {
+        tags: ['Devices'],
+        summary: 'Delete a module and all its data',
+        params: ModuleParamsSchema,
+        response: {
+          200: ConfigUpdateResponseSchema,
+        },
+      },
+    },
+    controller.deleteModule
+  )
 }
 
 export default devicesRoutes

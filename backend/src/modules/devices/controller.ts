@@ -389,4 +389,24 @@ export class DeviceController {
 
     return sensors
   }
+
+  /**
+   * Delete a module and all its related data
+   */
+  deleteModule = async (
+    req: FastifyRequest<{ Params: ModuleParams }>,
+    reply: FastifyReply
+  ) => {
+    const { id } = req.params
+
+    try {
+      const result = await this.deviceRepo.deleteModule(id)
+      this.fastify.log.info(`🗑️ Module ${id} deleted (tables: ${result.deletedTables.join(', ')})`)
+      return { success: true, message: `Module ${id} deleted`, ...result }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      this.fastify.log.error(`Error deleting module ${id}: ${errorMessage}`)
+      throw this.fastify.httpErrors.internalServerError('Failed to delete module')
+    }
+  }
 }

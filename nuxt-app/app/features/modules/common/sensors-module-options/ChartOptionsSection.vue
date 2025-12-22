@@ -35,7 +35,7 @@
               />
             </div>
 
-            <!-- Color Thresholds (Renamed) -->
+            <!-- Color Thresholds -->
             <div class="col-span-2 flex items-center justify-between">
               <span class="text-xs text-gray-500 dark:text-gray-400">Afficher les seuils</span>
               <UIToggle v-model="colorThresholds" size="small" />

@@ -73,6 +73,9 @@ export class MqttMessageHandler {
 
   /**
    * Handle sensor status messages
+   * Supports two formats:
+   * - Legacy flat: {"dht22:temperature":{"status":"ok","value":22.5}, ...}
+   * - New nested: {"moduleId":"x","moduleType":"y","sensors":{...}}
    */
   private handleSensorStatusMessage(topic: string, payload: string, moduleId: string): boolean {
     if (!topic.endsWith('/sensors/status')) {
@@ -81,7 +84,23 @@ export class MqttMessageHandler {
 
     try {
       const metadata = JSON.parse(payload)
-      this.statusUpdateBuffer.push({ moduleId, type: 'sensors_status', data: metadata })
+      
+      // Check for new nested format with moduleType
+      if (metadata.sensors && typeof metadata.sensors === 'object') {
+        // Extract moduleType and persist it via system_config update
+        if (metadata.moduleType) {
+          this.statusUpdateBuffer.push({ 
+            moduleId, 
+            type: 'system_config', 
+            data: { moduleType: metadata.moduleType } 
+          })
+        }
+        // Use the nested sensors object for sensor status
+        this.statusUpdateBuffer.push({ moduleId, type: 'sensors_status', data: metadata.sensors })
+      } else {
+        // Legacy flat format - use as-is
+        this.statusUpdateBuffer.push({ moduleId, type: 'sensors_status', data: metadata })
+      }
       return true
     } catch (e) {
       this.fastify.log.warn(`⚠️ Failed to parse sensors/status from ${topic}: ${e}`)
@@ -322,7 +341,14 @@ export class MqttMessageHandler {
       topic.endsWith('/hardware/config')
     ) {
       try {
-        wsMetadata = JSON.parse(payload) as Record<string, unknown>
+        const parsed = JSON.parse(payload) as Record<string, unknown>
+        
+        // Handle nested sensors/status format: {moduleId, moduleType, sensors: {...}}
+        if (topic.endsWith('/sensors/status') && parsed.sensors && typeof parsed.sensors === 'object') {
+          wsMetadata = parsed.sensors as Record<string, unknown>
+        } else {
+          wsMetadata = parsed
+        }
       } catch {
         // Ignore parse errors
       }

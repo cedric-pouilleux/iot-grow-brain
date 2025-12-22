@@ -65,7 +65,7 @@ export function useChartSettings() {
   })
 
   const showThresholdLines = computed({
-    get: () => false, // Feature removed
+    get: () => false, // Threshold lines disabled - using colorThresholds for colored curves instead
     set: () => {} // No-op
   })
 

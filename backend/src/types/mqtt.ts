@@ -40,13 +40,17 @@ export interface SystemConfigData {
   mac?: string
   moduleType?: string  // e.g. "air-quality-bench"
   uptimeStart?: string | number
+  rssi?: number  // Now included in system/config from new library
   flash?: {
-    usedKb?: number
-    freeKb?: number
-    systemKb?: number
+    totalKb?: number   // Total flash size
+    usedKb?: number    // Sketch size
+    freeKb?: number    // Free sketch space
+    systemKb?: number  // Legacy field
   }
   memory?: {
     heapTotalKb?: number
+    heapFreeKb?: number    // Now included in system/config from new library
+    heapMinFreeKb?: number // Now included in system/config from new library
   }
 }
 

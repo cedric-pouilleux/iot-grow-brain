@@ -88,15 +88,19 @@ export class MqttRepository {
 
   /**
    * Update system configuration (static data: ip, mac, flash, etc.)
-   * Note: bootedAt is only set on first insert, never overwritten
+   * Now also handles rssi, heapFreeKb, heapMinFreeKb from new library format
    */
   async updateSystemConfig(moduleId: string, data: SystemConfigData): Promise<void> {
-    // Calculate bootedAt from uptimeStart (absolute timestamp when ESP32 booted)
-    const uptimeSeconds = typeof data.uptimeStart === 'string'
-      ? parseInt(data.uptimeStart, 10)
-      : (data.uptimeStart ?? null)
+    // Calculate bootedAt from uptimeStart (seconds since boot)
+    let uptimeSeconds: number | null = null
+    if (typeof data.uptimeStart === 'number') {
+      uptimeSeconds = data.uptimeStart
+    } else if (typeof data.uptimeStart === 'string') {
+      uptimeSeconds = parseInt(data.uptimeStart, 10)
+      if (isNaN(uptimeSeconds)) uptimeSeconds = null
+    }
     
-    const bootedAt = uptimeSeconds !== null
+    const bootedAt = uptimeSeconds !== null && uptimeSeconds >= 0
       ? new Date(Date.now() - uptimeSeconds * 1000)
       : null
 
@@ -108,10 +112,13 @@ export class MqttRepository {
         ip: data.ip ?? null,
         mac: data.mac ?? null,
         bootedAt: bootedAt,
+        rssi: data.rssi ?? null,
         flashUsedKb: data.flash?.usedKb ?? null,
         flashFreeKb: data.flash?.freeKb ?? null,
-        flashSystemKb: data.flash?.systemKb ?? null,
+        flashSystemKb: data.flash?.totalKb ?? data.flash?.systemKb ?? null, // totalKb or legacy systemKb
         heapTotalKb: data.memory?.heapTotalKb ?? null,
+        heapFreeKb: data.memory?.heapFreeKb ?? null,
+        heapMinFreeKb: data.memory?.heapMinFreeKb ?? null,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -120,12 +127,15 @@ export class MqttRepository {
           moduleType: sql`COALESCE(EXCLUDED.module_type, device_system_status.module_type)`,
           ip: sql`COALESCE(EXCLUDED.ip, device_system_status.ip)`,
           mac: sql`COALESCE(EXCLUDED.mac, device_system_status.mac)`,
-          // bootedAt: always update (on reboot, uptimeStart resets so bootedAt updates correctly)
-          bootedAt: sql`EXCLUDED.booted_at`,
+          // bootedAt: update only if new value is not null, otherwise keep existing
+          bootedAt: sql`COALESCE(EXCLUDED.booted_at, device_system_status.booted_at)`,
+          rssi: sql`COALESCE(EXCLUDED.rssi, device_system_status.rssi)`,
           flashUsedKb: sql`COALESCE(EXCLUDED.flash_used_kb, device_system_status.flash_used_kb)`,
           flashFreeKb: sql`COALESCE(EXCLUDED.flash_free_kb, device_system_status.flash_free_kb)`,
           flashSystemKb: sql`COALESCE(EXCLUDED.flash_system_kb, device_system_status.flash_system_kb)`,
           heapTotalKb: sql`COALESCE(EXCLUDED.heap_total_kb, device_system_status.heap_total_kb)`,
+          heapFreeKb: sql`COALESCE(EXCLUDED.heap_free_kb, device_system_status.heap_free_kb)`,
+          heapMinFreeKb: sql`COALESCE(EXCLUDED.heap_min_free_kb, device_system_status.heap_min_free_kb)`,
           updatedAt: sql`NOW()`,
         },
       })
